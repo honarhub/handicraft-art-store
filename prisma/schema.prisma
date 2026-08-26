@@ -1,0 +1,115 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  phoneNumber   String?   @unique // اضافه شده برای ورود با پیامک در آینده
+  password      String?   // برای ورود موقت با ایمیل و رمز عبور
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  artistProfile ArtistProfile?
+  orders        Order[]
+}
+
+enum Role {
+  USER
+  ARTIST
+  ADMIN
+}
+
+model ArtistProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio         String?
+  portfolioUrl String?
+  products    Product[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Product {
+  id              String         @id @default(cuid())
+  title           String
+  description     String
+  imageUrl        String
+  artistId        String
+  artist          ArtistProfile  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  
+  // فیلدهای سئو تولید شده توسط هوش مصنوعی
+  seoMetaTitle    String?
+  seoMetaDesc     String?
+  seoKeywords     String?
+  
+  status          ProductStatus  @default(PENDING) // نیازمند تایید ادمین کل
+  deletedAt       DateTime?      // پیاده‌سازی Soft Delete برای جلوگیری از خطای انسانی
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  pricingTiers    PricingTier[]
+  orderItems      OrderItem[]
+}
+
+enum ProductStatus {
+  PENDING   // در انتظار تایید ادمین
+  APPROVED  // تایید شده و قابل نمایش
+  REJECTED  // رد شده
+  ARCHIVED  // بایگانی/حذف نرم توسط هنرمند
+}
+
+model PricingTier {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tierType     String   // PRE_ORDER, STANDARD, EXPRESS
+  title        String
+  description  String
+  price        Float
+  deliveryTime String
+  isAvailable  Boolean  @default(true)
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  total      Float
+  status     OrderStatus @default(PENDING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+  pricingTierId String
+  priceAtTime   Float
+  quantity      Int      @default(1)
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
