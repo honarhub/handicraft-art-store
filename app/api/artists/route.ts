@@ -11,6 +11,7 @@ export async function GET() {
     const artists = await prisma.artistProfile.findMany({
       include: {
         user: true,
+        specialties: true,
         _count: {
           select: { products: true }
         }
@@ -22,7 +23,9 @@ export async function GET() {
       id: artist.id,
       displayId: artist.displayId,
       name: artist.user.name || 'بدون نام',
-      specialties: artist.specialties || 'نامشخص',
+      specialties: artist.specialties && artist.specialties.length > 0 
+                   ? artist.specialties.map(s => s.name).join('، ') 
+                   : 'نامشخص',
       status: artist.isDeleted ? 'DELETED' : 'ACTIVE',
       isActive: artist.isActive,
       productsCount: artist._count.products

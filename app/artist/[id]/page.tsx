@@ -9,7 +9,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
   // دریافت اطلاعات واقعی از دیتابیس
   const dbArtist = await prisma.artistProfile.findFirst({
     where: { id: id, isDeleted: false, isActive: true },
-    include: { user: true, products: true }
+    include: { user: true, products: true, specialties: true }
   });
   
   if (!dbArtist) notFound();
@@ -24,7 +24,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
       name: dbArtist.user.name || 'بدون نام', 
       image: dbArtist.user.image || ('https://placehold.co/400x400/emerald/white?text=' + (dbArtist.user.name ? dbArtist.user.name[0] : 'U')) 
     },
-    specialties: dbArtist.specialties || 'نامشخص',
+    specialties: dbArtist.specialties && dbArtist.specialties.length > 0 ? dbArtist.specialties.map(s => s.name).join('، ') : 'نامشخص',
     bio: dbArtist.bio || 'توضیحاتی برای این هنرمند ثبت نشده است.',
     portfolioUrl: dbArtist.portfolioUrl || null,
     products: dbArtist.products || []

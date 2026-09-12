@@ -6,6 +6,7 @@ type Specialty = {
   name: string;
   isApproved: boolean;
   createdAt: string;
+  artists?: { user: { name: string } }[];
 };
 
 export default function AdminSpecialtiesPage() {
@@ -13,7 +14,7 @@ export default function AdminSpecialtiesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/specialties')
+    fetch('/api/specialties?admin=true')
       .then(res => res.json())
       .then(data => {
         setSpecialties(data);
@@ -77,6 +78,7 @@ export default function AdminSpecialtiesPage() {
           <thead className="text-xs text-slate-500 bg-slate-50 border-b border-slate-100 uppercase">
             <tr>
               <th className="px-6 py-4 font-bold">نام تخصص</th>
+              <th className="px-6 py-4 font-bold">درخواست دهنده</th>
               <th className="px-6 py-4 font-bold">وضعیت</th>
               <th className="px-6 py-4 font-bold">عملیات</th>
             </tr>
@@ -85,6 +87,11 @@ export default function AdminSpecialtiesPage() {
             {specialties.map(specialty => (
               <tr key={specialty.id} className={`hover:bg-slate-50 transition-colors ${!specialty.isApproved ? 'bg-yellow-50/30' : ''}`}>
                 <td className="px-6 py-4 font-bold text-slate-800">{specialty.name}</td>
+                <td className="px-6 py-4 text-slate-600">
+                  {specialty.artists && specialty.artists.length > 0
+                    ? specialty.artists.map(a => a.user.name).join('، ')
+                    : <span className="text-slate-400 italic">پیش‌فرض سیستم</span>}
+                </td>
                 <td className="px-6 py-4">
                   {specialty.isApproved ? (
                     <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده / پیش‌فرض</span>

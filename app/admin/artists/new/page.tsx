@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import SpecialtyTagInput, { Specialty } from '../../components/SpecialtyTagInput';
+import SpecialtyTagInput, { Specialty } from '../../../components/SpecialtyTagInput';
 
 export default function AddArtistPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');

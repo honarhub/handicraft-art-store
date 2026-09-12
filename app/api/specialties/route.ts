@@ -7,14 +7,26 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q');
+    const isAdmin = searchParams.get('admin') === 'true';
     
     let specialties = [];
-    if (q) {
+    if (isAdmin) {
+      // ادمین کل لیست را همراه با هنرمندان درخواست دهنده می‌بیند
+      specialties = await prisma.specialty.findMany({
+        orderBy: [ { isApproved: 'asc' }, { name: 'asc' } ],
+        include: {
+          artists: {
+            select: { user: { select: { name: true } } }
+          }
+        }
+      });
+    } else if (q) {
       specialties = await prisma.specialty.findMany({
         where: { name: { contains: q, mode: 'insensitive' } },
         take: 10
       });
     } else {
+      // این حالت دیگر توسط فرانت‌اند به دلیل تایمر سرچ فراخوانی نمی‌شود ولی محض احتیاط
       specialties = await prisma.specialty.findMany({
         where: { isApproved: true },
         take: 50,

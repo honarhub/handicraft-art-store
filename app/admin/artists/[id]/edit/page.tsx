@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import SpecialtyTagInput, { Specialty } from '../../../components/SpecialtyTagInput';
+import SpecialtyTagInput, { Specialty } from '../../../../components/SpecialtyTagInput';
 
 export default function EditArtistPage() {
   const params = useParams();

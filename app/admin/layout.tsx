@@ -1,6 +1,12 @@
 import React from 'react';
+import prisma from '@/lib/prisma';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  // گرفتن تعداد تخصص‌های در انتظار تایید
+  const pendingSpecialtiesCount = await prisma.specialty.count({
+    where: { isApproved: false }
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
       {/* سایدبار ادمین کل */}
@@ -18,6 +24,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </a>
           <a href="/admin/products" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
             📦 تایید محصولات
+          </a>
+          <a href="/admin/specialties" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              🏷️ مدیریت تخصص‌ها
+            </div>
+            {pendingSpecialtiesCount > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                {pendingSpecialtiesCount}
+              </span>
+            )}
           </a>
         </nav>
         <div className="p-4 mt-auto border-t border-slate-800">
