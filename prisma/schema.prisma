@@ -31,11 +31,15 @@ enum Role {
 
 model ArtistProfile {
   id          String   @id @default(cuid())
+  displayId   Int      @default(autoincrement()) @unique
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio         String?
   portfolioUrl String?
+  isActive    Boolean  @default(true)
+  isDeleted   Boolean  @default(false) // حذف نرم هنرمندان
   products    Product[]
+  specialties Specialty[] // ارتباط Many-to-Many با تخصص‌ها
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -59,6 +63,7 @@ model Product {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  specialties     Specialty[]    // ارتباط Many-to-Many با تخصص‌ها
   pricingTiers    PricingTier[]
   orderItems      OrderItem[]
 }
@@ -112,4 +117,14 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+model Specialty {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  isApproved  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  artists     ArtistProfile[]
+  products    Product[]
 }
