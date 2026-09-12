@@ -23,9 +23,7 @@ export async function GET() {
       id: artist.id,
       displayId: artist.displayId,
       name: artist.user.name || 'بدون نام',
-      specialties: artist.specialties && artist.specialties.length > 0 
-                   ? artist.specialties.map(s => s.name).join('، ') 
-                   : 'نامشخص',
+      specialties: artist.specialties || [],
       status: artist.isDeleted ? 'DELETED' : 'ACTIVE',
       isActive: artist.isActive,
       productsCount: artist._count.products

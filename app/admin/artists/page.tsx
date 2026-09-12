@@ -70,7 +70,7 @@ export default function AdminArtistsPage() {
   const filteredArtists = artists.filter(artist => {
     const matchId = String(artist.displayId).includes(filters.id);
     const matchName = artist.name.toLowerCase().includes(filters.name.toLowerCase());
-    const matchSpec = artist.specialties.toLowerCase().includes(filters.specialties.toLowerCase());
+    const matchSpec = (artist.specialties || []).map((s: any) => s.name).join(' ').toLowerCase().includes(filters.specialties.toLowerCase());
     return matchId && matchName && matchSpec;
   });
 
@@ -139,7 +139,15 @@ export default function AdminArtistsPage() {
                 <tr key={artist.id} className={`hover:bg-slate-50 transition-colors ${artist.status === 'DELETED' ? 'opacity-60 bg-slate-50' : ''}`}>
                   <td className="px-6 py-4 font-black text-slate-400 text-center w-16 text-lg">{artist.displayId}</td>
                   <td className="px-6 py-4 font-bold text-slate-800">{artist.name}</td>
-                  <td className="px-6 py-4 text-slate-600">{artist.specialties}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {artist.specialties && artist.specialties.length > 0 ? artist.specialties.map((s: any) => (
+                        <span key={s.id} className={`text-[10px] font-bold px-2 py-1 rounded-md ${s.isApproved ? 'bg-emerald-100 text-emerald-800' : 'bg-yellow-100 text-yellow-800 border border-yellow-200'}`}>
+                          {s.name}
+                        </span>
+                      )) : <span className="text-slate-400 text-xs">نامشخص</span>}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-center">
                     <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold">{artist.productsCount}</span>
                   </td>
