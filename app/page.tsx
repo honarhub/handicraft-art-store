@@ -23,8 +23,8 @@ export default async function Home() {
           </div>
           <nav className="hidden md:flex gap-8 text-sm font-bold text-slate-600">
             <a href="#marketplace" className="hover:text-emerald-600 transition-colors">مارکت‌پلیس</a>
-            <a href="/admin/artists" className="hover:text-emerald-600 transition-colors">پنل ادمین</a>
-            <a href="#" className="hover:text-emerald-600 transition-colors">داستان ما</a>
+            <a href="/artist-panel/login" className="hover:text-emerald-600 transition-colors">پنل هنرمندان</a>
+            <a href="/admin" className="hover:text-emerald-600 transition-colors">پنل ادمین</a>
           </nav>
         </div>
       </header>
@@ -57,8 +57,8 @@ export default async function Home() {
             <a href="#marketplace" className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-lg shadow-xl shadow-slate-900/20 transition-all hover:scale-105 active:scale-95">
               گشت و گذار در گالری
             </a>
-            <a href="/admin/artists" className="px-8 py-4 bg-white text-slate-800 rounded-2xl font-bold text-lg shadow-lg border border-slate-100 transition-all hover:bg-slate-50 hover:scale-105 active:scale-95">
-              ورود هنرمندان (ادمین)
+            <a href="/artist-panel/login" className="px-8 py-4 bg-white text-slate-800 rounded-2xl font-bold text-lg shadow-lg border border-slate-100 transition-all hover:bg-slate-50 hover:scale-105 active:scale-95">
+              ورود هنرمندان
             </a>
           </div>
         </section>
