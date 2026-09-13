@@ -95,7 +95,7 @@ export default function AddProductPage() {
     
     setSubmitLoading(true);
     try {
-      const res = await fetch('/api/products', {
+      const res = await fetch('/api/products?isAdmin=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

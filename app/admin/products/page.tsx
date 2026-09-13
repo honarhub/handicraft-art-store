@@ -19,6 +19,28 @@ export default function AdminProductsPage() {
       });
   }, []);
 
+  const handleUpdateStatus = async (id: string, status: string) => {
+    let feedback = '';
+    if (status === 'REJECTED') {
+      const reason = window.prompt('دلیل رد این محصول چیست؟ (برای نمایش به هنرمند)');
+      if (reason === null) return; // User cancelled
+      feedback = reason;
+    }
+
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'updateStatus', status, adminFeedback: feedback })
+      });
+      if (!res.ok) throw new Error('خطا در بروزرسانی');
+      
+      setProducts(products.map(p => p.id === id ? { ...p, status } : p));
+    } catch (err) {
+      alert('خطا در اعمال تغییرات');
+    }
+  };
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -70,9 +92,21 @@ export default function AdminProductsPage() {
                     {product.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">رد شده</span>}
                   </td>
                   <td className="px-6 py-4 text-left">
-                    <button className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold">
-                      بررسی و ویرایش
-                    </button>
+                    <div className="flex justify-end items-center gap-2">
+                      {product.status === 'PENDING' && (
+                        <>
+                          <button onClick={() => handleUpdateStatus(product.id, 'APPROVED')} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-transparent hover:border-emerald-100">
+                            تایید
+                          </button>
+                          <button onClick={() => handleUpdateStatus(product.id, 'REJECTED')} className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-transparent hover:border-red-100">
+                            رد کردن
+                          </button>
+                        </>
+                      )}
+                      <a href={`/admin/products/${product.id}/edit`} className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold">
+                        ویرایش
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -38,6 +38,11 @@ model ArtistProfile {
   portfolioUrl String?
   isActive    Boolean  @default(true)
   isDeleted   Boolean  @default(false) // حذف نرم هنرمندان
+  
+  // فیلدهای مربوط به چرخه تایید تغییرات
+  pendingEdits   Json?     // نگهداری تغییرات پیشنهادی هنرمند
+  adminFeedback  String?   // بازخورد ادمین در صورت رد تغییرات یا رد محصول
+  
   products    Product[]
   specialties Specialty[] // ارتباط Many-to-Many با تخصص‌ها
   createdAt   DateTime @default(now())
@@ -58,6 +63,7 @@ model Product {
   seoKeywords     String?
   
   status          ProductStatus  @default(PENDING) // نیازمند تایید ادمین کل
+  adminFeedback   String?        // دلیل رد محصول توسط ادمین
   deletedAt       DateTime?      // پیاده‌سازی Soft Delete برای جلوگیری از خطای انسانی
   
   createdAt       DateTime       @default(now())

@@ -56,6 +56,9 @@ export async function POST(request: Request) {
       imageUrl = `/uploads/products/${fileName}`;
     }
 
+    const { searchParams } = new URL(request.url);
+    const isAdmin = searchParams.get('isAdmin') === 'true';
+
     const newProduct = await prisma.product.create({
       data: {
         title,
@@ -65,6 +68,7 @@ export async function POST(request: Request) {
         seoMetaTitle,
         seoMetaDesc,
         seoKeywords,
+        status: isAdmin ? 'APPROVED' : 'PENDING',
         specialties: specialties && specialties.length > 0 ? {
           connect: specialties.map((id: string) => ({ id }))
         } : undefined,
