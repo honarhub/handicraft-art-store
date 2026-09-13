@@ -21,6 +21,7 @@ model User {
 
   artistProfile ArtistProfile?
   orders        Order[]
+  certificates  ProductCertificate[] // مدارک مالکیت محصولات خریداری شده
 }
 
 enum Role {
@@ -39,11 +40,16 @@ model ArtistProfile {
   isActive    Boolean  @default(true)
   isDeleted   Boolean  @default(false) // حذف نرم هنرمندان
   
+  // فیلدهای مالی
+  balance         Float    @default(0)
+  commissionRate  Float    @default(10.0) // 10% پیش‌فرض برای پلتفرم
+  
   // فیلدهای مربوط به چرخه تایید تغییرات
   pendingEdits   Json?     // نگهداری تغییرات پیشنهادی هنرمند
   adminFeedback  String?   // بازخورد ادمین در صورت رد تغییرات یا رد محصول
   
   products    Product[]
+  transactions Transaction[]
   specialties Specialty[] // ارتباط Many-to-Many با تخصص‌ها
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -56,6 +62,10 @@ model Product {
   imageUrl        String
   artistId        String
   artist          ArtistProfile  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  
+  // انبارداری و نوع محصول
+  stockQuantity   Int            @default(1)
+  isUnique        Boolean        @default(true) // محصول تک‌نسخه است یا قابل تولید مجدد
   
   // فیلدهای سئو تولید شده توسط هوش مصنوعی
   seoMetaTitle    String?
@@ -72,6 +82,42 @@ model Product {
   specialties     Specialty[]    // ارتباط Many-to-Many با تخصص‌ها
   pricingTiers    PricingTier[]
   orderItems      OrderItem[]
+  certificates    ProductCertificate[]
+}
+
+model Transaction {
+  id          String         @id @default(cuid())
+  artistId    String
+  artist      ArtistProfile  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  orderId     String?
+  amount      Float
+  type        TransactionType
+  status      TransactionStatus @default(COMPLETED)
+  description String?
+  createdAt   DateTime       @default(now())
+}
+
+enum TransactionType {
+  CREDIT  // واریز به حساب هنرمند بابت فروش
+  DEBIT   // برداشت از حساب هنرمند بابت تسویه
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model ProductCertificate {
+  id          String   @id @default(cuid())
+  hash        String   @unique // هش SHA-256 ترکیب شده با نمک (Salt)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+  orderItemId String   @unique // هر آیتم سفارش یک شناسنامه دارد
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  issuedAt    DateTime @default(now())
 }
 
 enum ProductStatus {
@@ -114,6 +160,7 @@ model OrderItem {
   pricingTierId String
   priceAtTime   Float
   quantity      Int      @default(1)
+  certificate   ProductCertificate?
 }
 
 enum OrderStatus {

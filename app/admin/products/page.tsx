@@ -95,16 +95,16 @@ export default function AdminProductsPage() {
                     <div className="flex justify-end items-center gap-2">
                       {product.status === 'PENDING' && (
                         <>
-                          <button onClick={() => handleUpdateStatus(product.id, 'APPROVED')} className="text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-transparent hover:border-emerald-100">
-                            تایید
+                          <button onClick={() => handleUpdateStatus(product.id, 'APPROVED')} title="تایید محصول" className="text-emerald-600 hover:bg-emerald-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-emerald-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                           </button>
-                          <button onClick={() => handleUpdateStatus(product.id, 'REJECTED')} className="text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold border border-transparent hover:border-red-100">
-                            رد کردن
+                          <button onClick={() => handleUpdateStatus(product.id, 'REJECTED')} title="رد محصول" className="text-red-600 hover:bg-red-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-red-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                           </button>
                         </>
                       )}
-                      <a href={`/admin/products/${product.id}/edit`} className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold">
-                        ویرایش
+                      <a href={`/admin/products/${product.id}/edit`} title="ویرایش" className="text-blue-600 hover:bg-blue-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-blue-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </a>
                     </div>
                   </td>
