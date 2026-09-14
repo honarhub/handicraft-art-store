@@ -67,12 +67,17 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
     name: artist.user?.name || '',
     bio: artist.bio || '',
     portfolioUrl: artist.portfolioUrl || '',
-    image: artist.user?.image || null
+    image: artist.user?.image || null,
+    specialties: artist.specialties?.map((s: any) => s.name).join('، ') || ''
   };
 
-  const pending = artist.pendingEdits;
+  const pending = {
+    ...artist.pendingEdits,
+    specialties: artist.pendingEdits?.specialties ? artist.pendingEdits.specialties.map((s: any) => s.name).join('، ') : undefined
+  };
 
   const DiffField = ({ label, oldVal, newVal, isImage = false }: { label: string, oldVal: string, newVal: string, isImage?: boolean }) => {
+    // If newVal is undefined, it means this field was not part of the pending edits (or didn't change).
     const isChanged = oldVal !== newVal && newVal !== undefined;
     if (!isChanged) return null;
 
@@ -118,6 +123,7 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
         
         <DiffField label="تصویر پروفایل" oldVal={current.image} newVal={pending.image} isImage={true} />
         <DiffField label="نام هنرمند" oldVal={current.name} newVal={pending.name} />
+        <DiffField label="تخصص‌ها" oldVal={current.specialties} newVal={pending.specialties} />
         <DiffField label="لینک پورتفولیو" oldVal={current.portfolioUrl} newVal={pending.portfolioUrl} />
         <DiffField label="بیوگرافی" oldVal={current.bio} newVal={pending.bio} />
 

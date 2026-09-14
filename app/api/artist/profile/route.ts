@@ -43,6 +43,7 @@ export async function PATCH(request: Request) {
       bio: body.bio,
       portfolioUrl: body.portfolioUrl,
       image: body.image, // Base64 image
+      specialties: body.specialties,
       submittedAt: new Date().toISOString()
     };
 

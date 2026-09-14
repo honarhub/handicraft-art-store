@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 
+import SpecialtyTagInput, { Specialty } from '../../../../components/SpecialtyTagInput';
+
 export default function ArtistProfilePage() {
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -13,6 +15,7 @@ export default function ArtistProfilePage() {
   const [bio, setBio] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
 
   useEffect(() => {
     fetch('/api/artist/profile')
@@ -25,11 +28,13 @@ export default function ArtistProfilePage() {
           setBio(data.pendingEdits.bio || data.bio || '');
           setPortfolioUrl(data.pendingEdits.portfolioUrl || data.portfolioUrl || '');
           setImagePreview(data.pendingEdits.image || data.user?.image || null);
+          setSpecialties(data.pendingEdits.specialties || data.specialties || []);
         } else {
           setName(data.user?.name || '');
           setBio(data.bio || '');
           setPortfolioUrl(data.portfolioUrl || '');
           setImagePreview(data.user?.image || null);
+          setSpecialties(data.specialties || []);
         }
         setLoading(false);
       })
@@ -59,9 +64,20 @@ export default function ArtistProfilePage() {
     }
   };
 
+  const formatUrl = (url: string) => {
+    if (!url.trim()) return '';
+    // اگر با http یا https شروع نشده بود، به صورت خودکار https:// را اضافه می‌کنیم
+    if (!/^https?:\/\//i.test(url)) {
+      return `https://${url}`;
+    }
+    return url;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitLoading(true);
+    
+    const formattedUrl = formatUrl(portfolioUrl);
     
     try {
       const res = await fetch('/api/artist/profile', {
@@ -70,8 +86,9 @@ export default function ArtistProfilePage() {
         body: JSON.stringify({
           name,
           bio,
-          portfolioUrl,
-          image: imagePreview
+          portfolioUrl: formattedUrl,
+          image: imagePreview,
+          specialties: specialties // Send the full specialty objects, we'll extract IDs in API if needed
         })
       });
 
@@ -79,6 +96,7 @@ export default function ArtistProfilePage() {
       
       alert('تغییرات شما با موفقیت ثبت شد و در انتظار تایید ادمین قرار گرفت.');
       setPendingMode(true);
+      setPortfolioUrl(formattedUrl);
       
       // Clear any previous feedback in the local state
       setArtist({...artist, adminFeedback: null});
@@ -149,7 +167,12 @@ export default function ArtistProfilePage() {
             
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">لینک پورتفولیو یا شبکه اجتماعی</label>
-              <input type="url" value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none text-left" dir="ltr" placeholder="https://instagram.com/..." />
+              <input type="text" value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} onBlur={() => setPortfolioUrl(formatUrl(portfolioUrl))} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none text-left" dir="ltr" placeholder="instagram.com/myart" />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌ها</label>
+              <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
             </div>
 
             <div className="md:col-span-2">
