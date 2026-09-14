@@ -20,6 +20,7 @@ export default function AdminSidebarNav({ pendingArtistsCount, pendingProductsCo
     { href: '/admin/specialties', label: '🏷️ مدیریت تخصص‌ها', count: pendingSpecialtiesCount, badgeColor: 'bg-red-500 text-white' },
     { href: '/admin/support', label: '🎧 پشتیبانی و تیکت‌ها' },
     { href: '/admin/stock-requests', label: '🔔 درخواست‌های موجودی' },
+    { href: '/admin/settings', label: '⚙️ تنظیمات سایت' },
   ];
 
   return (
