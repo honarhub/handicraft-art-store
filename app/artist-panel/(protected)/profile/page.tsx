@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
+import SocialLinksInput from '@/app/components/SocialLinksInput';
 
 export default function ArtistProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,7 @@ export default function ArtistProfilePage() {
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [socialLinks, setSocialLinks] = useState<any>({});
 
   useEffect(() => {
     fetch('/api/artist/profile')
@@ -29,12 +31,14 @@ export default function ArtistProfilePage() {
           setPortfolioUrl(data.pendingEdits.portfolioUrl || data.portfolioUrl || '');
           setImagePreview(data.pendingEdits.image || data.user?.image || null);
           setSpecialties(data.pendingEdits.specialties || data.specialties || []);
+          setSocialLinks(data.pendingEdits.socialLinks || data.socialLinks || {});
         } else {
           setName(data.user?.name || '');
           setBio(data.bio || '');
           setPortfolioUrl(data.portfolioUrl || '');
           setImagePreview(data.user?.image || null);
           setSpecialties(data.specialties || []);
+          setSocialLinks(data.socialLinks || {});
         }
         setLoading(false);
       })
@@ -87,6 +91,7 @@ export default function ArtistProfilePage() {
           name,
           bio,
           portfolioUrl: formattedUrl,
+          socialLinks,
           image: imagePreview,
           specialties: specialties // Send the full specialty objects, we'll extract IDs in API if needed
         })
@@ -166,8 +171,13 @@ export default function ArtistProfilePage() {
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">لینک پورتفولیو یا شبکه اجتماعی</label>
-              <input type="text" value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} onBlur={() => setPortfolioUrl(formatUrl(portfolioUrl))} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none text-left" dir="ltr" placeholder="instagram.com/myart" />
+              <label className="block text-sm font-bold text-slate-700 mb-2">لینک سایت شخصی (اختیاری)</label>
+              <input type="text" value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} onBlur={() => setPortfolioUrl(formatUrl(portfolioUrl))} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none text-left" dir="ltr" placeholder="mywebsite.com" />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-slate-700 mb-2">شبکه‌های اجتماعی</label>
+              <SocialLinksInput socialLinks={socialLinks} onChange={setSocialLinks} />
             </div>
             
             <div className="md:col-span-2">

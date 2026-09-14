@@ -63,17 +63,25 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
   if (loading) return <div className="p-8 text-center text-slate-500 font-bold">در حال بارگذاری اطلاعات...</div>;
   if (!artist || !artist.pendingEdits) return <div className="p-8 text-center text-red-500 font-bold">درخواستی برای بررسی وجود ندارد</div>;
 
+  const formatSocials = (links: any) => {
+    if (!links || Object.keys(links).length === 0) return '';
+    const names: Record<string, string> = { instagram: 'اینستاگرام', twitter: 'توییتر', telegram: 'تلگرام', bale: 'بله' };
+    return Object.entries(links).map(([k, v]) => `${names[k] || k}: ${v}`).join('\n');
+  };
+
   const current = {
     name: artist.user?.name || '',
     bio: artist.bio || '',
     portfolioUrl: artist.portfolioUrl || '',
     image: artist.user?.image || null,
-    specialties: artist.specialties?.map((s: any) => s.name).join('، ') || ''
+    specialties: artist.specialties?.map((s: any) => s.name).join('، ') || '',
+    socialLinks: formatSocials(artist.socialLinks)
   };
 
   const pending = {
     ...artist.pendingEdits,
-    specialties: artist.pendingEdits?.specialties ? artist.pendingEdits.specialties.map((s: any) => s.name).join('، ') : undefined
+    specialties: artist.pendingEdits?.specialties ? artist.pendingEdits.specialties.map((s: any) => s.name).join('، ') : undefined,
+    socialLinks: artist.pendingEdits?.socialLinks ? formatSocials(artist.pendingEdits.socialLinks) : undefined
   };
 
   const DiffField = ({ label, oldVal, newVal, isImage = false }: { label: string, oldVal: string, newVal: string, isImage?: boolean }) => {
@@ -124,7 +132,8 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
         <DiffField label="تصویر پروفایل" oldVal={current.image} newVal={pending.image} isImage={true} />
         <DiffField label="نام هنرمند" oldVal={current.name} newVal={pending.name} />
         <DiffField label="تخصص‌ها" oldVal={current.specialties} newVal={pending.specialties} />
-        <DiffField label="لینک پورتفولیو" oldVal={current.portfolioUrl} newVal={pending.portfolioUrl} />
+        <DiffField label="لینک سایت شخصی" oldVal={current.portfolioUrl} newVal={pending.portfolioUrl} />
+        <DiffField label="شبکه‌های اجتماعی" oldVal={current.socialLinks} newVal={pending.socialLinks} />
         <DiffField label="بیوگرافی" oldVal={current.bio} newVal={pending.bio} />
 
         <div className="flex gap-4 mt-8 pt-8 border-t border-slate-100">

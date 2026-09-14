@@ -29,6 +29,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
       : 'نامشخص',
     bio: dbArtist.bio || 'توضیحاتی برای این هنرمند ثبت نشده است.',
     portfolioUrl: dbArtist.portfolioUrl || null,
+    socialLinks: (dbArtist.socialLinks as Record<string, string>) || {},
     products: dbArtist.products || []
   };
 
@@ -45,9 +46,34 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
             <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">{artist.user.name}</h1>
             <p className="text-emerald-200 text-lg md:text-xl font-medium mb-4">{artist.specialties}</p>
             {artist.portfolioUrl && (
-              <a href={artist.portfolioUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-medium transition-colors">
-                🔗 مشاهده پورتفولیو شخصی
+              <a href={artist.portfolioUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-medium transition-colors mb-4">
+                🔗 سایت شخصی
               </a>
+            )}
+            
+            {Object.keys(artist.socialLinks).length > 0 && (
+              <div className="flex justify-center md:justify-end gap-3">
+                {artist.socialLinks.instagram && (
+                  <a href={artist.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors" title="اینستاگرام">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                  </a>
+                )}
+                {artist.socialLinks.twitter && (
+                  <a href={artist.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors" title="توییتر">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>
+                  </a>
+                )}
+                {artist.socialLinks.telegram && (
+                  <a href={artist.socialLinks.telegram} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors" title="تلگرام">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  </a>
+                )}
+                {artist.socialLinks.bale && (
+                  <a href={artist.socialLinks.bale} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors flex items-center justify-center font-black text-sm" title="بله">
+                    بله
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </div>

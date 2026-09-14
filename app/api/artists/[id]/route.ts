@@ -97,6 +97,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         data: {
           bio: edits.bio,
           portfolioUrl: edits.portfolioUrl,
+          socialLinks: edits.socialLinks || Prisma.DbNull,
           ...(edits.specialties ? {
             specialties: {
               set: edits.specialties.map((s: any) => ({ id: s.id }))
