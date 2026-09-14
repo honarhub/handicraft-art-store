@@ -17,6 +17,7 @@ export default function ArtistAddProductPage() {
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
   const [images, setImages] = useState<string[]>([]); // Array of base64 strings
+  const [stockQuantity, setStockQuantity] = useState(1);
 
   // Helper for price formatting
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +73,7 @@ export default function ArtistAddProductPage() {
       setSeoMetaTitle(data.seoMetaTitle || '');
       setSeoMetaDesc(data.seoMetaDesc || '');
       setSeoKeywords(data.seoKeywords || '');
+      if (data.stockQuantity !== undefined) setStockQuantity(data.stockQuantity);
       
       setAiCompleted(true);
     } catch (error) {
@@ -159,7 +161,8 @@ export default function ArtistAddProductPage() {
           seoMetaTitle,
           seoMetaDesc,
           seoKeywords,
-          images
+          images,
+          stockQuantity
         })
       });
 
@@ -278,6 +281,11 @@ export default function ArtistAddProductPage() {
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان)</label>
               <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5,000,000" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">موجودی (تعداد)</label>
+              <input type="number" min="0" value={stockQuantity} onChange={e => setStockQuantity(Number(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" required />
             </div>
 
             <div className="md:col-span-2">

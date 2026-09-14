@@ -45,7 +45,7 @@ export async function GET() {
         const cookieStore = await cookies();
         const artistIdFromCookie = cookieStore.get('artistId')?.value;
         
-        const { title, description, image, images, artistId = artistIdFromCookie, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price } = body;
+        const { title, description, image, images, artistId = artistIdFromCookie, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price, stockQuantity } = body;
 
         if (!title || !artistId) {
           return NextResponse.json({ error: 'عنوان محصول و شناسایی هنرمند الزامی است' }, { status: 400 });
@@ -91,6 +91,7 @@ export async function GET() {
         seoMetaTitle,
         seoMetaDesc,
         seoKeywords,
+        stockQuantity: stockQuantity !== undefined ? Number(stockQuantity) : 1,
         status: isAdmin ? 'APPROVED' : 'PENDING',
         specialties: specialties && specialties.length > 0 ? {
           connect: specialties.map((id: string) => ({ id }))

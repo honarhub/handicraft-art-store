@@ -56,7 +56,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           action: 'updateDetails',
           title: product.title,
           description: product.description,
-          stockQuantity: parseInt(product.stockQuantity) || 1,
+          stockQuantity: parseInt(product.stockQuantity) >= 0 ? parseInt(product.stockQuantity) : 1,
           isUnique: product.isUnique,
           price // Passing price to update base tier (wait, updateDetails might not handle price)
         })
