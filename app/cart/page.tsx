@@ -32,7 +32,7 @@ export default function CartPage() {
     removeFromCart(item.productId);
     setRemovedItems(prev => ({
       ...prev,
-      [item.productId]: { item, timeLeft: 5 }
+      [item.productId]: { item, timeLeft: 10 }
     }));
   };
 
@@ -139,8 +139,8 @@ export default function CartPage() {
               ))}
               
               {/* Removed Items Undo List */}
-              {Object.values(removedItems).map(({ item, timeLeft }) => (
-                <div key={item.productId} className="bg-red-50/50 rounded-2xl border border-red-100 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
+              {Object.values(removedItems).map(({ item }) => (
+                <div key={item.productId} className="bg-red-50/50 rounded-2xl border border-red-100 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden">
                   <div className="flex items-center gap-4 w-full sm:w-auto">
                     <div className="w-12 h-12 rounded-lg overflow-hidden opacity-50 grayscale flex-shrink-0">
                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
@@ -150,13 +150,26 @@ export default function CartPage() {
                       <div className="text-red-500 font-bold text-xs mt-0.5">از سبد خرید حذف شد</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                    <div className="text-xs text-red-400 font-medium">حذف قطعی در {timeLeft} ثانیه...</div>
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
                     <button 
                       onClick={() => handleUndo(item.productId)}
-                      className="bg-white border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-sm"
+                      className="group relative bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center gap-3 shadow-sm overflow-hidden"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                      <div className="relative w-6 h-6 flex items-center justify-center">
+                        <svg className="w-full h-full -rotate-90 text-red-100" viewBox="0 0 36 36">
+                          <circle cx="18" cy="18" r="16" fill="none" className="stroke-current" strokeWidth="4" />
+                        </svg>
+                        <svg className="w-full h-full -rotate-90 absolute top-0 left-0 text-red-500" viewBox="0 0 36 36">
+                          <circle cx="18" cy="18" r="16" fill="none" className="stroke-current transition-all" strokeWidth="4" strokeDasharray="100" strokeDashoffset="0" style={{ animation: 'dash 10s linear forwards' }} />
+                        </svg>
+                        <style>{`
+                          @keyframes dash {
+                            to {
+                              stroke-dashoffset: 100;
+                            }
+                          }
+                        `}</style>
+                      </div>
                       بازگرداندن
                     </button>
                   </div>

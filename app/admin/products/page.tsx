@@ -106,6 +106,7 @@ export default function AdminProductsPage() {
                 <th className="px-6 py-4">عنوان محصول</th>
                 <th className="px-6 py-4">صاحب اثر (هنرمند)</th>
                 <th className="px-6 py-4">قیمت (تومان)</th>
+                <th className="px-6 py-4 text-center">موجودی</th>
                 <th className="px-6 py-4 text-center">وضعیت انتشار</th>
                 <th className="px-6 py-4 text-left">عملیات</th>
               </tr>
@@ -113,21 +114,29 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
+                  <td colSpan={7} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
                 </tr>
               ) : sortedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
+                  <td colSpan={7} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
                 </tr>
               ) : sortedProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">
                     <img src={product.imageUrl} alt={product.title} className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-200" />
                   </td>
-                  <td className="px-6 py-4 font-bold text-slate-800">{product.title}</td>
+                  <td className="px-6 py-4">
+                    <a href={`/product/${product.id}`} target="_blank" rel="noopener noreferrer" className="font-bold text-slate-800 hover:text-emerald-600 transition-colors flex items-center gap-2">
+                      {product.title}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </a>
+                  </td>
                   <td className="px-6 py-4 text-purple-700 font-medium">{product.artistName}</td>
                   <td className="px-6 py-4 text-slate-600 font-medium">
                     {product.price > 0 ? product.price.toLocaleString() : 'توافقی / نامشخص'}
+                  </td>
+                  <td className="px-6 py-4 text-center font-bold text-slate-700">
+                    {product.stockQuantity || 1}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {product.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار تایید</span>}
