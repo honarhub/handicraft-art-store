@@ -10,6 +10,15 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [product, setProduct] = useState<any>(null);
+  const [price, setPrice] = useState('');
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/,/g, '');
+    if (!isNaN(Number(rawValue))) {
+      setPrice(rawValue);
+    }
+  };
+  const formattedPrice = price ? Number(price).toLocaleString('fa-IR') : '';
 
   useEffect(() => {
     // We fetch from the existing product API. Note: We need a GET by ID API if we haven't made one.
@@ -18,7 +27,15 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
       .then(res => res.json())
       .then(data => {
         setProduct(data);
-        setLoading(false);
+        fetch(`/api/products/${id}/pricing`)
+          .then(res => res.json())
+          .then(pricingData => {
+            if (pricingData && pricingData.length > 0) {
+              setPrice(String(pricingData[0].price));
+            }
+          })
+          .catch(() => {})
+          .finally(() => setLoading(false));
       })
       .catch(err => {
         console.error(err);
@@ -38,9 +55,11 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           title: product.title,
           description: product.description,
           stockQuantity: parseInt(product.stockQuantity) || 1,
-          isUnique: product.isUnique
+          isUnique: product.isUnique,
+          price // Passing price to update base tier (wait, updateDetails might not handle price)
         })
       });
+
 
       if (!res.ok) throw new Error('Error updating product');
       alert('محصول با موفقیت ویرایش شد');
@@ -78,6 +97,11 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">توضیحات</label>
             <textarea value={product.description || ''} onChange={e => setProduct({...product, description: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-purple-500 outline-none" rows={4} required />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان)</label>
+            <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-purple-500 outline-none" placeholder="مثلا: 5,000,000" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">

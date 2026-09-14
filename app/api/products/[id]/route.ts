@@ -34,8 +34,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       updateData.description = description;
       updateData.stockQuantity = stockQuantity;
       updateData.isUnique = isUnique;
+      
+      if (body.price) {
+        const existingTiers = await prisma.pricingTier.findMany({ where: { productId: id } });
+        if (existingTiers.length > 0) {
+          await prisma.pricingTier.update({
+            where: { id: existingTiers[0].id },
+            data: { price: parseFloat(body.price) }
+          });
+        }
+      }
     } else if (action === 'artistEdit') {
-      const { specialties, seoMetaTitle, seoMetaDesc, seoKeywords, image } = body;
+      const { specialties, seoMetaTitle, seoMetaDesc, seoKeywords, image, images } = body;
       
       updateData.title = title;
       updateData.description = description;
@@ -45,21 +55,30 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       updateData.status = 'PENDING'; // Reverts to pending when artist edits
       updateData.stockQuantity = 1; // Force 1
 
-      if (image) { // Base64 image
+      const imagesToProcess = images && images.length > 0 ? images : (image ? [image] : []);
+      if (imagesToProcess.length > 0) {
         const fs = require('fs');
+        const fsPromises = require('fs').promises;
         const path = require('path');
-        const uploadDir = path.join(process.cwd(), 'public/uploads');
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'products');
         if (!fs.existsSync(uploadDir)) {
           fs.mkdirSync(uploadDir, { recursive: true });
         }
-        const matches = image.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
-        if (matches) {
-          const ext = matches[1];
-          const buffer = Buffer.from(matches[2], 'base64');
-          const fileName = `product-${Date.now()}.${ext}`;
-          fs.writeFileSync(path.join(uploadDir, fileName), buffer);
-          updateData.imageUrl = `/uploads/${fileName}`;
+        
+        let mediaUrls: string[] = [];
+        for (let i = 0; i < imagesToProcess.length; i++) {
+          const img = imagesToProcess[i];
+          const matches = img.match(/^data:(image|video)\/([a-zA-Z0-9]+);base64,(.+)$/);
+          const ext = matches ? matches[2] : 'png';
+          const base64Data = matches ? matches[3] : img.replace(/^data:image\/\w+;base64,/, "");
+          
+          const fileName = `product_${Date.now()}_${i}.${ext}`;
+          const filePath = path.join(uploadDir, fileName);
+          await fsPromises.writeFile(filePath, Buffer.from(base64Data, 'base64'));
+          mediaUrls.push(`/uploads/products/${fileName}`);
         }
+        updateData.imageUrl = mediaUrls[0];
+        updateData.mediaUrls = mediaUrls;
       }
 
       if (specialties && Array.isArray(specialties)) {

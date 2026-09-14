@@ -61,6 +61,7 @@ model Product {
   title           String
   description     String
   imageUrl        String
+  mediaUrls       String[]       @default([]) // فایل‌های آپلودی بیشتر (عکس و ویدیو)
   artistId        String
   artist          ArtistProfile  @relation(fields: [artistId], references: [id], onDelete: Cascade)
   

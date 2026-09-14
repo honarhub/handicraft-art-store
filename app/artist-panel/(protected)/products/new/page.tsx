@@ -16,11 +16,21 @@ export default function ArtistAddProductPage() {
   const [seoMetaTitle, setSeoMetaTitle] = useState('');
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]); // Array of base64 strings
+
+  // Helper for price formatting
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/,/g, '');
+    if (!isNaN(Number(rawValue))) {
+      setPrice(rawValue);
+    }
+  };
+  const formattedPrice = price ? Number(price).toLocaleString('fa-IR') : '';
 
   // UI States
   const [aiLoading, setAiLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [seoLoading, setSeoLoading] = useState(false);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -38,7 +48,7 @@ export default function ArtistAddProductPage() {
     setAiLoading(true);
     try {
       const base64 = await fileToBase64(file);
-      setImage(base64);
+      setImages([base64]);
 
       const response = await fetch('/api/ai/extract-product', {
         method: 'POST',
@@ -67,6 +77,67 @@ export default function ArtistAddProductPage() {
     }
   };
 
+  const handleManualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (images.length + files.length > 5) {
+      alert('حداکثر می‌توانید ۵ فایل انتخاب کنید.');
+      return;
+    }
+
+    const newImages: string[] = [];
+    for (const file of files) {
+      // Check sizes: 5MB for image, 20MB for video
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      if (isImage && file.size > 5 * 1024 * 1024) {
+        alert(`فایل ${file.name} بیشتر از ۵ مگابایت است.`);
+        continue;
+      }
+      if (isVideo && file.size > 20 * 1024 * 1024) {
+        alert(`فایل ${file.name} بیشتر از ۲۰ مگابایت است.`);
+        continue;
+      }
+
+      try {
+        const base64 = await fileToBase64(file);
+        newImages.push(base64);
+      } catch (err) {
+        console.error('Error converting file', err);
+      }
+    }
+    setImages(prev => [...prev, ...newImages]);
+  };
+
+  const generateSeo = async () => {
+    if (!title) {
+      alert('ابتدا عنوان محصول را وارد کنید.');
+      return;
+    }
+    setSeoLoading(true);
+    try {
+      const res = await fetch('/api/ai/generate-seo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description,
+          specialties: specialties.map(s => s.name).join(', ')
+        })
+      });
+      if (!res.ok) throw new Error('خطا');
+      const data = await res.json();
+      setSeoMetaTitle(data.seoMetaTitle || '');
+      setSeoMetaDesc(data.seoMetaDesc || '');
+      setSeoKeywords(data.seoKeywords || '');
+    } catch (error) {
+      alert('تولید سئو با مشکل مواجه شد.');
+    } finally {
+      setSeoLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -84,7 +155,7 @@ export default function ArtistAddProductPage() {
           seoMetaTitle,
           seoMetaDesc,
           seoKeywords,
-          image
+          images
         })
       });
 
@@ -134,9 +205,12 @@ export default function ArtistAddProductPage() {
               <div className="max-w-md mx-auto">
                 <div className="w-16 h-16 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">📸</div>
                 <h3 className="text-lg font-bold text-slate-800 mb-2">عکس محصول را آپلود کنید</h3>
-                <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                <p className="text-slate-500 text-sm mb-2 leading-relaxed">
                   هوش مصنوعی به صورت خودکار تصویر محصول را آنالیز کرده و اطلاعات را پر می‌کند.
                 </p>
+                <div className="bg-orange-50 border border-orange-200 text-orange-800 text-xs rounded-lg p-3 mb-6 text-right">
+                  <strong>توجه:</strong> تحلیل‌های هوش مصنوعی ممکن است غیردقیق باشد و صرفاً جهت راحتی در ثبت سریع است. هنرمند موظف به بازبینی و ویرایش اطلاعات پیش از ثبت نهایی می‌باشد. ضمناً در این روش فقط تصویر اصلی (۱ عکس) پردازش می‌شود.
+                </div>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -156,6 +230,39 @@ export default function ArtistAddProductPage() {
           </div>
         )}
 
+        {activeTab === 'manual' && (
+          <div className="mb-10 pb-10 border-b border-slate-100">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">گالری محصول (حداکثر ۵ فایل)</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              شما می‌توانید تا ۵ عکس (حداکثر ۵ مگابایت) یا فیلم (حداکثر ۲۰ مگابایت) برای محصول خود آپلود کنید. اولین عکس به عنوان کاور نمایش داده می‌شود.
+            </p>
+            <div className="flex flex-wrap gap-4 items-center">
+              {images.map((img, idx) => (
+                <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-200 group">
+                  {img.startsWith('data:video') ? (
+                    <video src={img} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={img} className="w-full h-full object-cover" />
+                  )}
+                  <button 
+                    type="button"
+                    onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                    className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {images.length < 5 && (
+                <label className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-teal-600 hover:border-teal-400 hover:bg-teal-50 cursor-pointer transition-all">
+                  <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualUpload} />
+                  <span className="text-3xl">+</span>
+                </label>
+              )}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
@@ -166,7 +273,7 @@ export default function ArtistAddProductPage() {
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان)</label>
-              <input type="number" value={price} onChange={e => setPrice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5000000" />
+              <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5,000,000" />
             </div>
 
             <div className="md:col-span-2">
@@ -179,10 +286,26 @@ export default function ArtistAddProductPage() {
               <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none leading-relaxed" rows={5}></textarea>
             </div>
 
-            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
-              <h4 className="font-black text-slate-800 flex items-center gap-2 mb-4">
-                <span className="text-teal-600">🎯</span> سئو (SEO)
-              </h4>
+            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4 relative">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h4 className="font-black text-slate-800 flex items-center gap-2">
+                    <span className="text-teal-600">🎯</span> سئو (SEO)
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-2 max-w-xl leading-relaxed">
+                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است. در صورتی که دانشی در این زمینه ندارید، روی دکمه هوش مصنوعی کلیک کنید تا متون مناسب برای شما تولید شود.
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={generateSeo}
+                  disabled={seoLoading || !title}
+                  className="bg-teal-100 hover:bg-teal-200 text-teal-700 font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {seoLoading ? 'در حال تولید...' : '✨ تولید با هوش مصنوعی'}
+                </button>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">SEO Title</label>
                 <input type="text" value={seoMetaTitle} onChange={e => setSeoMetaTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />

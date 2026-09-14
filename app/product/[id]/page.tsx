@@ -2,6 +2,7 @@ import React from 'react';
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import CartIcon from '../../components/CartIcon';
+import ProductGallery from './ProductGallery';
 import AddToCartButton from './AddToCartButton';
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,6 +16,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   if (!product || product.status !== 'APPROVED' || product.deletedAt || !product.artist.isActive || product.artist.isDeleted) {
     notFound();
   }
+
+  const allMedia = product.mediaUrls && product.mediaUrls.length > 0 ? product.mediaUrls : (product.imageUrl ? [product.imageUrl] : []);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans" dir="rtl">
@@ -33,8 +36,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           
           {/* Image Gallery */}
           <div className="lg:w-1/2">
-            <div className="aspect-square rounded-3xl overflow-hidden bg-slate-100 border border-slate-200 sticky top-12 shadow-inner">
-              <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover" />
+            <div className="sticky top-12">
+              <ProductGallery mediaUrls={allMedia} title={product.title} />
             </div>
           </div>
 

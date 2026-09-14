@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import path from 'path';
 
 export const dynamic = 'force-dynamic';
@@ -43,22 +44,32 @@ export async function GET() {
         const cookieStore = await cookies();
         const artistIdFromCookie = cookieStore.get('artistId')?.value;
         
-        const { title, description, image, artistId = artistIdFromCookie, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price } = body;
+        const { title, description, image, images, artistId = artistIdFromCookie, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price } = body;
 
         if (!title || !artistId) {
           return NextResponse.json({ error: 'عنوان محصول و شناسایی هنرمند الزامی است' }, { status: 400 });
         }
 
     let imageUrl = '';
-    if (image) {
+    let mediaUrls: string[] = [];
+    const imagesToProcess = images && images.length > 0 ? images : (image ? [image] : []);
+
+    if (imagesToProcess.length > 0) {
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'products');
       if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
       
-      const fileName = `product_${Date.now()}.png`;
-      const filePath = path.join(uploadsDir, fileName);
-      const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
-      fs.writeFileSync(filePath, base64Data, 'base64');
-      imageUrl = `/uploads/products/${fileName}`;
+      for (let i = 0; i < imagesToProcess.length; i++) {
+        const img = imagesToProcess[i];
+        const matches = img.match(/^data:(image|video)\/([a-zA-Z0-9]+);base64,(.+)$/);
+        const ext = matches ? matches[2] : 'png';
+        const base64Data = matches ? matches[3] : img.replace(/^data:image\/\w+;base64,/, "");
+        
+        const fileName = `product_${Date.now()}_${i}.${ext}`;
+        const filePath = path.join(uploadsDir, fileName);
+        await fsPromises.writeFile(filePath, Buffer.from(base64Data, 'base64'));
+        mediaUrls.push(`/uploads/products/${fileName}`);
+      }
+      imageUrl = mediaUrls[0];
     }
 
     const { searchParams } = new URL(request.url);
@@ -69,6 +80,7 @@ export async function GET() {
         title,
         description: description || '',
         imageUrl,
+        mediaUrls,
         artistId,
         seoMetaTitle,
         seoMetaDesc,

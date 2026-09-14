@@ -17,11 +17,21 @@ export default function ArtistEditProductPage() {
   const [seoMetaTitle, setSeoMetaTitle] = useState('');
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]); // Array of base64 strings or URLs
+
+  // Helper for price formatting
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/,/g, '');
+    if (!isNaN(Number(rawValue))) {
+      setPrice(rawValue);
+    }
+  };
+  const formattedPrice = price ? Number(price).toLocaleString('fa-IR') : '';
 
   // UI States
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [seoLoading, setSeoLoading] = useState(false);
 
   useEffect(() => {
     // Load existing product
@@ -36,7 +46,11 @@ export default function ArtistEditProductPage() {
         setSeoMetaTitle(data.seoMetaTitle || '');
         setSeoMetaDesc(data.seoMetaDesc || '');
         setSeoKeywords(data.seoKeywords || '');
-        setImage(data.imageUrl);
+        if (data.mediaUrls && data.mediaUrls.length > 0) {
+          setImages(data.mediaUrls);
+        } else if (data.imageUrl) {
+          setImages([data.imageUrl]);
+        }
         if (data.specialties) setSpecialties(data.specialties);
         
         // Fetch pricing tiers to get price
@@ -69,15 +83,62 @@ export default function ArtistEditProductPage() {
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleManualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
+    if (images.length + files.length > 5) {
+      alert('حداکثر می‌توانید ۵ فایل انتخاب کنید.');
+      return;
+    }
+
+    const newImages: string[] = [];
+    for (const file of files) {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      if (isImage && file.size > 5 * 1024 * 1024) {
+        alert(`فایل ${file.name} بیشتر از ۵ مگابایت است.`);
+        continue;
+      }
+      if (isVideo && file.size > 20 * 1024 * 1024) {
+        alert(`فایل ${file.name} بیشتر از ۲۰ مگابایت است.`);
+        continue;
+      }
+      try {
+        const base64 = await fileToBase64(file);
+        newImages.push(base64);
+      } catch (err) {
+        console.error('Error converting file', err);
+      }
+    }
+    setImages(prev => [...prev, ...newImages]);
+  };
+
+  const generateSeo = async () => {
+    if (!title) {
+      alert('ابتدا عنوان محصول را وارد کنید.');
+      return;
+    }
+    setSeoLoading(true);
     try {
-      const base64 = await fileToBase64(file);
-      setImage(base64);
+      const res = await fetch('/api/ai/generate-seo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description,
+          specialties: specialties.map(s => s.name).join(', ')
+        })
+      });
+      if (!res.ok) throw new Error('خطا');
+      const data = await res.json();
+      setSeoMetaTitle(data.seoMetaTitle || '');
+      setSeoMetaDesc(data.seoMetaDesc || '');
+      setSeoKeywords(data.seoKeywords || '');
     } catch (error) {
-      alert('خطا در پردازش تصویر');
+      alert('تولید سئو با مشکل مواجه شد.');
+    } finally {
+      setSeoLoading(false);
     }
   };
 
@@ -98,7 +159,7 @@ export default function ArtistEditProductPage() {
           seoMetaTitle,
           seoMetaDesc,
           seoKeywords,
-          image: image?.startsWith('data:') ? image : undefined // Only send if it's a new base64 image
+          images: images.filter(img => img.startsWith('data:')) // Only send new uploads
         })
       });
 
@@ -133,26 +194,35 @@ export default function ArtistEditProductPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <div className="md:col-span-2 flex flex-col md:flex-row gap-6 items-start bg-slate-50 p-6 rounded-2xl border border-slate-100">
-              <div className="w-32 h-32 rounded-2xl overflow-hidden bg-slate-200 flex-shrink-0 border border-slate-300">
-                {image && <img src={image} alt="Preview" className="w-full h-full object-cover" />}
-              </div>
-              <div className="flex-1">
-                <h4 className="font-bold text-slate-800 mb-2">تصویر اثر</h4>
-                <p className="text-xs text-slate-500 mb-4 leading-relaxed">برای تغییر تصویر فعلی، عکس جدید را آپلود کنید. توجه کنید که آثار دست‌ساز معمولاً تک‌نسخه هستند بنابراین موجودی به صورت خودکار ۱ در نظر گرفته می‌شود.</p>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageUpload}
-                  className="hidden" 
-                  id="image-upload"
-                />
-                <label 
-                  htmlFor="image-upload" 
-                  className="inline-block px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg font-bold text-sm cursor-pointer transition-colors"
-                >
-                  تغییر تصویر
-                </label>
+            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+              <h4 className="font-bold text-slate-800 mb-2">گالری محصول (حداکثر ۵ فایل)</h4>
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                شما می‌توانید تا ۵ عکس (حداکثر ۵ مگابایت) یا فیلم (حداکثر ۲۰ مگابایت) برای محصول خود آپلود کنید. اولین عکس به عنوان کاور نمایش داده می‌شود.
+                توجه کنید که آثار دست‌ساز معمولاً تک‌نسخه هستند بنابراین موجودی به صورت خودکار ۱ در نظر گرفته می‌شود.
+              </p>
+              <div className="flex flex-wrap gap-4 items-center">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-200 group">
+                    {img.startsWith('data:video') || img.endsWith('.mp4') ? (
+                      <video src={img} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={img} className="w-full h-full object-cover" />
+                    )}
+                    <button 
+                      type="button"
+                      onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                      className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {images.length < 5 && (
+                  <label className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-teal-600 hover:border-teal-400 hover:bg-teal-50 cursor-pointer transition-all">
+                    <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualUpload} />
+                    <span className="text-3xl">+</span>
+                  </label>
+                )}
               </div>
             </div>
 
@@ -163,7 +233,7 @@ export default function ArtistEditProductPage() {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان) <span className="text-red-500">*</span></label>
-              <input type="number" value={price} onChange={e => setPrice(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" required />
+              <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5,000,000" required />
             </div>
 
             <div className="md:col-span-2">
@@ -176,10 +246,25 @@ export default function ArtistEditProductPage() {
               <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none leading-relaxed" rows={5}></textarea>
             </div>
 
-            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
-              <h4 className="font-black text-slate-800 flex items-center gap-2 mb-4">
-                <span className="text-teal-600">🎯</span> سئو (SEO)
-              </h4>
+            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4 relative">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h4 className="font-black text-slate-800 flex items-center gap-2">
+                    <span className="text-teal-600">🎯</span> سئو (SEO)
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-2 max-w-xl leading-relaxed">
+                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است. در صورتی که دانشی در این زمینه ندارید، روی دکمه هوش مصنوعی کلیک کنید تا متون مناسب برای شما تولید شود.
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={generateSeo}
+                  disabled={seoLoading || !title}
+                  className="bg-teal-100 hover:bg-teal-200 text-teal-700 font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {seoLoading ? 'در حال تولید...' : '✨ تولید با هوش مصنوعی'}
+                </button>
+              </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">SEO Title</label>
                 <input type="text" value={seoMetaTitle} onChange={e => setSeoMetaTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />
