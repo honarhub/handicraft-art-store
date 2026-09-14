@@ -63,6 +63,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             set: specialties.map((id: string) => ({ id }))
           } : { set: [] },
           bio,
+          portfolioUrl: body.portfolioUrl || null,
+          socialLinks: body.socialLinks || {},
           user: {
             update: {
               name,

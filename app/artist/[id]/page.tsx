@@ -52,7 +52,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
             )}
             
             {Object.keys(artist.socialLinks).length > 0 && (
-              <div className="flex justify-center md:justify-end gap-3">
+              <div className="flex justify-center md:justify-start gap-3">
                 {artist.socialLinks.instagram && (
                   <a href={artist.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors" title="اینستاگرام">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>

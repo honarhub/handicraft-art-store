@@ -76,7 +76,9 @@ export async function POST(request: Request) {
             bio: bio || '',
             specialties: specialties && specialties.length > 0 ? {
               connect: specialties.map((id: string) => ({ id }))
-            } : undefined
+            } : undefined,
+            portfolioUrl: body.portfolioUrl || null,
+            socialLinks: body.socialLinks || {},
           }
         }
       },

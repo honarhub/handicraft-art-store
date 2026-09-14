@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import SpecialtyTagInput, { Specialty } from '../../../../components/SpecialtyTagInput';
+import SocialLinksInput from '../../../../components/SocialLinksInput';
 
 export default function EditArtistPage() {
   const params = useParams();
@@ -13,6 +14,8 @@ export default function EditArtistPage() {
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [bio, setBio] = useState('');
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [socialLinks, setSocialLinks] = useState<any>({});
 
   useEffect(() => {
     fetch(`/api/artists/${id}`)
@@ -21,6 +24,8 @@ export default function EditArtistPage() {
         setName(data.user?.name || '');
         setSpecialties(data.specialties || []);
         setBio(data.bio || '');
+        setPortfolioUrl(data.portfolioUrl || '');
+        setSocialLinks(data.socialLinks || {});
         if (data.user?.image) {
           setAvatarBase64(data.user.image);
         }
@@ -62,7 +67,9 @@ export default function EditArtistPage() {
           name,
           specialties: specialties.map(s => s.id),
           bio,
-          avatar: avatarBase64
+          avatar: avatarBase64,
+          portfolioUrl,
+          socialLinks
         })
       });
       
@@ -107,6 +114,18 @@ export default function EditArtistPage() {
             <div className="flex items-center gap-4">
               {avatarBase64 && <img src={avatarBase64} alt="Preview" className="w-12 h-12 rounded-full object-cover border" />}
               <input type="file" accept="image/*" onChange={handleAvatarChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 text-sm" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">لینک سایت شخصی (اختیاری)</label>
+              <input type="text" value={portfolioUrl} onChange={e => setPortfolioUrl(e.target.value)} onBlur={() => setPortfolioUrl(portfolioUrl ? (portfolioUrl.startsWith('http') ? portfolioUrl : `https://${portfolioUrl}`) : '')} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-left" dir="ltr" placeholder="mywebsite.com" />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-slate-700 mb-2">شبکه‌های اجتماعی</label>
+              <SocialLinksInput socialLinks={socialLinks} onChange={setSocialLinks} />
             </div>
           </div>
 

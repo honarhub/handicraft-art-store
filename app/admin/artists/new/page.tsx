@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import SpecialtyTagInput, { Specialty } from '../../../components/SpecialtyTagInput';
+import SocialLinksInput from '../../../components/SocialLinksInput';
 
 export default function AddArtistPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
@@ -14,6 +15,8 @@ export default function AddArtistPage() {
   const [manualSpecialties, setManualSpecialties] = useState<Specialty[]>([]);
   const [manualBio, setManualBio] = useState('');
   const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [manualPortfolioUrl, setManualPortfolioUrl] = useState('');
+  const [manualSocialLinks, setManualSocialLinks] = useState<any>({});
 
   // تبدیل فایل به Base64 برای ارسال به سرور
   const fileToBase64 = (file: File): Promise<string> => {
@@ -78,7 +81,9 @@ export default function AddArtistPage() {
       name: manualName,
       specialties: manualSpecialties.map(s => s.id),
       bio: manualBio,
-      avatar: avatarBase64
+      avatar: avatarBase64,
+      portfolioUrl: manualPortfolioUrl,
+      socialLinks: manualSocialLinks
     };
 
     try {
@@ -198,6 +203,18 @@ export default function AddArtistPage() {
                 <div className="flex items-center gap-4">
                   {avatarBase64 && <img src={avatarBase64} alt="Preview" className="w-12 h-12 rounded-full object-cover border" />}
                   <input type="file" accept="image/*" onChange={handleAvatarChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 text-sm" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">لینک سایت شخصی (اختیاری)</label>
+                  <input type="text" value={manualPortfolioUrl} onChange={e => setManualPortfolioUrl(e.target.value)} onBlur={() => setManualPortfolioUrl(manualPortfolioUrl ? (manualPortfolioUrl.startsWith('http') ? manualPortfolioUrl : `https://${manualPortfolioUrl}`) : '')} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-left" dir="ltr" placeholder="mywebsite.com" />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">شبکه‌های اجتماعی</label>
+                  <SocialLinksInput socialLinks={manualSocialLinks} onChange={setManualSocialLinks} />
                 </div>
               </div>
 
