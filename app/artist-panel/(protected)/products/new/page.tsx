@@ -31,6 +31,7 @@ export default function ArtistAddProductPage() {
 
   // UI States
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiCompleted, setAiCompleted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [seoLoading, setSeoLoading] = useState(false);
 
@@ -72,6 +73,7 @@ export default function ArtistAddProductPage() {
       setSeoMetaDesc(data.seoMetaDesc || '');
       setSeoKeywords(data.seoKeywords || '');
       
+      setAiCompleted(true);
     } catch (error) {
       alert('متاسفانه پردازش تصویر با مشکل مواجه شد. لطفا فرم را دستی پر کنید.');
     } finally {
@@ -232,7 +234,7 @@ export default function ArtistAddProductPage() {
           </div>
         )}
 
-        {activeTab === 'manual' && (
+        {(activeTab === 'manual' || aiCompleted) && (
           <div className="mb-10 pb-10 border-b border-slate-100">
             <h3 className="text-lg font-bold text-slate-800 mb-4">گالری محصول (حداکثر ۵ فایل)</h3>
             <p className="text-sm text-slate-500 mb-4">

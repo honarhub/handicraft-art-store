@@ -68,9 +68,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         let mediaUrls: string[] = [];
         for (let i = 0; i < imagesToProcess.length; i++) {
           const img = imagesToProcess[i];
-          const matches = img.match(/^data:(image|video)\/([a-zA-Z0-9]+);base64,(.+)$/);
-          const ext = matches ? matches[2] : 'png';
-          const base64Data = matches ? matches[3] : img.replace(/^data:image\/\w+;base64,/, "");
+          const commaIndex = img.indexOf(',');
+          const header = commaIndex !== -1 ? img.substring(0, commaIndex) : '';
+          let ext = 'png';
+          if (header.includes('video/')) ext = 'mp4';
+          else if (header.includes('image/jpeg')) ext = 'jpg';
+          else if (header.includes('image/webp')) ext = 'webp';
+          
+          const base64Data = commaIndex !== -1 ? img.substring(commaIndex + 1) : img;
           
           const fileName = `product_${Date.now()}_${i}.${ext}`;
           const filePath = path.join(uploadDir, fileName);
