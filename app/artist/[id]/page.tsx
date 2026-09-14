@@ -6,9 +6,18 @@ import GeoPattern from 'geopattern';
 export default async function ArtistProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // دریافت اطلاعات واقعی از دیتابیس
+  // دریافت اطلاعات واقعی از دیتابیس (پشتیبانی از cuid و displayId)
+  const isNumericId = !isNaN(Number(id));
+  
   const dbArtist = await prisma.artistProfile.findFirst({
-    where: { id: id, isDeleted: false, isActive: true },
+    where: { 
+      OR: [
+        { id: id },
+        ...(isNumericId ? [{ displayId: Number(id) }] : [])
+      ],
+      isDeleted: false, 
+      isActive: true 
+    },
     include: { user: true, products: { include: { pricingTiers: true } }, specialties: true }
   });
   
