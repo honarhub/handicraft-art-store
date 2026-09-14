@@ -34,6 +34,64 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       updateData.description = description;
       updateData.stockQuantity = stockQuantity;
       updateData.isUnique = isUnique;
+    } else if (action === 'artistEdit') {
+      const { specialties, seoMetaTitle, seoMetaDesc, seoKeywords, image } = body;
+      
+      updateData.title = title;
+      updateData.description = description;
+      updateData.seoMetaTitle = seoMetaTitle;
+      updateData.seoMetaDesc = seoMetaDesc;
+      updateData.seoKeywords = seoKeywords;
+      updateData.status = 'PENDING'; // Reverts to pending when artist edits
+      updateData.stockQuantity = 1; // Force 1
+
+      if (image) { // Base64 image
+        const fs = require('fs');
+        const path = require('path');
+        const uploadDir = path.join(process.cwd(), 'public/uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        const matches = image.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+        if (matches) {
+          const ext = matches[1];
+          const buffer = Buffer.from(matches[2], 'base64');
+          const fileName = `product-${Date.now()}.${ext}`;
+          fs.writeFileSync(path.join(uploadDir, fileName), buffer);
+          updateData.imageUrl = `/uploads/${fileName}`;
+        }
+      }
+
+      if (specialties && Array.isArray(specialties)) {
+        updateData.specialties = {
+          set: specialties.map((sid: string) => ({ id: sid }))
+        };
+      }
+
+      // We also need to update the base pricing tier
+      if (body.price) {
+        // Since Prisma requires multiple operations to update related fields inside an update,
+        // it's easier to just do it separately if we don't know the tier ID, 
+        // or we can use updateMany. Let's delete existing and create new, or update the first one.
+        const existingTiers = await prisma.pricingTier.findMany({ where: { productId: id } });
+        if (existingTiers.length > 0) {
+          await prisma.pricingTier.update({
+            where: { id: existingTiers[0].id },
+            data: { price: parseFloat(body.price) }
+          });
+        } else {
+          await prisma.pricingTier.create({
+            data: {
+              productId: id,
+              tierType: 'STANDARD',
+              title: 'خرید عادی',
+              description: 'ارسال معمولی',
+              price: parseFloat(body.price),
+              deliveryTime: '7 روز کاری'
+            }
+          });
+        }
+      }
     }
 
     const updated = await prisma.product.update({

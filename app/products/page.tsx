@@ -17,6 +17,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const whereClause: any = {
     status: 'APPROVED',
     deletedAt: null,
+    artist: {
+      isActive: true,
+      isDeleted: false
+    },
     pricingTiers: {
       some: {
         price: {
