@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 
@@ -101,7 +102,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
               set: edits.specialties.map((s: any) => ({ id: s.id }))
             }
           } : {}),
-          pendingEdits: null,
+          pendingEdits: Prisma.DbNull,
           adminFeedback: null,
           user: {
             update: {
@@ -118,7 +119,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const updatedArtist = await prisma.artistProfile.update({
         where: { id: artistId },
         data: {
-          pendingEdits: null,
+          pendingEdits: Prisma.DbNull,
           adminFeedback: body.adminFeedback || 'درخواست رد شد'
         }
       });

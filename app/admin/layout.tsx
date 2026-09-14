@@ -1,6 +1,8 @@
 import React from 'react';
 import prisma from '@/lib/prisma';
 
+import { Prisma } from '@prisma/client';
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // گرفتن تعداد تخصص‌های در انتظار تایید
   const pendingSpecialtiesCount = await prisma.specialty.count({
@@ -9,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // گرفتن تعداد درخواست‌های ویرایش پروفایل هنرمندان
   const pendingArtistsCount = await prisma.artistProfile.count({
-    where: { pendingEdits: { not: null } }
+    where: { pendingEdits: { not: Prisma.AnyNull } }
   });
 
   return (
