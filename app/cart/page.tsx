@@ -150,7 +150,7 @@ export default function CartPage() {
               ))}
               
               {/* Removed Items Undo List */}
-              {Object.values(removedItems).map(({ item }) => (
+              {Object.values(removedItems).map(({ item, isHovered }) => (
                 <div key={item.productId} className="bg-red-50/50 rounded-2xl border border-red-100 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden">
                   <div className="flex items-center gap-4 w-full sm:w-auto">
                     <div className="w-12 h-12 rounded-lg overflow-hidden opacity-50 grayscale flex-shrink-0">
@@ -172,8 +172,16 @@ export default function CartPage() {
                         <svg className="w-full h-full -rotate-90 text-red-100" viewBox="0 0 36 36">
                           <circle cx="18" cy="18" r="16" fill="none" className="stroke-current" strokeWidth="4" />
                         </svg>
-                        <svg className="w-full h-full -rotate-90 absolute top-0 left-0 text-red-500 group-hover:[animation-play-state:paused]" viewBox="0 0 36 36">
-                          <circle cx="18" cy="18" r="16" fill="none" className="stroke-current transition-all" strokeWidth="4" strokeDasharray="100" strokeDashoffset="0" style={{ animation: 'dash 5s linear forwards' }} />
+                        <svg className="w-full h-full -rotate-90 absolute top-0 left-0 text-red-500" viewBox="0 0 36 36">
+                          <circle 
+                            cx="18" cy="18" r="16" fill="none" 
+                            className="stroke-current transition-all" 
+                            strokeWidth="4" strokeDasharray="100" strokeDashoffset="0" 
+                            style={{ 
+                              animation: 'dash 5s linear forwards',
+                              animationPlayState: isHovered ? 'paused' : 'running'
+                            }} 
+                          />
                         </svg>
                         <style>{`
                           @keyframes dash {
