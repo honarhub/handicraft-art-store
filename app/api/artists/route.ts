@@ -26,7 +26,8 @@ export async function GET() {
       specialties: artist.specialties || [],
       status: artist.isDeleted ? 'DELETED' : 'ACTIVE',
       isActive: artist.isActive,
-      productsCount: artist._count.products
+      productsCount: artist._count.products,
+      hasPendingEdits: artist.pendingEdits !== null
     }));
 
     return NextResponse.json(formattedArtists);

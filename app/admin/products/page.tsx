@@ -5,6 +5,10 @@ import React, { useState, useEffect } from 'react';
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Search and Sort states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortPrice, setSortPrice] = useState<'none' | 'asc' | 'desc'>('none');
 
   useEffect(() => {
     fetch('/api/products', { cache: 'no-store' })
@@ -41,6 +45,19 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Filter and Sort Logic
+  const filteredProducts = products.filter(p => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return p.title.toLowerCase().includes(q) || (p.artistName && p.artistName.toLowerCase().includes(q));
+  });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortPrice === 'none') return 0;
+    if (sortPrice === 'asc') return a.price - b.price;
+    return b.price - a.price; // desc
+  });
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -52,6 +69,32 @@ export default function AdminProductsPage() {
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span>ثبت محصول جدید</span>
         </a>
+      </div>
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="w-full md:w-1/2 relative">
+          <input 
+            type="text" 
+            placeholder="جستجو در عنوان اثر یا نام صاحب اثر..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl focus:border-purple-500 outline-none text-sm"
+          />
+          <svg className="absolute left-3 top-2.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        
+        <div className="w-full md:w-auto flex items-center gap-2">
+          <span className="text-sm font-bold text-slate-600">مرتب‌سازی قیمت:</span>
+          <select 
+            value={sortPrice} 
+            onChange={(e) => setSortPrice(e.target.value as any)}
+            className="border border-slate-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-purple-500"
+          >
+            <option value="none">بدون مرتب‌سازی</option>
+            <option value="desc">بیشترین به کمترین</option>
+            <option value="asc">کمترین به بیشترین</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -72,11 +115,11 @@ export default function AdminProductsPage() {
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
                 </tr>
-              ) : products.length === 0 ? (
+              ) : sortedProducts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
                 </tr>
-              ) : products.map((product) => (
+              ) : sortedProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">
                     <img src={product.imageUrl} alt={product.title} className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-200" />

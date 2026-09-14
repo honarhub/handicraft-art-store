@@ -72,6 +72,54 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       });
       return NextResponse.json(updatedArtist);
     }
+
+    if (action === 'approveEdits') {
+      const artist = await prisma.artistProfile.findUnique({ where: { id: artistId } });
+      if (!artist || !artist.pendingEdits) return NextResponse.json({ error: 'No pending edits' }, { status: 400 });
+      
+      const edits = artist.pendingEdits as any;
+      let imageUrl = edits.image;
+      
+      if (imageUrl && imageUrl.startsWith('data:image')) {
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'artists');
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        
+        const fileName = `artist_${Date.now()}.png`;
+        const filePath = path.join(uploadsDir, fileName);
+        const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
+        fs.writeFileSync(filePath, base64Data, 'base64');
+        imageUrl = `/uploads/artists/${fileName}`;
+      }
+
+      const updatedArtist = await prisma.artistProfile.update({
+        where: { id: artistId },
+        data: {
+          bio: edits.bio,
+          portfolioUrl: edits.portfolioUrl,
+          pendingEdits: null,
+          adminFeedback: null,
+          user: {
+            update: {
+              name: edits.name,
+              ...(imageUrl ? { image: imageUrl } : {})
+            }
+          }
+        }
+      });
+      return NextResponse.json(updatedArtist);
+    }
+
+    if (action === 'rejectEdits') {
+      const updatedArtist = await prisma.artistProfile.update({
+        where: { id: artistId },
+        data: {
+          pendingEdits: null,
+          adminFeedback: body.adminFeedback || 'درخواست رد شد'
+        }
+      });
+      return NextResponse.json(updatedArtist);
+    }
+    
     
     // پیش‌فرض یا action === 'delete'
     updateData = { isDeleted: true, isActive: false };

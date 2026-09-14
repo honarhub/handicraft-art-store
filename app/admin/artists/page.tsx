@@ -138,7 +138,17 @@ export default function AdminArtistsPage() {
               ) : filteredArtists.map((artist) => (
                 <tr key={artist.id} className={`hover:bg-slate-50 transition-colors ${artist.status === 'DELETED' ? 'opacity-60 bg-slate-50' : ''}`}>
                   <td className="px-6 py-4 font-black text-slate-400 text-center w-16 text-lg">{artist.displayId}</td>
-                  <td className="px-6 py-4 font-bold text-slate-800">{artist.name}</td>
+                  <td className="px-6 py-4 font-bold text-slate-800">
+                    <div className="flex items-center gap-2">
+                      {artist.name}
+                      {artist.hasPendingEdits && (
+                        <span title="درخواست ویرایش پروفایل دارد" className="flex h-2.5 w-2.5 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
                       {artist.specialties && artist.specialties.length > 0 ? artist.specialties.map((s: any) => (
@@ -174,9 +184,15 @@ export default function AdminArtistsPage() {
                     <div className="flex justify-end items-center gap-3">
                       <a href={`/artist/${artist.id}`} target="_blank" className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors text-xs font-bold flex items-center gap-1 border border-transparent hover:border-blue-100">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        مشاهده پروفایل
+                        مشاهده
                       </a>
                       
+                      {artist.hasPendingEdits && (
+                        <a href={`/admin/artists/${artist.id}/review-edits`} title="بررسی درخواست ویرایش" className="text-yellow-600 hover:bg-yellow-50 p-2 rounded-lg transition-colors border border-transparent hover:border-yellow-100 animate-pulse">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        </a>
+                      )}
+
                       <a href={`/admin/artists/${artist.id}/edit`} title="ویرایش هنرمند" className="text-emerald-500 hover:bg-emerald-50 p-2 rounded-lg transition-colors border border-transparent hover:border-emerald-100">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </a>

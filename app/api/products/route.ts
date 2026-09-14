@@ -35,14 +35,19 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { title, description, image, artistId, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price } = body;
+    import { cookies } from 'next/headers';
+    
+    export async function POST(request: Request) {
+      try {
+        const body = await request.json();
+        const cookieStore = await cookies();
+        const artistIdFromCookie = cookieStore.get('artistId')?.value;
+        
+        const { title, description, image, artistId = artistIdFromCookie, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price } = body;
 
-    if (!title || !artistId) {
-      return NextResponse.json({ error: 'عنوان محصول و انتخاب هنرمند الزامی است' }, { status: 400 });
-    }
+        if (!title || !artistId) {
+          return NextResponse.json({ error: 'عنوان محصول و شناسایی هنرمند الزامی است' }, { status: 400 });
+        }
 
     let imageUrl = '';
     if (image) {
