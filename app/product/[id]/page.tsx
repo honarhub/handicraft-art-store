@@ -93,29 +93,36 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                  </div>
                ) : (
                  <>
-                   <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
-                     <div className="text-slate-600 font-medium">قیمت اثر:</div>
-                     <div className="text-3xl font-black text-emerald-600">
-                       {(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')} <span className="text-base font-bold text-emerald-800/60">تومان</span>
-                     </div>
-                   </div>
-                   
                    {product.stockQuantity > 0 ? (
-                     <AddToCartButton product={{
-                       id: product.id,
-                       title: product.title,
-                       price: product.pricingTiers[0]?.price || 0,
-                       imageUrl: product.imageUrl,
-                       artistName: product.artist.user.name || 'نامشخص',
-                       stockQuantity: product.stockQuantity
-                     }} />
-                   ) : (
-                     <div className="flex flex-col gap-3">
-                       <div className="bg-slate-100 text-slate-500 font-bold py-4 rounded-xl text-center border border-slate-200 flex items-center justify-center gap-2">
-                         <span className="w-2 h-2 rounded-full bg-slate-400"></span> ناموجود
+                     <>
+                       <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4">
+                         <div className="text-slate-600 font-medium">قیمت اثر:</div>
+                         <div className="text-3xl font-black text-emerald-600">
+                           {(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')} <span className="text-base font-bold text-emerald-800/60">تومان</span>
+                         </div>
                        </div>
-                       <StockNotifyButton productId={product.id} />
-                     </div>
+                       
+                       <AddToCartButton product={{
+                         id: product.id,
+                         title: product.title,
+                         price: product.pricingTiers[0]?.price || 0,
+                         imageUrl: product.imageUrl,
+                         artistName: product.artist.user.name || 'نامشخص',
+                         stockQuantity: product.stockQuantity
+                       }} />
+                     </>
+                   ) : (
+                     <>
+                       <div className="flex justify-between items-center bg-red-50 p-4 rounded-xl border border-red-100 mb-4">
+                         <div className="text-red-600 font-black text-xl w-full text-center flex items-center justify-center gap-2">
+                           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> ناموجود
+                         </div>
+                       </div>
+                       
+                       <div className="flex flex-col gap-3">
+                         <StockNotifyButton productId={product.id} />
+                       </div>
+                     </>
                    )}
                  </>
                )}
