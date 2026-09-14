@@ -1,5 +1,6 @@
 import React from 'react';
 import GlobalSearch from './components/GlobalSearch';
+import CartIcon from './components/CartIcon';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +22,12 @@ export default async function Home() {
           <div className="text-2xl font-black tracking-tighter text-slate-800">
             هنرآفرین <span className="text-emerald-600">.</span>
           </div>
-          <nav className="hidden md:flex gap-8 text-sm font-bold text-slate-600">
+          <nav className="hidden md:flex gap-8 text-sm font-bold text-slate-600 items-center">
             <a href="#marketplace" className="hover:text-emerald-600 transition-colors">مارکت‌پلیس</a>
             <a href="/artist-panel/login" className="hover:text-emerald-600 transition-colors">پنل هنرمندان</a>
             <a href="/admin" className="hover:text-emerald-600 transition-colors">پنل ادمین</a>
+            <div className="w-px h-5 bg-slate-300"></div>
+            <CartIcon />
           </nav>
         </div>
       </header>
@@ -54,7 +57,7 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="#marketplace" className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-lg shadow-xl shadow-slate-900/20 transition-all hover:scale-105 active:scale-95">
+            <a href="/products" className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-lg shadow-xl shadow-slate-900/20 transition-all hover:scale-105 active:scale-95">
               گشت و گذار در گالری
             </a>
             <a href="/artist-panel/login" className="px-8 py-4 bg-white text-slate-800 rounded-2xl font-bold text-lg shadow-lg border border-slate-100 transition-all hover:bg-slate-50 hover:scale-105 active:scale-95">
@@ -71,7 +74,7 @@ export default async function Home() {
                 <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4">آثار برگزیده اخیر</h2>
                 <p className="text-slate-500">جدیدترین دست‌سازه‌های هنرمندان پلتفرم هنرآفرین</p>
               </div>
-              <a href="#" className="hidden md:flex text-emerald-600 font-bold hover:text-emerald-700 items-center gap-1 transition-colors">
+              <a href="/products" className="hidden md:flex text-emerald-600 font-bold hover:text-emerald-700 items-center gap-1 transition-colors">
                 مشاهده همه
                 <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
               </a>

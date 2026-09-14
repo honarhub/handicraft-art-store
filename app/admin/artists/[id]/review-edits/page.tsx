@@ -65,7 +65,7 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
 
   const formatSocials = (links: any) => {
     if (!links || Object.keys(links).length === 0) return '';
-    const names: Record<string, string> = { instagram: 'اینستاگرام', twitter: 'توییتر', telegram: 'تلگرام', bale: 'بله' };
+    const names: Record<string, string> = { instagram: 'اینستاگرام', twitter: 'ایکس (توییتر سابق)', telegram: 'تلگرام', bale: 'بله' };
     return Object.entries(links).map(([k, v]) => `${names[k] || k}: ${v}`).join('\n');
   };
 

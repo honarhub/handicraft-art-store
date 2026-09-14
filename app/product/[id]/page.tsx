@@ -1,13 +1,15 @@
 import React from 'react';
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import CartIcon from '../../components/CartIcon';
+import AddToCartButton from './AddToCartButton';
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { artist: { include: { user: true } }, specialties: true }
+    include: { artist: { include: { user: true } }, specialties: true, pricingTiers: true }
   });
 
   if (!product || product.status !== 'APPROVED' || product.deletedAt) {
@@ -23,6 +25,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <a href="/" className="text-2xl font-black tracking-tighter text-slate-800">
             هنرآفرین <span className="text-emerald-600">.</span>
           </a>
+          <CartIcon />
         </div>
       </header>
 
@@ -38,7 +41,15 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               ارسال مستقیم از کارگاه هنرمند
             </div>
             
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">{product.title}</h1>
+            <div className="flex justify-between items-end mb-4">
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">{product.title}</h1>
+              <div className="text-left">
+                <div className="text-sm text-slate-500 mb-1">قیمت</div>
+                <div className="text-2xl font-black text-emerald-600">
+                  {(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')} <span className="text-sm font-bold text-emerald-800/60">تومان</span>
+                </div>
+              </div>
+            </div>
             
             <div className="flex items-center gap-3 mb-8 pb-8 border-b border-slate-100">
               <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
@@ -66,12 +77,17 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             )}
 
             <div className="mt-auto pt-6 flex gap-4 items-center">
-               <button className="flex-1 bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 shadow-xl shadow-slate-900/20">
-                 اضافه به سبد خرید
-               </button>
-               {product.stockQuantity < 5 && (
+               <AddToCartButton product={{
+                 id: product.id,
+                 title: product.title,
+                 price: product.pricingTiers[0]?.price || 0,
+                 imageUrl: product.imageUrl,
+                 artistName: product.artist.user.name || 'نامشخص',
+                 stockQuantity: product.stockQuantity
+               }} />
+               {product.stockQuantity > 0 && product.stockQuantity < 5 && (
                  <div className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-lg border border-red-100">
-                   تنها {product.stockQuantity} عدد موجود است
+                   تنها {product.stockQuantity} عدد باقیست
                  </div>
                )}
             </div>

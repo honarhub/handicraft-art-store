@@ -4,7 +4,7 @@ export type SocialPlatform = 'instagram' | 'twitter' | 'telegram' | 'bale';
 
 const platformNames: Record<SocialPlatform, string> = {
   instagram: 'اینستاگرام',
-  twitter: 'توییتر',
+  twitter: 'ایکس (توییتر سابق)',
   telegram: 'تلگرام',
   bale: 'بله'
 };
