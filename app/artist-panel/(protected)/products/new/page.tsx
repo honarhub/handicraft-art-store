@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import SpecialtyTagInput, { Specialty } from '../../../../components/SpecialtyTagInput';
+import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import { useRouter } from 'next/navigation';
 
 export default function ArtistAddProductPage() {

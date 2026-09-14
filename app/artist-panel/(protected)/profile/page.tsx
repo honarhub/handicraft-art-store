@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-import SpecialtyTagInput, { Specialty } from '../../../../components/SpecialtyTagInput';
+import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 
 export default function ArtistProfilePage() {
   const [loading, setLoading] = useState(true);
