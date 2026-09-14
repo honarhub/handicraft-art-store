@@ -1,11 +1,62 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import CartIcon from '../components/CartIcon';
 
 export default function CartPage() {
-  const { items, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
+  const { items, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
+  const [removedItems, setRemovedItems] = useState<{ [productId: string]: { item: any, timeLeft: number } }>({});
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRemovedItems(prev => {
+        let changed = false;
+        const next = { ...prev };
+        for (const id in next) {
+          if (next[id].timeLeft <= 1) {
+            delete next[id];
+            changed = true;
+          } else {
+            next[id] = { ...next[id], timeLeft: next[id].timeLeft - 1 };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleRemoveRequest = (item: any) => {
+    removeFromCart(item.productId);
+    setRemovedItems(prev => ({
+      ...prev,
+      [item.productId]: { item, timeLeft: 5 }
+    }));
+  };
+
+  const handleUndo = (productId: string) => {
+    const removed = removedItems[productId];
+    if (removed) {
+      addToCart(removed.item, removed.item.quantity);
+      setRemovedItems(prev => {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      });
+    }
+  };
+
+  const handleQuantityDecrease = (item: any) => {
+    if (item.quantity <= 1) {
+      handleRemoveRequest(item);
+    } else {
+      updateQuantity(item.productId, item.quantity - 1);
+    }
+  };
+
+  const isCartEffectivelyEmpty = items.length === 0 && Object.keys(removedItems).length === 0;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans" dir="rtl">
@@ -22,7 +73,7 @@ export default function CartPage() {
       <main className="max-w-7xl mx-auto py-12 px-6 md:px-12">
         <h1 className="text-3xl font-black text-slate-900 mb-8">سبد خرید شما</h1>
 
-        {items.length === 0 ? (
+        {isCartEffectivelyEmpty ? (
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-12 text-center">
             <div className="text-6xl mb-6">🛒</div>
             <h2 className="text-2xl font-bold text-slate-700 mb-4">سبد خرید شما خالی است</h2>
@@ -50,7 +101,7 @@ export default function CartPage() {
                         <div className="text-sm text-slate-500 mt-1">اثر: {item.artistName}</div>
                       </div>
                       <button 
-                        onClick={() => removeFromCart(item.productId)}
+                        onClick={() => handleRemoveRequest(item)}
                         className="text-slate-400 hover:text-red-500 p-2 transition-colors rounded-lg hover:bg-red-50"
                         title="حذف از سبد"
                       >
@@ -61,9 +112,8 @@ export default function CartPage() {
                     <div className="flex flex-wrap sm:flex-nowrap justify-between items-end sm:items-center mt-6 gap-4">
                       <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-1 w-fit">
                         <button 
-                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-slate-600 disabled:opacity-50 disabled:hover:bg-transparent"
+                          onClick={() => handleQuantityDecrease(item)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-slate-600"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
@@ -84,6 +134,31 @@ export default function CartPage() {
                     {item.quantity >= item.maxStock && (
                        <div className="text-xs text-orange-500 mt-2 font-medium">حداکثر موجودی انتخاب شده است</div>
                     )}
+                  </div>
+                </div>
+              ))}
+              
+              {/* Removed Items Undo List */}
+              {Object.values(removedItems).map(({ item, timeLeft }) => (
+                <div key={item.productId} className="bg-red-50/50 rounded-2xl border border-red-100 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden opacity-50 grayscale flex-shrink-0">
+                       <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <div className="text-slate-500 line-through text-sm font-bold">{item.title}</div>
+                      <div className="text-red-500 font-bold text-xs mt-0.5">از سبد خرید حذف شد</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="text-xs text-red-400 font-medium">حذف قطعی در {timeLeft} ثانیه...</div>
+                    <button 
+                      onClick={() => handleUndo(item.productId)}
+                      className="bg-white border border-red-200 text-red-600 hover:bg-red-100 hover:border-red-300 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-sm"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                      بازگرداندن
+                    </button>
                   </div>
                 </div>
               ))}
@@ -112,7 +187,7 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <a href="/checkout" className="block w-full bg-slate-900 hover:bg-slate-800 text-white text-center py-4 rounded-xl font-bold text-lg transition-transform hover:-translate-y-0.5 shadow-xl shadow-slate-900/20">
+                <a href="/checkout" className={`block w-full text-center py-4 rounded-xl font-bold text-lg transition-transform shadow-xl ${items.length > 0 ? 'bg-slate-900 hover:bg-slate-800 text-white hover:-translate-y-0.5 shadow-slate-900/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none'}`}>
                   تکمیل سفارش و پرداخت
                 </a>
                 <div className="mt-4 text-center flex items-center justify-center gap-2 text-xs text-slate-500 font-medium">
