@@ -63,10 +63,9 @@ export default function SupportForm({ productId }: { productId?: string }) {
       <div className="bg-emerald-50 text-emerald-800 p-8 rounded-2xl text-center border border-emerald-100">
         <div className="text-4xl mb-4">✅</div>
         <h3 className="text-xl font-bold mb-2">پیام شما با موفقیت ثبت شد</h3>
-        <p className="text-emerald-700/80">{responseMsg}</p>
-        <button onClick={() => setStatus('idle')} className="mt-6 px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors text-sm">
-          ارسال پیام جدید
-        </button>
+        <a href="/" className="inline-block mt-6 px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors text-sm">
+          بازگشت به صفحه اصلی
+        </a>
       </div>
     );
   }
