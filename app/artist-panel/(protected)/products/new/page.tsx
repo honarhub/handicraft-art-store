@@ -297,17 +297,19 @@ export default function ArtistAddProductPage() {
                     <span className="text-teal-600">🎯</span> سئو (SEO)
                   </h4>
                   <p className="text-xs text-slate-500 mt-2 max-w-xl leading-relaxed">
-                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است. در صورتی که دانشی در این زمینه ندارید، روی دکمه هوش مصنوعی کلیک کنید تا متون مناسب برای شما تولید شود.
+                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است. در صورتی که دانشی در این زمینه ندارید، می‌توانید برای پر کردن خودکار این فیلدها از هوش مصنوعی استفاده کنید.
                   </p>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={generateSeo}
-                  disabled={seoLoading || !title}
-                  className="bg-teal-100 hover:bg-teal-200 text-teal-700 font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-50"
-                >
-                  {seoLoading ? 'در حال تولید...' : '✨ تولید با هوش مصنوعی'}
-                </button>
+                {activeTab === 'manual' && (
+                  <button 
+                    type="button" 
+                    onClick={generateSeo}
+                    disabled={seoLoading || !title}
+                    className="bg-teal-100 hover:bg-teal-200 text-teal-700 font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {seoLoading ? 'در حال تولید...' : '✨ تولید با هوش مصنوعی'}
+                  </button>
+                )}
               </div>
 
               <div>
