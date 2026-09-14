@@ -2,6 +2,7 @@ import React from 'react';
 import prisma from '@/lib/prisma';
 
 import { Prisma } from '@prisma/client';
+import AdminSidebarNav from './AdminSidebarNav';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // گرفتن تعداد تخصص‌های در انتظار تایید
@@ -26,47 +27,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <h1 className="text-xl font-black text-white tracking-tight">کنترل پنل ارشد</h1>
           <p className="text-xs text-slate-500 mt-1">مدیریت کل سیستم</p>
         </div>
-        <nav className="p-4 flex flex-col gap-2">
-          <a href="/admin/dashboard" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
-            📊 پیشخوان اصلی
-          </a>
-          <a href="/admin/artists" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              🎭 مدیریت هنرمندان
-            </div>
-            {pendingArtistsCount > 0 && (
-              <span className="bg-yellow-500 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.5)]">
-                {pendingArtistsCount}
-              </span>
-            )}
-          </a>
-          <a href="/admin/products" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              📦 مدیریت محصولات
-            </div>
-            {pendingProductsCount > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-                {pendingProductsCount}
-              </span>
-            )}
-          </a>
-          <a href="/admin/specialties" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              🏷️ مدیریت تخصص‌ها
-            </div>
-            {pendingSpecialtiesCount > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
-                {pendingSpecialtiesCount}
-              </span>
-            )}
-          </a>
-          <a href="/admin/support" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
-            🎧 پشتیبانی و تیکت‌ها
-          </a>
-          <a href="/admin/stock-requests" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
-            🔔 درخواست‌های موجودی
-          </a>
-        </nav>
+        <AdminSidebarNav 
+          pendingArtistsCount={pendingArtistsCount}
+          pendingProductsCount={pendingProductsCount}
+          pendingSpecialtiesCount={pendingSpecialtiesCount}
+        />
         <div className="p-4 mt-auto border-t border-slate-800">
           <a href="/" className="px-4 py-2 w-full text-center rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors text-xs text-slate-400 block">
             مشاهده سایت
