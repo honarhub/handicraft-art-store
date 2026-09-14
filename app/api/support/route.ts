@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, message: 'پیام شما با موفقیت ثبت شد.' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Support API Error:', error);
     return NextResponse.json({ error: 'خطا در ثبت پیام.' }, { status: 500 });
   }

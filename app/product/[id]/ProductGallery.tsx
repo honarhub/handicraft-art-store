@@ -15,6 +15,14 @@ export default function ProductGallery({ mediaUrls, title }: { mediaUrls: string
 
   const activeMedia = mediaUrls[activeIndex];
 
+  const handleNext = () => {
+    setActiveIndex((prev) => (prev === mediaUrls.length - 1 ? 0 : prev + 1));
+  };
+
+  const handlePrev = () => {
+    setActiveIndex((prev) => (prev === 0 ? mediaUrls.length - 1 : prev - 1));
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Main Image/Video */}
@@ -34,6 +42,26 @@ export default function ProductGallery({ mediaUrls, title }: { mediaUrls: string
             alt={title} 
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
           />
+        )}
+        
+        {/* Navigation Arrows */}
+        {mediaUrls.length > 1 && (
+          <>
+            <button 
+              onClick={handlePrev}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/40 hover:bg-white/80 backdrop-blur-md flex items-center justify-center text-slate-800 shadow-sm border border-white/50 transition-all opacity-0 group-hover:opacity-100 z-10"
+              title="قبلی"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <button 
+              onClick={handleNext}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/40 hover:bg-white/80 backdrop-blur-md flex items-center justify-center text-slate-800 shadow-sm border border-white/50 transition-all opacity-0 group-hover:opacity-100 z-10"
+              title="بعدی"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          </>
         )}
       </div>
 

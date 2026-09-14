@@ -1,56 +1,12 @@
-PrismaClientValidationError: 
-Invalid `prisma.product.create()` invocation:
-
-{
-  data: {
-    title: "کوزه سفالی دو دسته سنتی - نغمه خاک و آفتاب",
-    description: "این کوزه سفالی دست‌ساز، تجلی‌بخش هنر اصیل سفالگری ایرانی و یادآور رازهای خفته در دل خاک است. اثر پیش رو با فرمی موزون، بدنه کروی و دو دسته ظریف، از خاک رس باکیفیت و به دست هنرمندان چیره دست شکل گرفته است. بافت طبیعی و خام این کوزه، گرمای طبیعت و حس سادگی را به آغوش زندگی مدرن می‌آورد. این محصول نه‌تنها یک قطعه دکوراتیو اصیل برای چیدمان‌های سنتی و مدرن است، بلکه نمادی از تاریخ و فرهنگ دیرین صنایع دستی ایران‌زمین به شمار می‌رود.",
-    imageUrl: "/uploads/products/product_1789392270749_0.webp",
-    mediaUrls: [
-    ~~~~~~~~~
-      "/uploads/products/product_1789392270749_0.webp",
-      "/uploads/products/product_1789392270750_1.webp"
-    ],
-    artistId: "cmty2qthm0005y3fjpim7wt0n",
-    seoMetaTitle: "خرید کوزه سفالی دو دسته سنتی | سفال خام دست‌ساز",
-    seoMetaDesc: "خرید اینترنتی کوزه سفالی دو دسته خام و دست‌ساز با ظاهری اصیل و سنتی. عالی برای دکوراسیون منزل و هدیه‌ای ماندگار از صنایع دستی ایران.",
-    seoKeywords: "کوزه سفالی, سفال خام, خرید کوزه سفالی, سفالگری سنتی, صنایع دستی سفال, ظروف سفالی دکوراتیو",
-    status: "PENDING",
-    specialties: undefined,
-    pricingTiers: {
-      create: {
-        tierType: "STANDARD",
-        title: "قیمت پایه",
-        description: "نسخه استاندارد محصول",
-        price: 250000,
-        deliveryTime: "آماده ارسال / پیش‌فرض"
-      }
-    },
-?   id?: String,
-?   stockQuantity?: Int,
-?   isUnique?: Boolean,
-?   adminFeedback?: String | Null,
-?   deletedAt?: DateTime | Null,
-?   createdAt?: DateTime,
-?   updatedAt?: DateTime,
-?   orderItems?: OrderItemUncheckedCreateNestedManyWithoutProductInput,
-?   certificates?: ProductCertificateUncheckedCreateNestedManyWithoutProductInput
-  }
-}
-
-Unknown argument `mediaUrls`. Available options are marked with ?.
-    at Nn (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/@prisma/client/runtime/library.js:29:1363)
-    at ei.handleRequestError (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/@prisma/client/runtime/library.js:121:6911)
-    at ei.handleAndLogRequestError (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/@prisma/client/runtime/library.js:121:6593)
-    at ei.request (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/@prisma/client/runtime/library.js:121:6300)
-    at async a (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/@prisma/client/runtime/library.js:130:9551)
-    at async POST (file:///home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__20n8xj8._.js?id=%5Bproject%5D/app/api/products/route.ts+%5Bapp-route%5D+(ecmascript):100:28)
+TypeError: Cannot read properties of undefined (reading 'count')
+    at POST (file:///home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__19ecmk2._.js?id=%5Bproject%5D/app/api/support/route.ts+%5Bapp-route%5D+(ecmascript):26:176)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
     at async AppRouteRouteModule.do (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:42791)
     at async AppRouteRouteModule.handle (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:5:50709)
-    at async responseGenerator (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__12vracs._.js:4715:30)
+    at async responseGenerator (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__1iuou42._.js:4715:30)
     at async AppRouteRouteModule.handleResponse (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js:1:248823)
-    at async handleResponse (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__12vracs._.js:4787:32)
-    at async Module.handler (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__12vracs._.js:4907:9)
+    at async handleResponse (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__1iuou42._.js:4787:32)
+    at async Module.handler (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/.next/dev/server/chunks/[root-of-the-server]__1iuou42._.js:4907:9)
     at async DevServer.renderToResponseWithComponentsImpl (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/next/dist/server/base-server.js:1537:9)
     at async DevServer.renderPageComponent (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/next/dist/server/base-server.js:1589:24)
     at async DevServer.renderToResponseImpl (/home/abbas/.gemini/antigravity/scratch/handicraft-art-store/node_modules/next/dist/server/base-server.js:1639:32)
