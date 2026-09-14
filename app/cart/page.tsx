@@ -6,7 +6,7 @@ import CartIcon from '../components/CartIcon';
 
 export default function CartPage() {
   const { items, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
-  const [removedItems, setRemovedItems] = useState<{ [productId: string]: { item: any, timeLeft: number } }>({});
+  const [removedItems, setRemovedItems] = useState<{ [productId: string]: { item: any, timeLeft: number, isHovered?: boolean } }>({});
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -14,6 +14,7 @@ export default function CartPage() {
         let changed = false;
         const next = { ...prev };
         for (const id in next) {
+          if (next[id].isHovered) continue; // توقف شمارش هنگام هاور
           if (next[id].timeLeft <= 1) {
             delete next[id];
             changed = true;
@@ -32,7 +33,7 @@ export default function CartPage() {
     removeFromCart(item.productId);
     setRemovedItems(prev => ({
       ...prev,
-      [item.productId]: { item, timeLeft: 10 }
+      [item.productId]: { item, timeLeft: 5, isHovered: false }
     }));
   };
 
@@ -46,6 +47,16 @@ export default function CartPage() {
         return next;
       });
     }
+  };
+
+  const handleHover = (productId: string, isHovered: boolean) => {
+    setRemovedItems(prev => {
+      if (!prev[productId]) return prev;
+      return {
+        ...prev,
+        [productId]: { ...prev[productId], isHovered }
+      };
+    });
   };
 
   const handleQuantityDecrease = (item: any) => {
@@ -153,14 +164,16 @@ export default function CartPage() {
                   <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
                     <button 
                       onClick={() => handleUndo(item.productId)}
+                      onMouseEnter={() => handleHover(item.productId, true)}
+                      onMouseLeave={() => handleHover(item.productId, false)}
                       className="group relative bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center gap-3 shadow-sm overflow-hidden"
                     >
                       <div className="relative w-6 h-6 flex items-center justify-center">
                         <svg className="w-full h-full -rotate-90 text-red-100" viewBox="0 0 36 36">
                           <circle cx="18" cy="18" r="16" fill="none" className="stroke-current" strokeWidth="4" />
                         </svg>
-                        <svg className="w-full h-full -rotate-90 absolute top-0 left-0 text-red-500" viewBox="0 0 36 36">
-                          <circle cx="18" cy="18" r="16" fill="none" className="stroke-current transition-all" strokeWidth="4" strokeDasharray="100" strokeDashoffset="0" style={{ animation: 'dash 10s linear forwards' }} />
+                        <svg className="w-full h-full -rotate-90 absolute top-0 left-0 text-red-500 group-hover:[animation-play-state:paused]" viewBox="0 0 36 36">
+                          <circle cx="18" cy="18" r="16" fill="none" className="stroke-current transition-all" strokeWidth="4" strokeDasharray="100" strokeDashoffset="0" style={{ animation: 'dash 5s linear forwards' }} />
                         </svg>
                         <style>{`
                           @keyframes dash {
