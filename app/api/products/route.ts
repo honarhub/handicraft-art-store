@@ -107,8 +107,9 @@ export async function GET() {
     });
 
     return NextResponse.json(newProduct);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating product:', error);
+    fs.writeFileSync('debug_error.txt', error.stack || error.message || String(error));
     return NextResponse.json({ error: 'خطا در ثبت محصول' }, { status: 500 });
   }
 }
