@@ -7,6 +7,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     where: { isApproved: false }
   });
 
+  // گرفتن تعداد درخواست‌های ویرایش پروفایل هنرمندان
+  const pendingArtistsCount = await prisma.artistProfile.count({
+    where: { pendingEdits: { not: null } }
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
       {/* سایدبار ادمین کل */}
@@ -19,8 +24,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <a href="/admin/dashboard" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
             📊 پیشخوان اصلی
           </a>
-          <a href="/admin/artists" className="px-4 py-3 rounded-lg bg-slate-800 text-white font-medium text-sm flex items-center gap-3">
-            🎭 مدیریت هنرمندان
+          <a href="/admin/artists" className="px-4 py-3 rounded-lg bg-slate-800 text-white font-medium text-sm flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              🎭 مدیریت هنرمندان
+            </div>
+            {pendingArtistsCount > 0 && (
+              <span className="bg-yellow-500 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.5)]">
+                {pendingArtistsCount}
+              </span>
+            )}
           </a>
           <a href="/admin/products" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
             📦 تایید محصولات
