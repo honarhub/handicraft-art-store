@@ -9,7 +9,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
   // دریافت اطلاعات واقعی از دیتابیس
   const dbArtist = await prisma.artistProfile.findFirst({
     where: { id: id, isDeleted: false, isActive: true },
-    include: { user: true, products: true, specialties: true }
+    include: { user: true, products: { include: { pricingTiers: true } }, specialties: true }
   });
   
   if (!dbArtist) notFound();
@@ -97,18 +97,26 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
           <h2 className="text-2xl font-black text-gray-800 mb-8 px-2">گالری آثار هنرمند</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {artist.products.map(product => (
-              <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
+              <a href={`/product/${product.id}`} key={product.id} className="block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
                 <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
                   <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
                 <div className="p-5">
                   <h3 className="font-bold text-gray-800 text-lg mb-2">{product.title}</h3>
                   <div className="flex justify-between items-center mt-4">
-                    <span className="text-emerald-700 font-bold">بزودی...</span>
-                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors">مشاهده</button>
+                    {product.status !== 'APPROVED' ? (
+                      <span className="text-emerald-700 font-bold">بزودی...</span>
+                    ) : product.stockQuantity === 0 ? (
+                      <span className="text-red-500 font-bold">عدم موجودی</span>
+                    ) : (
+                      <span className="text-emerald-700 font-bold">
+                        {product.pricingTiers?.[0]?.price ? Number(product.pricingTiers[0].price).toLocaleString('fa-IR') + ' تومان' : 'نامشخص'}
+                      </span>
+                    )}
+                    <button className="bg-gray-100 group-hover:bg-emerald-50 group-hover:text-emerald-700 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors">مشاهده</button>
                   </div>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </section>

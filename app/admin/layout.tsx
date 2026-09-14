@@ -14,6 +14,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     where: { pendingEdits: { not: Prisma.AnyNull } }
   });
 
+  const pendingProductsCount = await prisma.product.count({
+    where: { status: 'PENDING' }
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
       {/* سایدبار ادمین کل */}
@@ -36,8 +40,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               </span>
             )}
           </a>
-          <a href="/admin/products" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
-            📦 تایید محصولات
+          <a href="/admin/products" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              📦 مدیریت محصولات
+            </div>
+            {pendingProductsCount > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+                {pendingProductsCount}
+              </span>
+            )}
           </a>
           <a href="/admin/specialties" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -48,6 +59,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 {pendingSpecialtiesCount}
               </span>
             )}
+          </a>
+          <a href="/admin/support" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
+            🎧 پشتیبانی و تیکت‌ها
+          </a>
+          <a href="/admin/stock-requests" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
+            🔔 درخواست‌های موجودی
           </a>
         </nav>
         <div className="p-4 mt-auto border-t border-slate-800">

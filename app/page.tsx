@@ -125,6 +125,10 @@ export default async function Home() {
           <div className="text-2xl font-black tracking-tighter text-white">
             هنرآفرین <span className="text-emerald-500">.</span>
           </div>
+          <div className="flex gap-6">
+            <a href="/support" className="hover:text-emerald-400 transition-colors">ارتباط با پشتیبانی</a>
+            <a href="/products" className="hover:text-emerald-400 transition-colors">گالری آثار</a>
+          </div>
           <p>© {new Date().getFullYear()} پلتفرم اختصاصی هنرمندان. توسعه یافته با ❤️</p>
         </div>
       </footer>

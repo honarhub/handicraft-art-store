@@ -85,6 +85,8 @@ model Product {
   pricingTiers    PricingTier[]
   orderItems      OrderItem[]
   certificates    ProductCertificate[]
+  supportMessages SupportMessage[]
+  stockNotifications StockNotification[]
 }
 
 model Transaction {
@@ -182,4 +184,32 @@ model Specialty {
 
   artists     ArtistProfile[]
   products    Product[]
+}
+
+model SupportMessage {
+  id            String    @id @default(cuid())
+  name          String
+  contact       String    // شماره تماس یا ایمیل
+  message       String
+  attachmentUrl String?   // لینک فایل پیوست (پرایوت)
+  ipAddress     String?   // برای جلوگیری از اسپم
+  productId     String?
+  product       Product?  @relation(fields: [productId], references: [id])
+  status        SupportStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+}
+
+enum SupportStatus {
+  PENDING
+  RESOLVED
+}
+
+model StockNotification {
+  id          String   @id @default(cuid())
+  contact     String   // شماره تماس یا ایمیل
+  ipAddress   String?  // برای جلوگیری از اسپم
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  isNotified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
