@@ -3,6 +3,8 @@ import GlobalSearch from './components/GlobalSearch';
 import CartIcon from './components/CartIcon';
 import prisma from '@/lib/prisma';
 
+import TopArtistsCarousel from './components/TopArtistsCarousel';
+
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
@@ -96,31 +98,7 @@ export default async function Home() {
           
           {/* Top Artists Row */}
           {topArtists.length > 0 && (
-            <section className="px-6 md:px-12">
-              <div className="flex justify-between items-end mb-10">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-800 mb-2">هنرمندان ایران زمین</h2>
-                  <p className="text-slate-500">آفرینندگان آثار اصیل و ماندگار</p>
-                </div>
-              </div>
-              <div className="flex overflow-x-auto pb-6 gap-6 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {topArtists.map(artist => (
-                  <a key={artist.id} href={`/artist/${artist.displayId}`} className="flex flex-col items-center gap-3 min-w-[120px] snap-center group">
-                    <div className="w-24 h-24 rounded-full bg-slate-200 border-4 border-white shadow-md overflow-hidden group-hover:border-emerald-500 group-hover:shadow-emerald-200 transition-all duration-300 group-hover:-translate-y-2">
-                      {artist.user.image ? (
-                        <img src={artist.user.image} alt={artist.user.name || ''} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-3xl text-slate-300">🎭</div>
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-bold text-slate-800 group-hover:text-emerald-600 transition-colors text-sm">{artist.user.name || 'هنرمند'}</h3>
-                      <p className="text-xs text-slate-500 mt-1">مشاهده آثار</p>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </section>
+            <TopArtistsCarousel artists={topArtists} />
           )}
 
           {/* Featured Specialty Row */}
