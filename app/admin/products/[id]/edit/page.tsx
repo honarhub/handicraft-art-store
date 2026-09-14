@@ -13,10 +13,12 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const [price, setPrice] = useState('');
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/,/g, '');
-    if (!isNaN(Number(rawValue))) {
-      setPrice(rawValue);
-    }
+    const persianToEnglish = (str: string) => {
+      return str.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+                .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+    };
+    const rawValue = persianToEnglish(e.target.value).replace(/\D/g, '');
+    setPrice(rawValue);
   };
   const formattedPrice = price ? Number(price).toLocaleString('fa-IR') : '';
 
