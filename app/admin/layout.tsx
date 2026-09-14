@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <a href="/admin/dashboard" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center gap-3">
             📊 پیشخوان اصلی
           </a>
-          <a href="/admin/artists" className="px-4 py-3 rounded-lg bg-slate-800 text-white font-medium text-sm flex items-center justify-between">
+          <a href="/admin/artists" className="px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
               🎭 مدیریت هنرمندان
             </div>

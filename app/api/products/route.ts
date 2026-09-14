@@ -26,7 +26,8 @@ export async function GET() {
       artistName: p.artist.user.name || 'بدون نام',
       status: p.status,
       price: p.pricingTiers[0]?.price || 0,
-      specialties: p.specialties.map(s => s.name).join('، ')
+      specialties: p.specialties.map(s => s.name).join('، '),
+      stockQuantity: p.stockQuantity
     }));
 
     return NextResponse.json(formatted);
