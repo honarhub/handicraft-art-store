@@ -10,10 +10,8 @@ interface DynamicProductRowProps {
 }
 
 export default function DynamicProductRow({ title, type, value, products, index }: DynamicProductRowProps) {
-  if (!products || products.length === 0) return null;
-
-  // Alternate backgrounds for visual variety
-  const isDark = index % 2 === 0;
+  // Alternate backgrounds slightly for visual separation, but keep them all light and elegant
+  const isAlternate = index % 2 !== 0;
 
   let linkHref = '/products';
   if (type === 'SPECIALTY') linkHref = `/products?specialty=${value}`;
@@ -21,47 +19,49 @@ export default function DynamicProductRow({ title, type, value, products, index 
   if (type === 'PRICE_UNDER') linkHref = `/products?maxPrice=${value}`;
 
   return (
-    <section className={`px-6 md:px-12 rounded-[2.5rem] py-20 mx-4 md:mx-12 shadow-2xl overflow-hidden relative ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-800 border border-slate-100'}`}>
-      {isDark ? (
-        <>
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-900/40 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-slate-800/60 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
-        </>
-      ) : (
-        <>
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-50 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-50 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
-        </>
-      )}
+    <section className={`px-6 md:px-12 rounded-[2.5rem] py-20 mx-4 md:mx-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative ${isAlternate ? 'bg-slate-50/80 border border-slate-100' : 'bg-white border border-slate-100/50'}`}>
+      
+      {/* Soft elegant ambient background effects */}
+      <div className={`absolute top-0 right-0 w-96 h-96 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none ${isAlternate ? 'bg-emerald-50' : 'bg-purple-50/50'}`}></div>
+      <div className={`absolute bottom-0 left-0 w-96 h-96 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none ${isAlternate ? 'bg-purple-50/50' : 'bg-emerald-50'}`}></div>
       
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
         <div>
-          <h2 className="text-4xl md:text-5xl font-black mb-3">{title}</h2>
-          <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium`}>منتخبی از بهترین آثار برای شما</p>
+          <h2 className="text-3xl md:text-4xl font-black mb-3 text-slate-800 tracking-tight">{title}</h2>
+          <p className="text-slate-500 font-medium">منتخبی از بهترین آثار برای شما</p>
         </div>
-        <a href={linkHref} className={`${isDark ? 'bg-white/10 border-white/20 text-white hover:bg-white hover:text-slate-900' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-900 hover:text-white'} backdrop-blur-md border font-bold px-6 py-3 rounded-xl transition-all`}>
+        <a href={linkHref} className="bg-white border border-slate-200 text-slate-700 shadow-sm hover:shadow-md hover:border-emerald-200 hover:text-emerald-700 font-bold px-6 py-3 rounded-xl transition-all hover:-translate-y-0.5">
           مشاهده همه
         </a>
       </div>
-      <div className="relative z-10 flex overflow-x-auto pb-8 gap-8 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        {products.map((product) => (
-          <a key={product.id} href={`/product/${product.id}`} className={`group block min-w-[280px] md:min-w-[320px] snap-start backdrop-blur-lg rounded-3xl overflow-hidden border transition-all duration-500 hover:-translate-y-2 ${isDark ? 'bg-white/5 border-white/10 hover:border-white/30' : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-xl'}`}>
-            <div className={`aspect-[4/3] w-full relative overflow-hidden ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-              <img 
-                src={product.imageUrl} 
-                alt={product.title} 
-                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
-              />
-            </div>
-            <div className="p-6">
-              <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>{product.title}</h3>
-              <div className="flex items-center gap-3">
-                <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{product.artist.user.name}</span>
+
+      {(!products || products.length === 0) ? (
+        <div className="relative z-10 text-center py-16 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-200">
+          <div className="text-4xl mb-4 opacity-30">🎨</div>
+          <h3 className="text-xl font-bold text-slate-600 mb-2">هنوز اثری در این بخش نیست</h3>
+          <p className="text-sm text-slate-400">به زودی دست‌سازه‌های مرتبط اضافه خواهند شد.</p>
+        </div>
+      ) : (
+        <div className="relative z-10 flex overflow-x-auto pb-10 gap-6 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {products.map((product) => (
+            <a key={product.id} href={`/product/${product.id}`} className="group block min-w-[280px] md:min-w-[300px] snap-start bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-2">
+              <div className="aspect-[4/3] w-full relative overflow-hidden bg-slate-50">
+                <img 
+                  src={product.imageUrl} 
+                  alt={product.title} 
+                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
+                />
               </div>
-            </div>
-          </a>
-        ))}
-      </div>
+              <div className="p-6">
+                <h3 className="text-lg font-black text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors">{product.title}</h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-slate-500">{product.artist?.user?.name || 'هنرمند'}</span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
