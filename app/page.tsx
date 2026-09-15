@@ -41,22 +41,21 @@ export default async function Home() {
 
     try {
       if (row.type === 'NEWEST') {
-        products = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+        products = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
       } else if (row.type === 'SPECIALTY' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, specialties: { some: { id: row.value } } }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+        products = await prisma.product.findMany({ where: { ...baseQuery, specialties: { some: { id: row.value } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
       } else if (row.type === 'ARTIST' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, artistId: row.value }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+        products = await prisma.product.findMany({ where: { ...baseQuery, artistId: row.value }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
       } else if (row.type === 'PRICE_UNDER' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { lte: parseFloat(row.value) } } } }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { lte: parseFloat(row.value) } } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
       } else if (row.type === 'PRICE_OVER' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { gte: parseFloat(row.value) } } } }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { gte: parseFloat(row.value) } } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
       } else if (row.type === 'CHEAPEST') {
-        // Find products sorted by their lowest pricing tier. Prisma doesn't support order by relation easily in this context, so we'll fetch all and sort in JS for simplicity, or just order by a scalar price field if we had one. Since we don't, we'll fetch recently created ones and sort.
         const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
-        products = all.sort((a,b) => (a.pricingTiers[0]?.price || 0) - (b.pricingTiers[0]?.price || 0)).slice(0, 8);
+        products = all.sort((a,b) => (a.pricingTiers[0]?.price || 0) - (b.pricingTiers[0]?.price || 0)).slice(0, 13);
       } else if (row.type === 'EXPENSIVE') {
         const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
-        products = all.sort((a,b) => (b.pricingTiers[0]?.price || 0) - (a.pricingTiers[0]?.price || 0)).slice(0, 8);
+        products = all.sort((a,b) => (b.pricingTiers[0]?.price || 0) - (a.pricingTiers[0]?.price || 0)).slice(0, 13);
       }
     } catch(e) {
       console.error('Error fetching dynamic row', row.title, e);

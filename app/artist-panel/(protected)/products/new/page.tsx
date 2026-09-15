@@ -214,6 +214,8 @@ export default function ArtistAddProductPage() {
                 <h3 className="text-lg font-bold text-slate-800 mb-2">عکس محصول را آپلود کنید</h3>
                 <p className="text-slate-500 text-sm mb-2 leading-relaxed">
                   هوش مصنوعی به صورت خودکار تصویر محصول را آنالیز کرده و اطلاعات را پر می‌کند.
+                  <br />
+                  <span className="text-teal-600 font-bold text-xs mt-2 block">💡 پیشنهاد: برای نمایش بهتر و یکپارچه در سایت، لطفا از تصاویری با نسبت ابعاد ۴:۳ (مثلا ۸۰۰ در ۶۰۰ پیکسل) استفاده کنید.</span>
                 </p>
                 <div className="bg-orange-50 border border-orange-200 text-orange-800 text-xs rounded-lg p-3 mb-6 text-right">
                   <strong>توجه:</strong> تحلیل‌های هوش مصنوعی ممکن است غیردقیق باشد و صرفاً جهت راحتی در ثبت سریع است. هنرمند موظف به بازبینی و ویرایش اطلاعات پیش از ثبت نهایی می‌باشد. ضمناً در این روش فقط تصویر اصلی (۱ عکس) پردازش می‌شود.
@@ -240,8 +242,10 @@ export default function ArtistAddProductPage() {
         {(activeTab === 'manual' || aiCompleted) && (
           <div className="mb-10 pb-10 border-b border-slate-100">
             <h3 className="text-lg font-bold text-slate-800 mb-4">گالری محصول (حداکثر ۵ فایل)</h3>
-            <p className="text-sm text-slate-500 mb-4">
+            <p className="text-sm text-slate-500 mb-4 leading-relaxed">
               شما می‌توانید تا ۵ عکس (حداکثر ۵ مگابایت) یا فیلم (حداکثر ۲۰ مگابایت) برای محصول خود آپلود کنید. اولین عکس به عنوان کاور نمایش داده می‌شود.
+              <br />
+              <span className="text-teal-600 font-bold text-xs mt-2 block">💡 پیشنهاد: برای نمایش بهتر و یکپارچه در صفحات سایت، لطفا از تصاویری با نسبت ابعاد ۴:۳ (مثلا ۸۰۰ در ۶۰۰ پیکسل) استفاده کنید.</span>
             </p>
             <div className="flex flex-wrap gap-4 items-center">
               {images.map((img, idx) => (
