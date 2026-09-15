@@ -34,15 +34,15 @@ export async function PATCH(request: Request) {
       where: { id: 'default' },
       update: updateData,
       create: { 
-        id: 'default', 
-        featuredSpecialtyId: featuredSpecialtyId || null,
+        id: 'default',
+        ...(featuredSpecialtyId ? { featuredSpecialtyId } : {}),
         dynamicRows: dynamicRows || []
       }
     });
 
     return NextResponse.json(settings);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating site settings:', error);
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update settings', details: error.message }, { status: 500 });
   }
 }

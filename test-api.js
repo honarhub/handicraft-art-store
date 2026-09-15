@@ -1,48 +1,15 @@
-const http = require('http');
-
-const options = {
-  hostname: 'localhost',
-  port: 3000,
-  path: '/api/artists',
-  method: 'GET'
-};
-
-const req = http.request(options, res => {
-  let data = '';
-  res.on('data', chunk => data += chunk);
-  res.on('end', () => {
-    const artists = JSON.parse(data);
-    const pendingArtist = artists.find(a => a.hasPendingEdits);
-    if (!pendingArtist) {
-      console.log('No artist with pending edits found');
-      return;
-    }
-    console.log('Found artist with pending edits:', pendingArtist.id);
-    
-    // Now trigger PATCH
-    const patchData = JSON.stringify({ action: 'approveEdits', adminFeedback: '' });
-    const patchOptions = {
-      hostname: 'localhost',
-      port: 3000,
-      path: '/api/artists/' + pendingArtist.id,
+async function test() {
+  try {
+    const res = await fetch('http://localhost:3000/api/admin/settings', {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': patchData.length
-      }
-    };
-    
-    const patchReq = http.request(patchOptions, patchRes => {
-      let patchBody = '';
-      patchRes.on('data', chunk => patchBody += chunk);
-      patchRes.on('end', () => {
-        console.log('Status:', patchRes.statusCode);
-        console.log('Response:', patchBody);
-      });
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dynamicRows: [{ id: 'test', type: 'NEWEST', value: '', title: 'Test', isActive: true, order: 0 }] })
     });
-    
-    patchReq.write(patchData);
-    patchReq.end();
-  });
-});
-req.end();
+    console.log('Status:', res.status);
+    const text = await res.text();
+    console.log('Body:', text);
+  } catch (err) {
+    console.error('Fetch error:', err);
+  }
+}
+test();
