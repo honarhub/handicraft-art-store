@@ -135,6 +135,7 @@ export default async function Home() {
             <DynamicProductRow 
               key={row.id} 
               title={row.title} 
+              subtitle={row.subtitle}
               type={row.type} 
               value={row.value} 
               products={row.products} 

@@ -3,13 +3,14 @@ import { RowType } from '../admin/settings/page';
 
 interface DynamicProductRowProps {
   title: string;
+  subtitle?: string;
   type: RowType;
   value: string;
   products: any[];
   index: number;
 }
 
-export default function DynamicProductRow({ title, type, value, products, index }: DynamicProductRowProps) {
+export default function DynamicProductRow({ title, subtitle, type, value, products, index }: DynamicProductRowProps) {
   // Alternate backgrounds slightly for visual separation, but keep them all light and elegant
   const isAlternate = index % 2 !== 0;
 
@@ -28,7 +29,7 @@ export default function DynamicProductRow({ title, type, value, products, index 
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
         <div>
           <h2 className="text-3xl md:text-4xl font-black mb-3 text-slate-800 tracking-tight">{title}</h2>
-          <p className="text-slate-500 font-medium">منتخبی از بهترین آثار برای شما</p>
+          <p className="text-slate-500 font-medium">{subtitle || 'منتخبی از بهترین آثار برای شما'}</p>
         </div>
         <a href={linkHref} className="bg-white border border-slate-200 text-slate-700 shadow-sm hover:shadow-md hover:border-emerald-200 hover:text-emerald-700 font-bold px-6 py-3 rounded-xl transition-all hover:-translate-y-0.5">
           مشاهده همه

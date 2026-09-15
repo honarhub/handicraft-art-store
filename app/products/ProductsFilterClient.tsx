@@ -7,23 +7,24 @@ import { useDebounce } from 'use-debounce';
 interface ProductsFilterClientProps {
   initialQ: string;
   initialSpecialty: string;
+  initialArtist: string;
   initialSort: string;
-  initialMin: number;
   initialMax: number;
+  maxPossiblePrice: number;
   specialties: { id: string, name: string }[];
+  artists: any[];
 }
 
-export default function ProductsFilterClient({ initialQ, initialSpecialty, initialSort, initialMin, initialMax, specialties }: ProductsFilterClientProps) {
+export default function ProductsFilterClient({ initialQ, initialSpecialty, initialArtist, initialSort, initialMax, maxPossiblePrice, specialties, artists }: ProductsFilterClientProps) {
   const router = useRouter();
   
   const [q, setQ] = useState(initialQ);
   const [specialty, setSpecialty] = useState(initialSpecialty);
+  const [artistId, setArtistId] = useState(initialArtist);
   const [sort, setSort] = useState(initialSort);
-  const [minPrice, setMinPrice] = useState(initialMin);
   const [maxPrice, setMaxPrice] = useState(initialMax);
 
   const [debouncedQ] = useDebounce(q, 500);
-  const [debouncedMin] = useDebounce(minPrice, 500);
   const [debouncedMax] = useDebounce(maxPrice, 500);
   
   const [mounted, setMounted] = useState(false);
@@ -38,19 +39,19 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
     const params = new URLSearchParams();
     if (debouncedQ) params.set('q', debouncedQ);
     if (specialty) params.set('specialty', specialty);
+    if (artistId) params.set('artist', artistId);
     if (sort !== 'newest') params.set('sort', sort);
-    if (debouncedMin > 0) params.set('minPrice', debouncedMin.toString());
-    if (debouncedMax < 100000000) params.set('maxPrice', debouncedMax.toString());
+    if (debouncedMax < maxPossiblePrice) params.set('maxPrice', debouncedMax.toString());
     
     router.push(`/products?${params.toString()}`, { scroll: false });
-  }, [debouncedQ, specialty, sort, debouncedMin, debouncedMax, router, mounted]);
+  }, [debouncedQ, specialty, artistId, sort, debouncedMax, router, mounted, maxPossiblePrice]);
 
   const clearFilters = () => {
     setQ('');
     setSpecialty('');
+    setArtistId('');
     setSort('newest');
-    setMinPrice(0);
-    setMaxPrice(100000000);
+    setMaxPrice(maxPossiblePrice);
   };
 
   return (
@@ -81,7 +82,6 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
           </div>
         </div>
 
-        {/* Categories / Specialties */}
         <div>
           <label className="block text-sm font-bold text-slate-700 mb-2">دسته‌بندی (تخصص)</label>
           <select 
@@ -92,6 +92,21 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
             <option value="">همه دسته‌بندی‌ها</option>
             {specialties.map(s => (
               <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Artist Filter */}
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">هنرمند</label>
+          <select 
+            value={artistId} 
+            onChange={e => setArtistId(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-sm bg-white"
+          >
+            <option value="">همه هنرمندان</option>
+            {artists.map(a => (
+              <option key={a.id} value={a.id}>{a.user?.name || 'هنرمند بی‌نام'}</option>
             ))}
           </select>
         </div>
@@ -112,27 +127,17 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
 
         {/* Price Range */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-4">بازه قیمتی (تومان)</label>
+          <label className="block text-sm font-bold text-slate-700 mb-4">حداکثر قیمت (تومان)</label>
           <div className="space-y-4">
             <div>
-              <div className="text-xs text-slate-500 mb-1">حداقل قیمت: {minPrice.toLocaleString('fa-IR')}</div>
+              <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
+                <span>۰</span>
+                <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">{maxPrice.toLocaleString('fa-IR')}</span>
+              </div>
               <input 
                 type="range" 
                 min="0" 
-                max="10000000" 
-                step="50000"
-                value={minPrice} 
-                onChange={e => setMinPrice(parseInt(e.target.value))}
-                className="w-full accent-emerald-600"
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <div className="text-xs text-slate-500 mb-1">حداکثر قیمت: {maxPrice.toLocaleString('fa-IR')}</div>
-              <input 
-                type="range" 
-                min="0" 
-                max="100000000" 
+                max={maxPossiblePrice} 
                 step="500000"
                 value={maxPrice} 
                 onChange={e => setMaxPrice(parseInt(e.target.value))}

@@ -9,9 +9,18 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const params = await searchParams;
   const q = typeof params.q === 'string' ? params.q : '';
   const specialtyId = typeof params.specialty === 'string' ? params.specialty : '';
+  const artistId = typeof params.artist === 'string' ? params.artist : '';
   const sort = typeof params.sort === 'string' ? params.sort : 'newest';
-  const minPrice = typeof params.minPrice === 'string' ? parseInt(params.minPrice) : 0;
-  const maxPrice = typeof params.maxPrice === 'string' ? parseInt(params.maxPrice) : 100000000;
+  
+  // Calculate dynamic max price from DB
+  const maxPriceRecord = await prisma.pricingTier.findFirst({
+    orderBy: { price: 'desc' }
+  });
+  let maxPossiblePrice = maxPriceRecord ? maxPriceRecord.price : 10000000;
+  const roundupUnit = 5000000; // Round up to nearest 5M
+  maxPossiblePrice = Math.ceil(maxPossiblePrice / roundupUnit) * roundupUnit;
+
+  const maxPrice = typeof params.maxPrice === 'string' ? parseInt(params.maxPrice) : maxPossiblePrice;
 
   // Build Prisma Where Clause
   const whereClause: any = {
@@ -24,12 +33,16 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     pricingTiers: {
       some: {
         price: {
-          gte: minPrice,
+          gte: 0,
           lte: maxPrice
         }
       }
     }
   };
+
+  if (artistId) {
+    whereClause.artistId = artistId;
+  }
 
   if (q) {
     whereClause.title = { contains: q };
@@ -56,6 +69,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const allSpecialties = await prisma.specialty.findMany({
     where: { isApproved: true },
     orderBy: { name: 'asc' }
+  });
+
+  const allArtists = await prisma.artistProfile.findMany({
+    where: { isActive: true, isDeleted: false },
+    include: { user: true },
+    orderBy: { createdAt: 'desc' }
   });
 
   return (
@@ -86,10 +105,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             <ProductsFilterClient 
               initialQ={q}
               initialSpecialty={specialtyId}
+              initialArtist={artistId}
               initialSort={sort}
-              initialMin={minPrice}
               initialMax={maxPrice}
+              maxPossiblePrice={maxPossiblePrice}
               specialties={allSpecialties} 
+              artists={allArtists}
             />
           </aside>
 

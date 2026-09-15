@@ -10,11 +10,13 @@ export interface DynamicRow {
   type: RowType;
   value: string;
   title: string;
+  subtitle?: string;
   isActive: boolean;
   order: number;
 }
 
 export default function AdminSettingsPage() {
+// ... (I will use multi_replace for this to be safer)
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,6 +44,7 @@ export default function AdminSettingsPage() {
     const newRow: DynamicRow = {
       id: Math.random().toString(36).substr(2, 9),
       title: 'ردیف جدید',
+      subtitle: 'منتخبی از بهترین آثار برای شما',
       type: 'NEWEST',
       value: '',
       isActive: true,
@@ -148,9 +151,17 @@ export default function AdminSettingsPage() {
                         type="text" 
                         value={row.title}
                         onChange={(e) => handleUpdateRow(index, { title: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-purple-500 outline-none text-sm font-bold text-slate-800"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-purple-500 outline-none text-sm font-bold text-slate-800 mb-2"
                         placeholder="مثلا: محصولات شگفت‌انگیز"
                         required
+                      />
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">زیرعنوان (اختیاری)</label>
+                      <input 
+                        type="text" 
+                        value={row.subtitle || ''}
+                        onChange={(e) => handleUpdateRow(index, { subtitle: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:border-purple-400 outline-none text-xs text-slate-600 bg-slate-50"
+                        placeholder="مثلا: منتخبی از بهترین آثار برای شما"
                       />
                     </div>
                     
@@ -194,7 +205,7 @@ export default function AdminSettingsPage() {
                           required
                         >
                           <option value="">-- انتخاب هنرمند --</option>
-                          {artists.map(a => <option key={a.id} value={a.id}>{a.user?.name || 'هنرمند بی‌نام'}</option>)}
+                          {artists.map(a => <option key={a.id} value={a.id}>{a.name || 'هنرمند بی‌نام'}</option>)}
                         </select>
                       )}
 
