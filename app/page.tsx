@@ -4,6 +4,7 @@ import CartIcon from './components/CartIcon';
 import prisma from '@/lib/prisma';
 
 import TopArtistsCarousel from './components/TopArtistsCarousel';
+import DynamicProductRow from './components/DynamicProductRow';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,23 +25,45 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 3. واکشی تنظیمات و دسته‌بندی ویژه
+  // 3. واکشی تنظیمات و ردیف‌های داینامیک
   const siteSettings = await prisma.siteSettings.findUnique({
-    where: { id: 'default' },
-    include: { 
-      featuredSpecialty: { 
-        include: { 
-          products: { 
-            where: { status: 'APPROVED', deletedAt: null }, 
-            include: { artist: { include: { user: true } } },
-            take: 8
-          } 
-        } 
-      } 
-    }
+    where: { id: 'default' }
   });
 
-  const featuredSpecialty = siteSettings?.featuredSpecialty;
+  const rawRows = siteSettings?.dynamicRows ? (typeof siteSettings.dynamicRows === 'string' ? JSON.parse(siteSettings.dynamicRows) : siteSettings.dynamicRows) : [];
+  const activeRows = (rawRows as any[]).filter(r => r.isActive).sort((a, b) => a.order - b.order);
+
+  // واکشی محصولات برای هر ردیف پویا
+  const populatedRows = await Promise.all(activeRows.map(async (row) => {
+    let products: any[] = [];
+    const baseQuery = { status: 'APPROVED' as any, deletedAt: null };
+    const includeQuery = { artist: { include: { user: true } }, pricingTiers: true };
+
+    try {
+      if (row.type === 'NEWEST') {
+        products = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+      } else if (row.type === 'SPECIALTY' && row.value) {
+        products = await prisma.product.findMany({ where: { ...baseQuery, specialties: { some: { id: row.value } } }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+      } else if (row.type === 'ARTIST' && row.value) {
+        products = await prisma.product.findMany({ where: { ...baseQuery, artistId: row.value }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+      } else if (row.type === 'PRICE_UNDER' && row.value) {
+        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { lte: parseFloat(row.value) } } } }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+      } else if (row.type === 'PRICE_OVER' && row.value) {
+        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { gte: parseFloat(row.value) } } } }, include: includeQuery, take: 8, orderBy: { createdAt: 'desc' } });
+      } else if (row.type === 'CHEAPEST') {
+        // Find products sorted by their lowest pricing tier. Prisma doesn't support order by relation easily in this context, so we'll fetch all and sort in JS for simplicity, or just order by a scalar price field if we had one. Since we don't, we'll fetch recently created ones and sort.
+        const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
+        products = all.sort((a,b) => (a.pricingTiers[0]?.price || 0) - (b.pricingTiers[0]?.price || 0)).slice(0, 8);
+      } else if (row.type === 'EXPENSIVE') {
+        const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
+        products = all.sort((a,b) => (b.pricingTiers[0]?.price || 0) - (a.pricingTiers[0]?.price || 0)).slice(0, 8);
+      }
+    } catch(e) {
+      console.error('Error fetching dynamic row', row.title, e);
+    }
+    
+    return { ...row, products };
+  }));
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800" dir="rtl">
@@ -107,43 +130,17 @@ export default async function Home() {
             <TopArtistsCarousel artists={topArtists} />
           )}
 
-          {/* Featured Specialty Row */}
-          {featuredSpecialty && featuredSpecialty.products.length > 0 && (
-            <section className="px-6 md:px-12 bg-slate-900 text-white rounded-[2.5rem] py-20 mx-4 md:mx-12 shadow-2xl overflow-hidden relative">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-900/40 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-              <div className="absolute bottom-0 left-0 w-96 h-96 bg-slate-800/60 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
-              
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-                <div>
-                  <div className="text-emerald-400 font-bold text-sm tracking-widest mb-3 uppercase">مجموعه ویژه</div>
-                  <h2 className="text-4xl md:text-5xl font-black mb-3">آثار {featuredSpecialty.name}</h2>
-                  <p className="text-slate-400 font-medium">زیباترین دست‌سازه‌ها در این دسته‌بندی</p>
-                </div>
-                <a href={`/products?specialty=${featuredSpecialty.id}`} className="bg-white/10 backdrop-blur-md border border-white/20 text-white font-bold px-6 py-3 rounded-xl hover:bg-white hover:text-slate-900 transition-all">
-                  مشاهده همه
-                </a>
-              </div>
-              <div className="relative z-10 flex overflow-x-auto pb-8 gap-8 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {featuredSpecialty.products.map((product) => (
-                  <a key={product.id} href={`/product/${product.id}`} className="group block min-w-[280px] md:min-w-[320px] snap-start bg-white/5 backdrop-blur-lg rounded-3xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-500 hover:-translate-y-2">
-                    <div className="aspect-[4/3] w-full relative overflow-hidden bg-slate-800">
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.title} 
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 opacity-90 group-hover:opacity-100"
-                      />
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-lg font-bold text-white mb-2">{product.title}</h3>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-slate-400">{product.artist.user.name}</span>
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </section>
-          )}
+          {/* Dynamic Builder Rows */}
+          {populatedRows.map((row, index) => (
+            <DynamicProductRow 
+              key={row.id} 
+              title={row.title} 
+              type={row.type} 
+              value={row.value} 
+              products={row.products} 
+              index={index} 
+            />
+          ))}
 
           {/* Featured Products (Recent) */}
           <section id="marketplace" className="px-6 md:px-12">

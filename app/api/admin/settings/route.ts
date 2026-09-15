@@ -24,12 +24,20 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const { featuredSpecialtyId } = await request.json();
+    const { featuredSpecialtyId, dynamicRows } = await request.json();
+
+    const updateData: any = {};
+    if (featuredSpecialtyId !== undefined) updateData.featuredSpecialtyId = featuredSpecialtyId || null;
+    if (dynamicRows !== undefined) updateData.dynamicRows = dynamicRows;
 
     const settings = await prisma.siteSettings.upsert({
       where: { id: 'default' },
-      update: { featuredSpecialtyId: featuredSpecialtyId || null },
-      create: { id: 'default', featuredSpecialtyId: featuredSpecialtyId || null }
+      update: updateData,
+      create: { 
+        id: 'default', 
+        featuredSpecialtyId: featuredSpecialtyId || null,
+        dynamicRows: dynamicRows || []
+      }
     });
 
     return NextResponse.json(settings);
