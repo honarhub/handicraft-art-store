@@ -29,6 +29,7 @@ export default async function ArtistProductsPage() {
           <table className="w-full text-right text-sm">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-xs">
               <tr>
+                <th className="px-6 py-4">کد اثر</th>
                 <th className="px-6 py-4">تصویر</th>
                 <th className="px-6 py-4">عنوان اثر</th>
                 <th className="px-6 py-4">قیمت (تومان)</th>
@@ -40,10 +41,16 @@ export default async function ArtistProductsPage() {
             <tbody className="divide-y divide-slate-100">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-500 font-medium">شما هنوز هیچ اثری ثبت نکرده‌اید.</td>
+                  <td colSpan={7} className="text-center py-12 text-slate-500 font-medium">شما هنوز هیچ اثری ثبت نکرده‌اید.</td>
                 </tr>
               ) : products.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-black text-slate-800 text-lg">#{product.displayId}</span>
+                      <span className="text-xs text-slate-400 font-mono tracking-tighter" title={product.id}>{product.id.substring(0,8)}...</span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <img src={product.imageUrl} alt={product.title} className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-200" />
                   </td>

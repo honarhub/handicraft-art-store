@@ -49,7 +49,10 @@ export default function AdminProductsPage() {
   const filteredProducts = products.filter(p => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
-    return p.title.toLowerCase().includes(q) || (p.artistName && p.artistName.toLowerCase().includes(q));
+    return p.title.toLowerCase().includes(q) 
+      || (p.artistName && p.artistName.toLowerCase().includes(q))
+      || (p.displayId && p.displayId.toString() === q)
+      || (p.id.toLowerCase().includes(q));
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -75,7 +78,7 @@ export default function AdminProductsPage() {
         <div className="w-full md:w-1/2 relative">
           <input 
             type="text" 
-            placeholder="جستجو در عنوان اثر یا نام صاحب اثر..." 
+            placeholder="جستجو در عنوان، نام هنرمند، کد عددی یا هش..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl focus:border-purple-500 outline-none text-sm"
@@ -102,6 +105,7 @@ export default function AdminProductsPage() {
           <table className="w-full text-right text-sm">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase text-xs">
               <tr>
+                <th className="px-6 py-4">کد محصول</th>
                 <th className="px-6 py-4">تصویر</th>
                 <th className="px-6 py-4">عنوان محصول</th>
                 <th className="px-6 py-4">صاحب اثر (هنرمند)</th>
@@ -114,14 +118,20 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
+                  <td colSpan={8} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
                 </tr>
               ) : sortedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
+                  <td colSpan={8} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
                 </tr>
               ) : sortedProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-black text-slate-800 text-lg">#{product.displayId}</span>
+                      <span className="text-xs text-slate-400 font-mono tracking-tighter" title={product.id}>{product.id.substring(0,8)}...</span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4">
                     <img src={product.imageUrl} alt={product.title} className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-200" />
                   </td>

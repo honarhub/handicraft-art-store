@@ -58,6 +58,7 @@ model ArtistProfile {
 
 model Product {
   id              String         @id @default(cuid())
+  displayId       Int            @default(autoincrement()) @unique
   title           String
   description     String
   imageUrl        String
