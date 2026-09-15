@@ -1,0 +1,16 @@
+import React from 'react';
+
+export default function AboutPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans text-center px-6" dir="rtl">
+      <h1 className="text-4xl md:text-5xl font-black text-slate-800 mb-6">درباره هنرآفرین</h1>
+      <p className="text-lg text-slate-500 max-w-2xl leading-relaxed">
+        هنرآفرین بستری است برای پیوند بی‌واسطه هنرمندان اصیل ایرانی با دوست‌داران هنر. 
+        هدف ما حفظ ارزش‌های هنری و حمایت از خالقان آثار دستی است.
+      </p>
+      <a href="/" className="mt-8 text-emerald-600 font-bold hover:text-emerald-700 transition-colors">
+        بازگشت به صفحه اصلی
+      </a>
+    </div>
+  );
+}
