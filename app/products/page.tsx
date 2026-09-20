@@ -2,6 +2,8 @@ import React from 'react';
 import prisma from '@/lib/prisma';
 import CartIcon from '../components/CartIcon';
 import ProductsFilterClient from './ProductsFilterClient';
+import SiteHeader from '@/app/components/SiteHeader';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,22 +80,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans" dir="rtl">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto flex justify-between items-center py-4 px-6 md:px-12">
-          <a href="/" className="text-2xl font-black tracking-tighter text-slate-800">
-            هنرآفرین <span className="text-emerald-600">.</span>
-          </a>
-          <div className="flex gap-6 items-center">
-            <a href="/artist-panel/login" className="hidden sm:block text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">پنل هنرمندان</a>
-            <div className="hidden sm:block w-px h-5 bg-slate-300"></div>
-            <CartIcon />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
+      <SiteHeader />
 
-      <main className="max-w-7xl mx-auto py-12 px-6 md:px-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto py-12 px-6 md:px-12">
         <div className="mb-10 text-center">
           <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4">گالری آثار هنری</h1>
           <p className="text-slate-500 text-lg max-w-2xl mx-auto">کشف و خرید بی‌واسطه دست‌سازه‌های اصیل از بهترین هنرمندان ایرانی</p>
@@ -158,6 +148,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

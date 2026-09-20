@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import CartIcon from '../components/CartIcon';
+import SiteHeader from '@/app/components/SiteHeader';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export default function CartPage() {
   const { items, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
@@ -70,18 +72,10 @@ export default function CartPage() {
   const isCartEffectivelyEmpty = items.length === 0 && Object.keys(removedItems).length === 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans" dir="rtl">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto flex justify-between items-center py-4 px-6 md:px-12">
-          <a href="/" className="text-2xl font-black tracking-tighter text-slate-800">
-            هنرآفرین <span className="text-emerald-600">.</span>
-          </a>
-          <CartIcon />
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
+      <SiteHeader />
 
-      <main className="max-w-7xl mx-auto py-12 px-6 md:px-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto py-12 px-6 md:px-12">
         <h1 className="text-3xl font-black text-slate-900 mb-8">سبد خرید شما</h1>
 
         {isCartEffectivelyEmpty ? (
@@ -233,6 +227,7 @@ export default function CartPage() {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import React from 'react';
 import prisma from '@/lib/prisma';
 import SupportForm from './SupportForm';
+import SiteHeader from '@/app/components/SiteHeader';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SupportPage({ searchParams }: { searchParams: Promise<{ productId?: string }> }) {
-  const { productId } = await searchParams;
+export default async function SupportPage({ searchParams }: { searchParams: Promise<{ productId?: string, message?: string, name?: string }> }) {
+  const { productId, message, name } = await searchParams;
   let product = null;
 
   if (productId) {
@@ -16,16 +18,10 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans" dir="rtl">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto flex justify-between items-center py-4 px-6">
-          <a href="/" className="text-2xl font-black tracking-tighter text-slate-800">
-            هنرآفرین <span className="text-emerald-600">.</span>
-          </a>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
+      <SiteHeader />
 
-      <main className="max-w-3xl mx-auto py-12 px-4">
+      <main className="flex-1 w-full max-w-3xl mx-auto py-12 px-4">
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
           <h1 className="text-3xl font-black text-slate-800 mb-2">ارتباط با پشتیبانی</h1>
           <p className="text-slate-500 mb-8">نظرات، پیشنهادات یا مشکلات خود را برای ما ارسال کنید. کارشناسان ما در سریع‌ترین زمان ممکن رسیدگی خواهند کرد.</p>
@@ -43,9 +39,10 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             </div>
           )}
 
-          <SupportForm productId={productId} />
+          <SupportForm productId={productId} initialMessage={message} initialName={name} />
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

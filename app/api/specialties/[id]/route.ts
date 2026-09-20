@@ -4,10 +4,14 @@ import prisma from '@/lib/prisma';
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { isApproved } = await request.json();
+    const body = await request.json();
+    const dataToUpdate: any = {};
+    if (body.isApproved !== undefined) dataToUpdate.isApproved = body.isApproved;
+    if (body.name !== undefined && body.name.trim() !== '') dataToUpdate.name = body.name.trim();
+
     const updated = await prisma.specialty.update({
       where: { id },
-      data: { isApproved }
+      data: dataToUpdate
     });
     return NextResponse.json(updated);
   } catch (error) {

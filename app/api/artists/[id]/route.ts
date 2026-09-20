@@ -32,7 +32,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (action === 'toggleActive') {
       updateData = { 
         isActive: Boolean(isActive),
-        ...(Boolean(isActive) ? { isDeleted: false } : {}) // خروج اتوماتیک از حالت بایگانی اگر فعال شد
+        ...(body.adminFeedback !== undefined ? { adminFeedback: body.adminFeedback || null } : {}),
+        ...(Boolean(isActive) ? { isDeleted: false, adminFeedback: null } : {}) // اگر فعال شد لاگ خطا و بایگانی هم پاک شود
       };
       
       const updatedArtist = await prisma.artistProfile.update({
@@ -43,9 +44,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     } 
     
     if (action === 'edit') {
-      let imageUrl = undefined;
+      let imageUrl: string | null | undefined = undefined;
       
-      if (avatar && avatar.startsWith('data:image')) {
+      if (avatar && typeof avatar === 'string' && avatar.startsWith('data:image')) {
         const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'artists');
         if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
         
@@ -54,6 +55,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const base64Data = avatar.replace(/^data:image\/\w+;base64,/, "");
         fs.writeFileSync(filePath, base64Data, 'base64');
         imageUrl = `/uploads/artists/${fileName}`;
+      } else if (avatar === '') {
+        imageUrl = null;
       }
 
       const updatedArtist = await prisma.artistProfile.update({
@@ -68,7 +71,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           user: {
             update: {
               name,
-              ...(imageUrl ? { image: imageUrl } : {})
+              ...(imageUrl !== undefined ? { image: imageUrl } : {})
             }
           }
         }
@@ -81,8 +84,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const artist = await prisma.artistProfile.findUnique({ where: { id: artistId } });
         if (!artist || !artist.pendingEdits) return NextResponse.json({ error: 'No pending edits' }, { status: 400 });
         
-        const edits = artist.pendingEdits as any;
-        let imageUrl = edits.image;
+        const edits = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits as any;
+        let imageUrl: string | null | undefined = edits.image;
         
         if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('data:image')) {
           const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'artists');
@@ -93,6 +96,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
           fs.writeFileSync(filePath, base64Data, 'base64');
           imageUrl = `/uploads/artists/${fileName}`;
+        } else if (imageUrl === '') {
+          imageUrl = null;
         }
 
         const updatedArtist = await prisma.artistProfile.update({
@@ -106,12 +111,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 set: edits.specialties.map((s: any) => ({ id: s.id }))
               }
             } : {}),
+            isActive: true, // خودکار فعال شود اگر غیرفعال بوده
+            isApproved: true, // خودکار تایید ثبت‌نام هم بخورد
             pendingEdits: Prisma.DbNull,
             adminFeedback: null,
             user: {
               update: {
                 name: edits.name,
-                ...(imageUrl ? { image: imageUrl } : {})
+                ...(imageUrl !== undefined ? { image: imageUrl } : {})
               }
             }
           }
@@ -134,9 +141,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json(updatedArtist);
     }
     
+    if (action === 'rejectRegistration') {
+      const artist = await prisma.artistProfile.findUnique({
+        where: { id: artistId },
+        select: { userId: true }
+      });
+      if (artist) {
+        await prisma.user.delete({ where: { id: artist.userId } });
+      }
+      return NextResponse.json({ success: true });
+    }
     
     // پیش‌فرض یا action === 'delete'
-    updateData = { isDeleted: true, isActive: false };
+    updateData = { 
+      isDeleted: true, 
+      isActive: false,
+      pendingEdits: Prisma.DbNull,
+      adminFeedback: null
+    };
     const deletedArtist = await prisma.artistProfile.update({
       where: { id: artistId },
       data: updateData

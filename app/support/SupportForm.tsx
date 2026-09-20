@@ -2,10 +2,13 @@
 
 import React, { useState, useRef } from 'react';
 
-export default function SupportForm({ productId }: { productId?: string }) {
-  const [name, setName] = useState('');
+export default function SupportForm({ productId, initialMessage = '', initialName = '' }: { productId?: string, initialMessage?: string, initialName?: string }) {
+  const [name, setName] = useState(initialName);
   const [contact, setContact] = useState('');
-  const [message, setMessage] = useState('');
+  
+  const formattedInitialMessage = initialMessage ? `${initialMessage}\n\nتوضیحات شما:\n` : '';
+  const [message, setMessage] = useState(formattedInitialMessage);
+  
   const [file, setFile] = useState<File | null>(null);
   
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');

@@ -2,24 +2,20 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { cookies } from 'next/headers';
 
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
 export async function GET(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const artistId = cookieStore.get('artistId')?.value;
-
-    if (!artistId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'عدم دسترسی' }, { status: 401 });
     }
-
     const artist = await prisma.artistProfile.findUnique({
-      where: { id: artistId },
+      where: { userId: session.user.id },
       include: { user: true, specialties: true }
     });
-
-    if (!artist) {
-      return NextResponse.json({ error: 'Artist not found' }, { status: 404 });
-    }
-
+    if (!artist) return NextResponse.json({ error: 'هنرمند یافت نشد' }, { status: 404 });
     return NextResponse.json(artist);
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -28,8 +24,15 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const artistId = cookieStore.get('artistId')?.value;
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'عدم دسترسی' }, { status: 401 });
+    }
+    const artist = await prisma.artistProfile.findUnique({
+      where: { userId: session.user.id }
+    });
+    if (!artist) return NextResponse.json({ error: 'هنرمند یافت نشد' }, { status: 404 });
+    const artistId = artist.id;
 
     if (!artistId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -48,7 +51,7 @@ export async function PATCH(request: Request) {
       submittedAt: new Date().toISOString()
     };
 
-    const artist = await prisma.artistProfile.update({
+    const updatedArtist = await prisma.artistProfile.update({
       where: { id: artistId },
       data: {
         pendingEdits: pendingEdits as any,
@@ -56,7 +59,7 @@ export async function PATCH(request: Request) {
       }
     });
 
-    return NextResponse.json({ message: 'Edits submitted successfully', pendingEdits: artist.pendingEdits });
+    return NextResponse.json({ message: 'Edits submitted successfully', pendingEdits: updatedArtist.pendingEdits });
   } catch (error) {
     console.error('Failed to submit edits:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

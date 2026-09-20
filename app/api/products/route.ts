@@ -43,9 +43,22 @@ export async function GET() {
       try {
         const body = await request.json();
         const cookieStore = await cookies();
-        const artistIdFromCookie = cookieStore.get('artistId')?.value;
+      let artistId = null;
+
+      // check admin or artist session
+      const { getServerSession } = require('next-auth');
+      const { authOptions } = require('@/lib/auth');
+      const session = await getServerSession(authOptions);
+
+      if (session?.user?.id) {
+        const artist = await prisma.artistProfile.findUnique({
+          where: { userId: session.user.id }
+        });
+        if (artist) artistId = artist.id;
+      }
         
-        const { title, description, image, images, artistId = artistIdFromCookie, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price, stockQuantity } = body;
+        const { title, description, image, images, artistId: bodyArtistId, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price, stockQuantity } = body;
+        artistId = artistId || bodyArtistId;
 
         if (!title || !artistId) {
           return NextResponse.json({ error: 'عنوان محصول و شناسایی هنرمند الزامی است' }, { status: 400 });

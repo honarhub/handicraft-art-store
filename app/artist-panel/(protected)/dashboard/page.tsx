@@ -1,10 +1,19 @@
 import React from 'react';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { redirect } from 'next/navigation';
 
 export default async function ArtistDashboardPage() {
-  const cookieStore = await cookies();
-  const artistId = cookieStore.get('artistId')?.value;
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect('/artist-panel/login');
+  
+  const artist = await prisma.artistProfile.findUnique({
+    where: { userId: session.user.id }
+  });
+  const artistId = artist?.id;
+  
+  if (!artistId) redirect('/artist-panel/login');
 
   const productsCount = await prisma.product.count({
     where: { artistId, status: 'APPROVED' }
@@ -16,6 +25,21 @@ export default async function ArtistDashboardPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
+      {!artist.isActive && (
+        <div className="mb-8 bg-red-50 border border-red-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl shrink-0">⚠️</div>
+            <div>
+              <h3 className="font-bold text-red-900 mb-1">پروفایل شما هنوز در سایت عمومی نمایش داده نمی‌شود!</h3>
+              <p className="text-red-700 text-sm">برای تایید شدن توسط ادمین و نمایش آثارتان در سایت، لطفاً اطلاعات پروفایل خود (بیوگرافی، عکس و تخصص‌ها) را تکمیل کنید.</p>
+            </div>
+          </div>
+          <a href="/artist-panel/profile" className="shrink-0 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-colors">
+            تکمیل پروفایل
+          </a>
+        </div>
+      )}
+
       <h2 className="text-2xl font-black text-slate-800 mb-6">پیشخوان مدیریت آثار</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

@@ -5,13 +5,19 @@ import prisma from '@/lib/prisma';
 
 import TopArtistsCarousel from './components/TopArtistsCarousel';
 import DynamicProductRow from './components/DynamicProductRow';
+import SiteHeader from './components/SiteHeader';
+import SiteFooter from './components/SiteFooter';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // 1. واکشی آثار برگزیده اخیر
   const featuredProducts = await prisma.product.findMany({
-    where: { status: 'APPROVED', deletedAt: null },
+    where: { 
+      status: 'APPROVED', 
+      deletedAt: null,
+      artist: { isActive: true, isDeleted: false, isApproved: true }
+    },
     include: { artist: { include: { user: true } } },
     take: 6,
     orderBy: { createdAt: 'desc' }
@@ -36,7 +42,11 @@ export default async function Home() {
   // واکشی محصولات برای هر ردیف پویا
   const populatedRows = await Promise.all(activeRows.map(async (row) => {
     let products: any[] = [];
-    const baseQuery = { status: 'APPROVED' as any, deletedAt: null };
+    const baseQuery = { 
+      status: 'APPROVED' as any, 
+      deletedAt: null,
+      artist: { isActive: true, isDeleted: false, isApproved: true }
+    };
     const includeQuery = { artist: { include: { user: true } }, pricingTiers: true };
 
     try {
@@ -67,25 +77,11 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800" dir="rtl">
       {/* Header */}
-      <header className="absolute top-0 w-full z-50 bg-white/60 backdrop-blur-xl border-b border-white/40 shadow-sm transition-all">
-        <div className="max-w-7xl mx-auto flex justify-between items-center py-5 px-6 md:px-12">
-          <a href="/" className="text-2xl font-black tracking-tighter text-slate-900 flex items-center gap-1 group">
-            هنرآفرین <span className="text-emerald-500 group-hover:rotate-12 transition-transform">.</span>
-          </a>
-          <nav className="hidden md:flex gap-10 text-sm font-bold text-slate-600 items-center">
-            <a href="/products" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">گالری آثار</a>
-            <a href="/about" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">درباره ما</a>
-            <a href="/artist-panel/login" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل هنرمندان</a>
-            <a href="/admin" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل ادمین</a>
-            <div className="w-px h-5 bg-slate-200"></div>
-            <CartIcon />
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="relative pt-48 pb-32 px-6 md:px-12 overflow-hidden flex flex-col items-center text-center">
+        <section className="relative pt-24 pb-32 px-6 md:px-12 overflow-hidden flex flex-col items-center text-center">
           {/* Subtle Ambient Background */}
           <div className="absolute top-0 inset-x-0 h-[800px] bg-gradient-to-b from-slate-100 via-slate-50 to-slate-50 -z-10">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-emerald-100/40 rounded-full blur-[100px]"></div>
@@ -193,40 +189,7 @@ export default async function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-16 px-6 md:px-12 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          <div className="md:col-span-2">
-            <div className="text-3xl font-black tracking-tighter text-white mb-6">
-              هنرآفرین <span className="text-emerald-500">.</span>
-            </div>
-            <p className="text-slate-400 leading-relaxed max-w-sm">
-              بستری تخصصی برای هنرمندان اصیل ایرانی تا آثار دست‌ساز و بی‌بدیل خود را بدون واسطه به دست علاقه‌مندان برسانند.
-            </p>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-6 tracking-wide">دسترسی سریع</h4>
-            <ul className="space-y-4 font-medium text-sm">
-              <li><a href="/products" className="hover:text-emerald-400 transition-colors">گالری آثار</a></li>
-              <li><a href="/artist-panel/login" className="hover:text-emerald-400 transition-colors">ورود هنرمندان</a></li>
-              <li><a href="/about" className="hover:text-emerald-400 transition-colors">درباره ما</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-bold mb-6 tracking-wide">خدمات مشتریان</h4>
-            <ul className="space-y-4 font-medium text-sm">
-              <li><a href="/support" className="hover:text-emerald-400 transition-colors">ارتباط با پشتیبانی</a></li>
-              <li><a href="/terms" className="hover:text-emerald-400 transition-colors">قوانین و مقررات</a></li>
-              <li><a href="/admin/login" className="hover:text-emerald-400 transition-colors">ورود مدیران</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium">
-          <p>© {new Date().getFullYear()} پلتفرم اختصاصی هنرآفرین. تمامی حقوق محفوظ است.</p>
-          <div className="flex gap-4">
-            <span className="opacity-50">توسعه یافته با ❤️ برای هنر ایران</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

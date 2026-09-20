@@ -5,6 +5,8 @@ import CartIcon from '../../components/CartIcon';
 import ProductGallery from './ProductGallery';
 import AddToCartButton from './AddToCartButton';
 import StockNotifyButton from './StockNotifyButton';
+import SiteHeader from '@/app/components/SiteHeader';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,18 +23,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const allMedia = product.mediaUrls && product.mediaUrls.length > 0 ? product.mediaUrls : (product.imageUrl ? [product.imageUrl] : []);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans" dir="rtl">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto flex justify-between items-center py-4 px-6 md:px-12">
-          <a href="/" className="text-2xl font-black tracking-tighter text-slate-800">
-            هنرآفرین <span className="text-emerald-600">.</span>
-          </a>
-          <CartIcon />
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
+      <SiteHeader />
 
-      <main className="max-w-7xl mx-auto py-12 px-6 md:px-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto py-12 px-6 md:px-12">
         <div className="flex flex-col lg:flex-row gap-12 bg-white rounded-3xl p-6 md:p-12 shadow-sm border border-slate-200">
           
           {/* Image Gallery */}
@@ -131,6 +125,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       </main>
+      <SiteFooter />
     </div>
   );
 }

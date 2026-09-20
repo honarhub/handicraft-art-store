@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
+import SiteHeader from '@/app/components/SiteHeader';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
@@ -31,14 +33,18 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6" dir="rtl">
-        <div className="bg-white p-8 rounded-3xl shadow-sm text-center max-w-md w-full">
-          <div className="text-5xl mb-4">🛒</div>
-          <h2 className="text-xl font-bold mb-4">سبد خرید شما خالی است</h2>
-          <a href="/products" className="block w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
-            بازگشت به فروشگاه
-          </a>
-        </div>
+      <div className="min-h-screen flex flex-col bg-slate-50" dir="rtl">
+        <SiteHeader />
+        <main className="flex-1 w-full flex items-center justify-center p-6">
+          <div className="bg-white p-8 rounded-3xl shadow-sm text-center max-w-md w-full">
+            <div className="text-5xl mb-4">🛒</div>
+            <h2 className="text-xl font-bold mb-4">سبد خرید شما خالی است</h2>
+            <a href="/products" className="block w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
+              بازگشت به فروشگاه
+            </a>
+          </div>
+        </main>
+        <SiteFooter />
       </div>
     );
   }
@@ -59,8 +65,10 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans py-12 px-6" dir="rtl">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
+      <SiteHeader />
+      <main className="flex-1 w-full py-12 px-6">
+        <div className="max-w-4xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <a href="/cart" className="text-slate-500 hover:text-slate-800 font-medium flex items-center gap-1 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -209,8 +217,10 @@ export default function CheckoutPage() {
               </div>
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      </main>
+      <SiteFooter />
     </div>
   );
 }

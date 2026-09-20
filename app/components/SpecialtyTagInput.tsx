@@ -128,7 +128,7 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
           <input
             type="text"
             className="w-full h-full p-2 outline-none text-slate-700 bg-transparent"
-            placeholder={selectedSpecialties.length === 0 ? "تخصص‌ها را تایپ و انتخاب کنید..." : "تخصص دیگری اضافه کنید..."}
+            placeholder={selectedSpecialties.length === 0 ? "تخصص‌ها را تایپ و انتخاب کنید... (مثل: سفال‌گری)" : "تخصص دیگری اضافه کنید..."}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}

@@ -23,9 +23,11 @@ export async function GET() {
       id: artist.id,
       displayId: artist.displayId,
       name: artist.user.name || 'بدون نام',
+      email: artist.user.email,
       specialties: artist.specialties || [],
       status: artist.isDeleted ? 'DELETED' : 'ACTIVE',
       isActive: artist.isActive,
+      isApproved: artist.isApproved,
       productsCount: artist._count.products,
       hasPendingEdits: artist.pendingEdits !== null
     }));
@@ -74,6 +76,8 @@ export async function POST(request: Request) {
         artistProfile: {
           create: {
             bio: bio || '',
+            isApproved: true,
+            isActive: true,
             specialties: specialties && specialties.length > 0 ? {
               connect: specialties.map((id: string) => ({ id }))
             } : undefined,

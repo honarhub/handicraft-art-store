@@ -2,9 +2,14 @@ import React from 'react';
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import GeoPattern from 'geopattern';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import SiteHeader from '@/app/components/SiteHeader';
+import SiteFooter from '@/app/components/SiteFooter';
 
 export default async function ArtistProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const session = await getServerSession(authOptions);
 
   // دریافت اطلاعات واقعی از دیتابیس (پشتیبانی از cuid و displayId)
   const isNumericId = !isNaN(Number(id));
@@ -16,12 +21,50 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
         ...(isNumericId ? [{ displayId: Number(id) }] : [])
       ],
       isDeleted: false, 
-      isActive: true 
     },
     include: { user: true, products: { include: { pricingTiers: true } }, specialties: true }
   });
   
   if (!dbArtist) notFound();
+
+  // بررسی دسترسی برای پروفایل‌های تایید نشده یا غیرفعال (فقط ادمین می‌تواند پیش‌نمایش را ببیند)
+  let isAdmin = false;
+  if (session && session.user) {
+    if (session.user.role === 'ADMIN') {
+      isAdmin = true;
+    }
+  }
+
+  if (!dbArtist.isActive || !dbArtist.isApproved) {
+    if (!isAdmin) {
+      return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans p-4" dir="rtl">
+          <div className="text-center max-w-lg w-full">
+            <h1 className="text-9xl font-black text-slate-200 mb-4 tracking-tighter">403</h1>
+            <h2 className="text-2xl font-black text-slate-800 mb-4">در انتظار تایید مدیریت</h2>
+            <p className="text-slate-600 mb-8 leading-relaxed">
+              این پروفایل در حال حاضر در انتظار بررسی و تایید توسط مدیریت سایت می‌باشد. لطفاً اندکی صبر کنید. اگر فکر می‌کنید مشکلی پیش آمده است، با پشتیبانی در ارتباط باشید.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <a 
+                href="/"
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold transition-colors"
+              >
+                بازگشت به خانه
+              </a>
+              <a 
+                href={`/support?message=${encodeURIComponent(`درخواست پیگیری وضعیت تایید پروفایل هنرمند\nنام هنرمند: ${dbArtist.user.name || 'بدون نام'}\nلینک پروفایل: /artist/${id}`)}&name=${encodeURIComponent(dbArtist.user.name || '')}`}
+                className="w-full sm:w-auto inline-flex justify-center items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-emerald-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                ارتباط با پشتیبانی
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
 
   // تولید پترن ریاضی و کاملا یونیک بر اساس شناسه هنرمند (هم طرح و هم رنگ اختصاصی)
   const pattern = GeoPattern.generate(id);
@@ -44,6 +87,12 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans" dir="rtl">
+      <SiteHeader />
+      {(!dbArtist.isActive || !dbArtist.isApproved) && (
+        <div className="bg-red-500 text-white p-3 text-center text-sm font-bold shadow-md z-50">
+          ⚠️ حالت پیش‌نمایش: این صفحه هنوز به تایید مدیریت نرسیده است و برای عموم مخفی است.
+        </div>
+      )}
       {/* هدر اختصاصی پروفایل */}
       <header className="pt-24 pb-12 px-4 relative overflow-hidden" style={{ backgroundImage: patternDataUrl }}>
         <div className="absolute inset-0 bg-black/40"></div> {/* یک هاله تاریک برای خوانایی متن */}
@@ -130,6 +179,8 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
           </div>
         </section>
       </main>
+      
+      <SiteFooter />
     </div>
   );
 }

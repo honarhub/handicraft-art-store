@@ -1,10 +1,19 @@
 import React from 'react';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { redirect } from 'next/navigation';
 
 export default async function ArtistProductsPage() {
-  const cookieStore = await cookies();
-  const artistId = cookieStore.get('artistId')?.value;
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect('/artist-panel/login');
+  
+  const artist = await prisma.artistProfile.findUnique({
+    where: { userId: session.user.id }
+  });
+  const artistId = artist?.id;
+  
+  if (!artistId) redirect('/artist-panel/login');
 
   const products = await prisma.product.findMany({
     where: { artistId },
