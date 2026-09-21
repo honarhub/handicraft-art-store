@@ -113,7 +113,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             } : {}),
             isActive: true, // خودکار فعال شود اگر غیرفعال بوده
             isApproved: true, // خودکار تایید ثبت‌نام هم بخورد
-            pendingEdits: Prisma.DbNull,
+            pendingEdits: null,
             adminFeedback: null,
             user: {
               update: {
@@ -134,7 +134,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const updatedArtist = await prisma.artistProfile.update({
         where: { id: artistId },
         data: {
-          pendingEdits: Prisma.DbNull,
+          pendingEdits: null,
           adminFeedback: body.adminFeedback || 'درخواست رد شد'
         }
       });
@@ -156,7 +156,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     updateData = { 
       isDeleted: true, 
       isActive: false,
-      pendingEdits: Prisma.DbNull,
+      pendingEdits: null,
       adminFeedback: null
     };
     const deletedArtist = await prisma.artistProfile.update({
