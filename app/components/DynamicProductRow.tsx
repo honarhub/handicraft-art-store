@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { RowType } from '../admin/settings/page';
+import { RowType } from '../admin/(protected)/settings/page';
 
 interface DynamicProductRowProps {
   title: string;
