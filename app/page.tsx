@@ -143,7 +143,7 @@ export default async function Home() {
             <div className="flex justify-between items-end mb-12">
               <div>
                 <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-3">آثار برگزیده اخیر</h2>
-                <p className="text-slate-500 font-medium">جدیدترین دست‌سازه‌های پلتفرم هنرآفرین</p>
+                <p className="text-slate-500 font-medium">جدیدترین دست‌سازه‌های پلتفرم هنرهاب</p>
               </div>
               <a href="/products" className="hidden md:flex text-emerald-600 font-bold hover:text-emerald-700 items-center gap-2 transition-colors">
                 گالری کامل

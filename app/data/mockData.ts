@@ -53,7 +53,7 @@ export const mockProduct: Product = {
       "description": "یک قطعه هنر کاربردی، مخصوص طرفداران واقعی! این ست صرفاً یک وسیله کاربردی نیست، بلکه یک مجسمه کوچک هنری است.",
       "brand": {
         "@type": "Brand",
-        "name": "هنرآفرین"
+        "name": "هنرهاب"
       },
       "offers": {
         "@type": "AggregateOffer",

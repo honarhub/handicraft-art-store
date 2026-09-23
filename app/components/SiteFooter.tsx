@@ -6,7 +6,7 @@ export default function SiteFooter() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
         <div className="md:col-span-2">
           <div className="text-3xl font-black tracking-tighter text-white mb-6">
-            هنرآفرین <span className="text-emerald-500">.</span>
+            هنرهاب <span className="text-emerald-500">.</span>
           </div>
           <p className="text-slate-400 leading-relaxed max-w-sm">
             بستری تخصصی برای هنرمندان اصیل ایرانی تا آثار دست‌ساز و بی‌بدیل خود را بدون واسطه به دست علاقه‌مندان برسانند.
@@ -30,7 +30,7 @@ export default function SiteFooter() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium">
-        <p>© {new Date().getFullYear()} پلتفرم اختصاصی هنرآفرین. تمامی حقوق محفوظ است.</p>
+        <p>© {new Date().getFullYear()} پلتفرم اختصاصی هنرهاب. تمامی حقوق محفوظ است.</p>
         <div className="flex gap-4">
           <span className="opacity-50">توسعه یافته با ❤️ برای هنر ایران</span>
         </div>

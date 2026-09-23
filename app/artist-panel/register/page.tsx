@@ -62,7 +62,7 @@ export default function ArtistRegisterPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <a href="/" className="text-3xl font-black tracking-tighter text-slate-800">
-            هنرآفرین <span className="text-teal-600">.</span>
+            هنرهاب <span className="text-teal-600">.</span>
           </a>
         </div>
         <h2 className="mt-6 text-center text-2xl font-bold text-slate-900">ثبت‌نام هنرمندان</h2>
