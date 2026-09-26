@@ -8,8 +8,9 @@ export default function SiteFooter() {
       <div className="relative z-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
         <div className="md:col-span-2">
-          <div className="text-3xl font-black tracking-tighter text-white mb-6">
-            هنرهاب <span className="text-emerald-500">.</span>
+          <div className="text-4xl font-black tracking-tighter flex items-center mb-6 font-sans" dir="ltr">
+            <span className="text-white">Honar</span>
+            <span className="bg-[#FF9900] text-black px-2 py-0.5 rounded-md ml-1">Hub</span>
           </div>
           <p className="text-slate-400 leading-relaxed max-w-sm">
             بستری تخصصی برای هنرمندان اصیل ایرانی تا آثار دست‌ساز و بی‌بدیل خود را بدون واسطه به دست علاقه‌مندان برسانند.

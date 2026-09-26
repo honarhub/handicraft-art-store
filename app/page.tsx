@@ -103,6 +103,11 @@ export default async function Home() {
             مستقیماً از کارگاه هنرمندان برگزیده به خانه شما. هنر اصیل را بدون واسطه و با تضمین اصالت خریداری کنید.
           </p>
 
+          <div className="w-full max-w-3xl mx-auto mb-16 animate-fade-in-up relative group" style={{ animationDelay: '0.35s', opacity: 0 }}>
+             <img src="/images/hero-art.jpg" alt="انیمیشن باستانی شهر سوخته" className="w-full h-auto rounded-[2rem] shadow-2xl animate-float border-8 border-white/60" />
+             <div className="absolute -bottom-4 -right-4 bg-[#FF9900] px-4 py-2 rounded-xl shadow-lg font-black text-sm text-black rotate-6 group-hover:rotate-12 transition-transform">۵۰۰۰ سال هنر ایرانی! ✨</div>
+          </div>
+
           {/* Global Search Component */}
           <div className="w-full max-w-2xl mx-auto mb-16 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl animate-fade-in-up hover:scale-[1.02] transition-transform duration-300" style={{ animationDelay: '0.4s', opacity: 0 }}>
             <GlobalSearch />

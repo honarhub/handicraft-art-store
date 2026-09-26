@@ -5,8 +5,9 @@ export default function SiteHeader() {
   return (
     <header className="sticky top-0 w-full z-50 glass-panel transition-all duration-300" dir="rtl">
       <div className="max-w-7xl mx-auto flex justify-between items-center py-5 px-6 md:px-12">
-        <a href="/" className="text-2xl font-black tracking-tighter text-slate-900 flex items-center gap-1 group">
-          هنرهاب <span className="text-emerald-500 group-hover:rotate-12 transition-transform">.</span>
+        <a href="/" className="text-3xl font-black tracking-tighter flex items-center group font-sans" dir="ltr">
+          <span className="text-slate-900">Honar</span>
+          <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded-md ml-0.5">Hub</span>
         </a>
         <nav className="hidden md:flex gap-10 text-sm font-bold text-slate-600 items-center">
           <a href="/products" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">گالری آثار</a>
