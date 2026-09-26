@@ -83,11 +83,11 @@ export default async function Home() {
       <main className="flex-1">
         <section className="relative pt-24 pb-32 px-6 md:px-12 overflow-hidden flex flex-col items-center text-center">
           {/* Subtle Ambient Background */}
-          <div className="absolute top-0 inset-x-0 h-[800px] bg-gradient-to-b from-slate-100 via-slate-50 to-slate-50 -z-10">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-emerald-100/40 rounded-full blur-[100px]"></div>
+          <div className="absolute top-0 inset-x-0 h-[800px] bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100 animate-gradient-x -z-10">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-emerald-200/30 rounded-full blur-[120px] animate-float"></div>
           </div>
           
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-md text-emerald-800 font-bold text-xs mb-10 border border-emerald-100 shadow-sm">
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass-panel text-emerald-800 font-bold text-xs mb-10 shadow-sm animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -95,16 +95,16 @@ export default async function Home() {
             پلتفرم اختصاصی هنرمندان اصیل ایرانی
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-8 max-w-4xl drop-shadow-sm">
-            دست‌سازه‌هایی که <span className="text-emerald-600 italic font-serif">روح</span> دارند.
+          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-8 max-w-4xl drop-shadow-sm animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
+            دست‌سازه‌هایی که <span className="text-emerald-600 italic font-serif relative">روح<span className="absolute -bottom-2 left-0 w-full h-2 bg-emerald-200/50 -rotate-2 rounded-full"></span></span> دارند.
           </h1>
           
-          <p className="text-lg md:text-xl text-slate-500 mb-14 max-w-2xl leading-relaxed font-medium">
+          <p className="text-lg md:text-xl text-slate-500 mb-14 max-w-2xl leading-relaxed font-medium animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
             مستقیماً از کارگاه هنرمندان برگزیده به خانه شما. هنر اصیل را بدون واسطه و با تضمین اصالت خریداری کنید.
           </p>
 
           {/* Global Search Component */}
-          <div className="w-full max-w-2xl mx-auto mb-16 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl">
+          <div className="w-full max-w-2xl mx-auto mb-16 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl animate-fade-in-up hover:scale-[1.02] transition-transform duration-300" style={{ animationDelay: '0.4s', opacity: 0 }}>
             <GlobalSearch />
           </div>
 

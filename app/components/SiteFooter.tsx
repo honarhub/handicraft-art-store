@@ -2,7 +2,10 @@ import React from 'react';
 
 export default function SiteFooter() {
   return (
-    <footer className="bg-slate-900 text-slate-400 py-16 px-6 md:px-12 border-t border-slate-800" dir="rtl">
+    <footer className="bg-slate-950 text-slate-400 py-16 px-6 md:px-12 border-t border-emerald-900/50 relative overflow-hidden" dir="rtl">
+      {/* Subtle glow in footer */}
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-900/10 blur-[100px] rounded-full pointer-events-none -z-0"></div>
+      <div className="relative z-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
         <div className="md:col-span-2">
           <div className="text-3xl font-black tracking-tighter text-white mb-6">
@@ -34,6 +37,7 @@ export default function SiteFooter() {
         <div className="flex gap-4">
           <span className="opacity-50">توسعه یافته با ❤️ برای هنر ایران</span>
         </div>
+      </div>
       </div>
     </footer>
   );

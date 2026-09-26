@@ -20,7 +20,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
   };
 
   return (
-    <article className="flex flex-col md:flex-row bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 max-w-5xl mx-auto">
+    <article className="flex flex-col md:flex-row bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden border border-slate-100 max-w-5xl mx-auto group">
       {/* Product Image Section */}
       <div className="relative w-full md:w-1/2 h-64 md:h-auto min-h-[400px] bg-gray-50">
         <Image

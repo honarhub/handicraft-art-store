@@ -3,7 +3,7 @@ import CartIcon from './CartIcon';
 
 export default function SiteHeader() {
   return (
-    <header className="sticky top-0 w-full z-50 bg-white/60 backdrop-blur-xl border-b border-white/40 shadow-sm transition-all" dir="rtl">
+    <header className="sticky top-0 w-full z-50 glass-panel transition-all duration-300" dir="rtl">
       <div className="max-w-7xl mx-auto flex justify-between items-center py-5 px-6 md:px-12">
         <a href="/" className="text-2xl font-black tracking-tighter text-slate-900 flex items-center gap-1 group">
           هنرهاب <span className="text-emerald-500 group-hover:rotate-12 transition-transform">.</span>
