@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+import { generateWithFallback } from '@/lib/gemini';
 
 export async function POST(request: Request) {
   try {
@@ -14,8 +12,6 @@ export async function POST(request: Request) {
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: 'کلید دسترسی هوش مصنوعی تنظیم نشده است' }, { status: 500 });
     }
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
     const prompt = `
       You are an expert Iranian handicraft appraiser, copywriter, and SEO specialist. 
@@ -37,12 +33,8 @@ export async function POST(request: Request) {
       }
     `;
 
-    const result = await model.generateContent([prompt]);
-    const responseText = result.response.text();
-    
-    // Clean up potential markdown formatting from the response
+    const responseText = await generateWithFallback(prompt);
     const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    
     const seoData = JSON.parse(cleanedText);
 
     return NextResponse.json(seoData);
