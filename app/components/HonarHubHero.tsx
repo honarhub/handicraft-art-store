@@ -25,23 +25,31 @@
 
 type Relic = { src: string; alt: string };
 
-// inner ring: 2 pieces
+// inner ring: 3 pieces
 const innerRelics: Relic[] = [
   { src: '/hero/mina-plate-blue.png', alt: 'بشقاب میناکاری آبی' },
   { src: '/hero/ceramic-vase-green.png', alt: 'گلدان سرامیکی سبز' },
+  { src: '/hero/copper-ewer.png', alt: 'آفتابه مسی دست‌ساز' },
 ];
 
-// middle ring: 3 pieces
-const middleRelics: Relic[] = [
-  { src: '/hero/copper-ewer.png', alt: 'آفتابه مسی دست‌ساز' },
+// middle ring 1: 3 pieces
+const middleRelics1: Relic[] = [
   { src: '/hero/bracelet.png', alt: 'دستبند گره‌چینی گل بنفش' },
   { src: '/hero/crochet-flower.png', alt: 'گل قلاب‌بافی قرمز' },
+  { src: '/hero/wood-carving-panel.png', alt: 'تابلوی منبت‌کاری چوب' },
+];
+
+// middle ring 2: 3 pieces
+const middleRelics2: Relic[] = [
+  { src: '/hero/ceramic-jug-green.png', alt: 'کوزه سرامیکی سبز' },
+  { src: '/hero/watercolor-painting.png', alt: 'نقاشی آبرنگ' },
+  { src: '/hero/antique-chest.png', alt: 'صندوقچه چوبی عتیقه' },
 ];
 
 // outer ring: 2 pieces
 const outerRelics: Relic[] = [
-  { src: '/hero/wood-carving-panel.png', alt: 'تابلوی منبت‌کاری چوب' },
-  { src: '/hero/ceramic-jug-green.png', alt: 'کوزه سرامیکی سبز' },
+  { src: '/hero/rug-red-square.png', alt: 'قالیچه دستباف قرمز مربعی' },
+  { src: '/hero/rug-red-rect.png', alt: 'قالیچه دستباف قرمز مستطیلی' },
 ];
 
 function ringPosition(index: number, count: number, radiusPct: number) {
@@ -72,12 +80,13 @@ export default function HonarHubHero() {
         <div className="cosmos">
           <div className="glow" />
           <div className="track track-inner" />
-          <div className="track track-middle" />
+          <div className="track track-middle1" />
+          <div className="track track-middle2" />
           <div className="track track-outer" />
 
           <div className="ring ring-inner">
             {innerRelics.map((relic, i) => {
-              const pos = ringPosition(i, innerRelics.length, 25);
+              const pos = ringPosition(i, innerRelics.length, 18);
               return (
                 <div className="relic-item relic-item--inner" style={pos} key={relic.src}>
                   <div className="relic-item-inner relic-item-inner--inner">
@@ -88,12 +97,25 @@ export default function HonarHubHero() {
             })}
           </div>
 
-          <div className="ring ring-middle">
-            {middleRelics.map((relic, i) => {
-              const pos = ringPosition(i, middleRelics.length, 38);
+          <div className="ring ring-middle1">
+            {middleRelics1.map((relic, i) => {
+              const pos = ringPosition(i, middleRelics1.length, 28);
               return (
-                <div className="relic-item relic-item--middle" style={pos} key={relic.src}>
-                  <div className="relic-item-inner relic-item-inner--middle">
+                <div className="relic-item relic-item--middle1" style={pos} key={relic.src}>
+                  <div className="relic-item-inner relic-item-inner--middle1">
+                    <img src={relic.src} alt={relic.alt} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="ring ring-middle2">
+            {middleRelics2.map((relic, i) => {
+              const pos = ringPosition(i, middleRelics2.length, 40);
+              return (
+                <div className="relic-item relic-item--middle2" style={pos} key={relic.src}>
+                  <div className="relic-item-inner relic-item-inner--middle2">
                     <img src={relic.src} alt={relic.alt} />
                   </div>
                 </div>
@@ -103,7 +125,7 @@ export default function HonarHubHero() {
 
           <div className="ring ring-outer">
             {outerRelics.map((relic, i) => {
-              const pos = ringPosition(i, outerRelics.length, 50);
+              const pos = ringPosition(i, outerRelics.length, 52);
               return (
                 <div className="relic-item relic-item--outer" style={pos} key={relic.src}>
                   <div className="relic-item-inner relic-item-inner--outer">
@@ -246,9 +268,10 @@ export default function HonarHubHero() {
           border: 1.5px dashed rgba(201, 147, 47, 0.4);
           transform: rotateX(65deg);
         }
-        .track-inner { inset: 25%; }
-        .track-middle { inset: 12%; }
-        .track-outer { inset: 0%; }
+        .track-inner { inset: 32%; }
+        .track-middle1 { inset: 22%; }
+        .track-middle2 { inset: 10%; }
+        .track-outer { inset: -2%; }
 
         .ring { 
           position: absolute; 
@@ -256,16 +279,21 @@ export default function HonarHubHero() {
           transform-style: preserve-3d;
         }
         .ring-inner { animation: spin-inner 24s linear infinite; }
-        .ring-middle { animation: spin-middle 32s linear infinite reverse; }
-        .ring-outer { animation: spin-outer 40s linear infinite; }
+        .ring-middle1 { animation: spin-middle1 32s linear infinite reverse; }
+        .ring-middle2 { animation: spin-middle2 38s linear infinite; }
+        .ring-outer { animation: spin-outer 46s linear infinite reverse; }
         
         @keyframes spin-inner {
           from { transform: rotateX(65deg) rotateZ(0deg); }
           to { transform: rotateX(65deg) rotateZ(360deg); }
         }
-        @keyframes spin-middle {
+        @keyframes spin-middle1 {
           from { transform: rotateX(65deg) rotateZ(0deg); }
           to { transform: rotateX(65deg) rotateZ(-360deg); }
+        }
+        @keyframes spin-middle2 {
+          from { transform: rotateX(65deg) rotateZ(0deg); }
+          to { transform: rotateX(65deg) rotateZ(360deg); }
         }
         @keyframes spin-outer {
           from { transform: rotateX(65deg) rotateZ(360deg); }
@@ -277,9 +305,10 @@ export default function HonarHubHero() {
           transform: translate(-50%, -50%);
           transform-style: preserve-3d;
         }
-        .relic-item--inner { width: 18%; aspect-ratio: 1; }
-        .relic-item--middle { width: 15%; aspect-ratio: 1; }
-        .relic-item--outer { width: 12%; aspect-ratio: 1; }
+        .relic-item--inner { width: 16%; aspect-ratio: 1; }
+        .relic-item--middle1 { width: 14%; aspect-ratio: 1; }
+        .relic-item--middle2 { width: 12%; aspect-ratio: 1; }
+        .relic-item--outer { width: 10%; aspect-ratio: 1; }
 
         .relic-item-inner {
           width: 100%;
@@ -287,16 +316,21 @@ export default function HonarHubHero() {
           filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
         }
         .relic-item-inner--inner { animation: counter-spin-inner 24s linear infinite; }
-        .relic-item-inner--middle { animation: counter-spin-middle 32s linear infinite reverse; }
-        .relic-item-inner--outer { animation: counter-spin-outer 40s linear infinite; }
+        .relic-item-inner--middle1 { animation: counter-spin-middle1 32s linear infinite reverse; }
+        .relic-item-inner--middle2 { animation: counter-spin-middle2 38s linear infinite; }
+        .relic-item-inner--outer { animation: counter-spin-outer 46s linear infinite reverse; }
         
         @keyframes counter-spin-inner {
           from { transform: rotateZ(0deg) rotateX(-65deg); }
           to { transform: rotateZ(-360deg) rotateX(-65deg); }
         }
-        @keyframes counter-spin-middle {
+        @keyframes counter-spin-middle1 {
           from { transform: rotateZ(0deg) rotateX(-65deg); }
           to { transform: rotateZ(360deg) rotateX(-65deg); }
+        }
+        @keyframes counter-spin-middle2 {
+          from { transform: rotateZ(0deg) rotateX(-65deg); }
+          to { transform: rotateZ(-360deg) rotateX(-65deg); }
         }
         @keyframes counter-spin-outer {
           from { transform: rotateZ(-360deg) rotateX(-65deg); }
