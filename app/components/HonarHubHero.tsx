@@ -25,17 +25,23 @@
 
 type Relic = { src: string; alt: string };
 
-// closer ring: 2 pieces
+// inner ring: 2 pieces
 const innerRelics: Relic[] = [
   { src: '/hero/mina-plate-blue.png', alt: 'بشقاب میناکاری آبی' },
   { src: '/hero/ceramic-vase-green.png', alt: 'گلدان سرامیکی سبز' },
 ];
 
-// outer ring: 3 pieces
-const outerRelics: Relic[] = [
+// middle ring: 3 pieces
+const middleRelics: Relic[] = [
+  { src: '/hero/copper-ewer.png', alt: 'آفتابه مسی دست‌ساز' },
   { src: '/hero/bracelet.png', alt: 'دستبند گره‌چینی گل بنفش' },
   { src: '/hero/crochet-flower.png', alt: 'گل قلاب‌بافی قرمز' },
+];
+
+// outer ring: 2 pieces
+const outerRelics: Relic[] = [
   { src: '/hero/wood-carving-panel.png', alt: 'تابلوی منبت‌کاری چوب' },
+  { src: '/hero/ceramic-jug-green.png', alt: 'کوزه سرامیکی سبز' },
 ];
 
 function ringPosition(index: number, count: number, radiusPct: number) {
@@ -66,6 +72,7 @@ export default function HonarHubHero() {
         <div className="cosmos">
           <div className="glow" />
           <div className="track track-inner" />
+          <div className="track track-middle" />
           <div className="track track-outer" />
 
           <div className="ring ring-inner">
@@ -81,9 +88,22 @@ export default function HonarHubHero() {
             })}
           </div>
 
+          <div className="ring ring-middle">
+            {middleRelics.map((relic, i) => {
+              const pos = ringPosition(i, middleRelics.length, 38);
+              return (
+                <div className="relic-item relic-item--middle" style={pos} key={relic.src}>
+                  <div className="relic-item-inner relic-item-inner--middle">
+                    <img src={relic.src} alt={relic.alt} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           <div className="ring ring-outer">
             {outerRelics.map((relic, i) => {
-              const pos = ringPosition(i, outerRelics.length, 45);
+              const pos = ringPosition(i, outerRelics.length, 50);
               return (
                 <div className="relic-item relic-item--outer" style={pos} key={relic.src}>
                   <div className="relic-item-inner relic-item-inner--outer">
@@ -227,7 +247,8 @@ export default function HonarHubHero() {
           transform: rotateX(65deg);
         }
         .track-inner { inset: 25%; }
-        .track-outer { inset: 5%; }
+        .track-middle { inset: 12%; }
+        .track-outer { inset: 0%; }
 
         .ring { 
           position: absolute; 
@@ -235,11 +256,16 @@ export default function HonarHubHero() {
           transform-style: preserve-3d;
         }
         .ring-inner { animation: spin-inner 24s linear infinite; }
+        .ring-middle { animation: spin-middle 32s linear infinite reverse; }
         .ring-outer { animation: spin-outer 40s linear infinite; }
         
         @keyframes spin-inner {
           from { transform: rotateX(65deg) rotateZ(0deg); }
           to { transform: rotateX(65deg) rotateZ(360deg); }
+        }
+        @keyframes spin-middle {
+          from { transform: rotateX(65deg) rotateZ(0deg); }
+          to { transform: rotateX(65deg) rotateZ(-360deg); }
         }
         @keyframes spin-outer {
           from { transform: rotateX(65deg) rotateZ(360deg); }
@@ -252,7 +278,8 @@ export default function HonarHubHero() {
           transform-style: preserve-3d;
         }
         .relic-item--inner { width: 18%; aspect-ratio: 1; }
-        .relic-item--outer { width: 13%; aspect-ratio: 1; }
+        .relic-item--middle { width: 15%; aspect-ratio: 1; }
+        .relic-item--outer { width: 12%; aspect-ratio: 1; }
 
         .relic-item-inner {
           width: 100%;
@@ -260,11 +287,16 @@ export default function HonarHubHero() {
           filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
         }
         .relic-item-inner--inner { animation: counter-spin-inner 24s linear infinite; }
+        .relic-item-inner--middle { animation: counter-spin-middle 32s linear infinite reverse; }
         .relic-item-inner--outer { animation: counter-spin-outer 40s linear infinite; }
         
         @keyframes counter-spin-inner {
           from { transform: rotateZ(0deg) rotateX(-65deg); }
           to { transform: rotateZ(-360deg) rotateX(-65deg); }
+        }
+        @keyframes counter-spin-middle {
+          from { transform: rotateZ(0deg) rotateX(-65deg); }
+          to { transform: rotateZ(360deg) rotateX(-65deg); }
         }
         @keyframes counter-spin-outer {
           from { transform: rotateZ(-360deg) rotateX(-65deg); }
