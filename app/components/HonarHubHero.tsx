@@ -25,23 +25,17 @@
 
 type Relic = { src: string; alt: string };
 
-// closer ring: 4 pieces, slightly larger
+// closer ring: 2 pieces
 const innerRelics: Relic[] = [
   { src: '/hero/mina-plate-blue.png', alt: 'بشقاب میناکاری آبی' },
   { src: '/hero/ceramic-vase-green.png', alt: 'گلدان سرامیکی سبز' },
-  { src: '/hero/copper-ewer.png', alt: 'آفتابه مسی دست‌ساز' },
-  { src: '/hero/rug-red-square.png', alt: 'فرش دستباف قرمز' },
 ];
 
-// outer ring: 7 pieces, slightly smaller
+// outer ring: 3 pieces
 const outerRelics: Relic[] = [
   { src: '/hero/bracelet.png', alt: 'دستبند گره‌چینی گل بنفش' },
   { src: '/hero/crochet-flower.png', alt: 'گل قلاب‌بافی قرمز' },
-  { src: '/hero/watercolor-painting.png', alt: 'نقاشی آبرنگ' },
   { src: '/hero/wood-carving-panel.png', alt: 'تابلوی منبت‌کاری چوب' },
-  { src: '/hero/antique-chest.png', alt: 'صندوقچه چوبی عتیقه' },
-  { src: '/hero/rug-red-rect.png', alt: 'قالیچه دستباف قرمز' },
-  { src: '/hero/ceramic-jug-green.png', alt: 'کوزه سرامیکی سبز' },
 ];
 
 function ringPosition(index: number, count: number, radiusPct: number) {
@@ -128,7 +122,7 @@ export default function HonarHubHero() {
           animation: relicJourney 20s cubic-bezier(0.65, 0, 0.35, 1) infinite;
         }
         @keyframes relicJourney {
-          0% { opacity: 0; transform: translate(-50%, -46%) scale(0.5); }
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
           8% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
           40% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
           46% { opacity: 0; transform: translate(-50%, -50%) scale(1.08); }
@@ -140,12 +134,12 @@ export default function HonarHubHero() {
           display: block;
           filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.22));
           animation: turnHint 20s ease-in-out infinite;
-          transform-origin: 50% 75%;
+          transform-origin: center center;
         }
         @keyframes turnHint {
           0%, 9% { transform: rotateY(0deg); }
-          18% { transform: rotateY(14deg); }
-          30% { transform: rotateY(-12deg); }
+          18% { transform: rotateY(18deg); }
+          30% { transform: rotateY(-18deg); }
           40%, 100% { transform: rotateY(0deg); }
         }
 
@@ -212,42 +206,70 @@ export default function HonarHubHero() {
           width: 82%;
           aspect-ratio: 1;
           transform: translate(-50%, -50%);
+          perspective: 1200px;
+          transform-style: preserve-3d;
         }
         .glow {
           position: absolute;
-          inset: 30%;
+          inset: 20%;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(201, 147, 47, 0.16), rgba(201, 147, 47, 0) 70%);
+          background: radial-gradient(circle, rgba(255, 175, 50, 0.4), rgba(255, 175, 50, 0) 60%);
+          animation: pulseGlow 4s ease-in-out infinite alternate;
+        }
+        @keyframes pulseGlow {
+          from { transform: scale(1); opacity: 0.8; }
+          to { transform: scale(1.2); opacity: 1; }
         }
         .track {
           position: absolute;
           border-radius: 50%;
-          border: 1px dashed rgba(122, 58, 28, 0.18);
+          border: 1.5px dashed rgba(201, 147, 47, 0.4);
+          transform: rotateX(65deg);
         }
         .track-inner { inset: 25%; }
         .track-outer { inset: 5%; }
 
-        .ring { position: absolute; inset: 0; }
-        .ring-inner { animation: spin 24s linear infinite; }
-        .ring-outer { animation: spin 40s linear infinite reverse; }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        .ring { 
+          position: absolute; 
+          inset: 0; 
+          transform-style: preserve-3d;
+        }
+        .ring-inner { animation: spin-inner 24s linear infinite; }
+        .ring-outer { animation: spin-outer 40s linear infinite; }
+        
+        @keyframes spin-inner {
+          from { transform: rotateX(65deg) rotateZ(0deg); }
+          to { transform: rotateX(65deg) rotateZ(360deg); }
+        }
+        @keyframes spin-outer {
+          from { transform: rotateX(65deg) rotateZ(360deg); }
+          to { transform: rotateX(65deg) rotateZ(0deg); }
         }
 
         .relic-item {
           position: absolute;
           transform: translate(-50%, -50%);
+          transform-style: preserve-3d;
         }
-        .relic-item--inner { width: 15%; aspect-ratio: 1; }
-        .relic-item--outer { width: 11%; aspect-ratio: 1; }
+        .relic-item--inner { width: 18%; aspect-ratio: 1; }
+        .relic-item--outer { width: 13%; aspect-ratio: 1; }
 
         .relic-item-inner {
           width: 100%;
           height: 100%;
-          filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.15));
+          filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
         }
-        .relic-item-inner--inner { animation: spin 24s linear infinite reverse; }
-        .relic-item-inner--outer { animation: spin 40s linear infinite; }
+        .relic-item-inner--inner { animation: counter-spin-inner 24s linear infinite; }
+        .relic-item-inner--outer { animation: counter-spin-outer 40s linear infinite; }
+        
+        @keyframes counter-spin-inner {
+          from { transform: rotateZ(0deg) rotateX(-65deg); }
+          to { transform: rotateZ(-360deg) rotateX(-65deg); }
+        }
+        @keyframes counter-spin-outer {
+          from { transform: rotateZ(-360deg) rotateX(-65deg); }
+          to { transform: rotateZ(0deg) rotateX(-65deg); }
+        }
         .relic-item-inner :global(img) {
           width: 100%;
           height: 100%;
