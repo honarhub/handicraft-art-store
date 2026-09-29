@@ -192,6 +192,8 @@ export default function HonarHubHero() {
           font-size: clamp(12px, 1.3vw, 15px);
           color: #7a3a1c;
           letter-spacing: .3px;
+          text-align: center;
+          width: 100%;
         }
         .era-old {
           top: 76%;
@@ -203,8 +205,7 @@ export default function HonarHubHero() {
           44%, 100% { opacity: 0; }
         }
         .era-new {
-          position: static;
-          margin-bottom: .5em;
+          top: 12%;
           color: #c9932f;
           font-weight: 600;
         }
