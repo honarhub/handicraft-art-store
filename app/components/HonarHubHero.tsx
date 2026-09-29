@@ -49,7 +49,7 @@ const middleRelics2: Relic[] = [
 // outer ring: 2 pieces
 const outerRelics: Relic[] = [
   { src: '/hero/rug-red-square.png', alt: 'قالیچه دستباف قرمز مربعی' },
-  { src: '/hero/rug-red-rect.png', alt: 'قالیچه دستباف قرمز مستطیلی' },
+  { src: '/hero/mina-plate-blue-2.png', alt: 'بشقاب میناکاری لاجوردی' },
 ];
 
 function ringPosition(index: number, count: number, radiusPct: number) {
@@ -68,7 +68,7 @@ export default function HonarHubHero() {
       <div className="relic-hero">
         <img src="/hero/pottery-vessel.png" alt="جام سفالین ۵۲۰۰ ساله" className="goblet-photo" />
       </div>
-      <div className="era-label era-old">۵۲۰۰ سال پیش</div>
+      <div className="era-label era-old">ایران زمین، ۵۲۰۰ سال پیش</div>
 
       {/* ---------- transition burst ---------- */}
       <div className="burst" />
@@ -197,6 +197,8 @@ export default function HonarHubHero() {
         }
         .era-old {
           top: 76%;
+          font-size: clamp(16px, 2vw, 22px);
+          font-weight: 700;
           animation: eraOld 20s linear infinite;
         }
         @keyframes eraOld {
@@ -348,9 +350,9 @@ export default function HonarHubHero() {
           position: absolute;
           left: 50%;
           top: 50%;
-          transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%) translateZ(200px);
           text-align: center;
-          z-index: 2;
+          z-index: 100;
         }
         .center-brand h1 {
           margin: 0;
