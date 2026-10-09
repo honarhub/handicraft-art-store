@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -16,9 +17,8 @@ export default function AdminLogin() {
     if (status === 'authenticated') {
       if (session?.user?.role === 'ADMIN') {
         router.push('/admin');
-      } else {
-        router.push('/');
       }
+      // If not ADMIN, do not automatically redirect to '/' — show clear guidance below.
     }
   }, [status, session, router]);
 
@@ -46,6 +46,37 @@ export default function AdminLogin() {
       setLoading(false);
     }
   };
+
+  // If already logged in as a non-admin account, display informative banner
+  if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans" dir="rtl">
+        <div className="max-w-md w-full bg-slate-800 rounded-3xl p-8 shadow-2xl border border-slate-700 text-center">
+          <div className="w-16 h-16 bg-red-500/20 text-red-400 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-6 border border-red-500/30">
+            🛑
+          </div>
+          <h2 className="text-2xl font-black text-white mb-2">عدم دسترسی به پنل مدیریت</h2>
+          <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+            شما با حساب (<strong className="text-white">{session.user.email || session.user.name}</strong>) با نقش (<span className="text-amber-400 font-bold">{session.user.role || 'USER'}</span>) وارد شده‌اید، اما دسترسی مدیر ارشد (ADMIN) ندارید.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => signOut({ callbackUrl: '/admin/login' })}
+              className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-600/30 transition-all text-sm"
+            >
+              خروج و ورود با حساب مدیر
+            </button>
+            <Link
+              href="/"
+              className="block w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl transition-colors text-sm"
+            >
+              بازگشت به سایت اصلی
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans" dir="rtl">
@@ -85,15 +116,15 @@ export default function AdminLogin() {
             <label className="block text-sm font-medium text-slate-300 mb-2">ایمیل سازمانی</label>
             <input 
               type="email" 
-              name="email"
-              id="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600"
-              placeholder="admin@mydomain.com"
-              dir="ltr"
+              name="email" 
+              id="email" 
+              autoComplete="email" 
+              required 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600" 
+              placeholder="admin@mydomain.com" 
+              dir="ltr" 
             />
           </div>
           
@@ -101,20 +132,20 @@ export default function AdminLogin() {
             <label className="block text-sm font-medium text-slate-300 mb-2">رمز عبور امنیتی</label>
             <input 
               type="password" 
-              name="password"
-              id="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600"
-              placeholder="••••••••"
-              dir="ltr"
+              name="password" 
+              id="password" 
+              autoComplete="current-password" 
+              required 
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600" 
+              placeholder="••••••••" 
+              dir="ltr" 
             />
             <div className="flex justify-end mt-2">
-              <a href="/forgot-password" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+              <Link href="/forgot-password" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
                 رمز عبور خود را فراموش کرده‌اید؟
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -126,7 +157,7 @@ export default function AdminLogin() {
 
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading} 
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all mt-4 flex items-center justify-center gap-2"
           >
             {loading ? 'در حال بررسی هویت...' : 'ورود امن (دستی)'}
@@ -134,9 +165,9 @@ export default function AdminLogin() {
         </form>
         
         <div className="mt-8 pt-6 border-t border-slate-700 text-center">
-          <a href="/" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">
+          <Link href="/" className="text-slate-500 hover:text-slate-300 text-sm transition-colors">
             &larr; بازگشت به سایت اصلی
-          </a>
+          </Link>
         </div>
       </div>
     </div>

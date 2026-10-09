@@ -8,8 +8,20 @@ import LogoutButton from '@/app/components/LogoutButton';
 export default async function ArtistPanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || (session.user.role !== 'ARTIST' && session.user.role !== 'ADMIN')) {
+  if (!session || !session.user) {
     redirect('/artist-panel/login');
+  }
+
+  if (session.user.role === 'ADMIN') {
+    const artist = await prisma.artistProfile.findUnique({
+      where: { userId: session.user.id },
+      include: { user: true }
+    });
+    if (!artist) {
+      redirect('/admin');
+    }
+  } else if (session.user.role !== 'ARTIST') {
+    redirect('/artist-panel/login?error=not_artist');
   }
 
   const artist = await prisma.artistProfile.findUnique({
@@ -18,7 +30,11 @@ export default async function ArtistPanelLayout({ children }: { children: React.
   });
 
   if (!artist) {
-    redirect('/artist-panel/login');
+    redirect('/artist-panel/login?error=no_profile');
+  }
+
+  if (artist.isDeleted) {
+    redirect('/artist-panel/login?error=deleted');
   }
 
 
