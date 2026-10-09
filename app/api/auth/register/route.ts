@@ -12,11 +12,40 @@ export async function POST(req: Request) {
     }
 
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      include: { artistProfile: true }
     });
 
     if (existingUser) {
-      return NextResponse.json({ error: 'این ایمیل قبلاً ثبت شده است' }, { status: 400 });
+      if (existingUser.artistProfile) {
+        return NextResponse.json({ error: 'این ایمیل قبلاً به عنوان هنرمند ثبت شده است. لطفاً وارد شوید.' }, { status: 400 });
+      }
+
+      // کاربر قبلاً از طریق گوگل یا روش دیگر بدون پروفایل هنرمند ایجاد شده بود
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      await prisma.artistProfile.create({
+        data: {
+          userId: existingUser.id,
+          isApproved: false,
+          isActive: false,
+        }
+      });
+
+      const updatedUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name: name || existingUser.name,
+          password: hashedPassword,
+          role: 'ARTIST'
+        }
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        message: 'پروفایل هنرمندی با موفقیت برای حساب شما فعال شد. اکنون می‌توانید وارد شوید.',
+        user: { id: updatedUser.id, name: updatedUser.name, email: updatedUser.email }
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

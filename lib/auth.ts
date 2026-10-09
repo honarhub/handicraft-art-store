@@ -11,13 +11,20 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code"
+        }
+      },
       profile(profile) {
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: profile.email === process.env.ADMIN_EMAIL ? 'ADMIN' : 'USER'
+          role: profile.email === process.env.ADMIN_EMAIL ? 'ADMIN' : 'ARTIST'
         }
       }
     }),
@@ -96,14 +103,30 @@ export const authOptions: NextAuthOptions = {
             });
           }
         } else {
+          // برای سایر کاربران (ورود از پنل هنرمند)
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email as string },
-            select: { role: true }
+            include: { artistProfile: true }
           });
           if (dbUser) {
-            user.role = dbUser.role;
+            if (!dbUser.artistProfile) {
+              await prisma.artistProfile.create({
+                data: {
+                  userId: dbUser.id,
+                  isApproved: false,
+                  isActive: false,
+                }
+              });
+              await prisma.user.update({
+                where: { id: dbUser.id },
+                data: { role: 'ARTIST' }
+              });
+              user.role = 'ARTIST';
+            } else {
+              user.role = dbUser.role;
+            }
           } else {
-            user.role = 'USER';
+            user.role = 'ARTIST';
           }
         }
       }
@@ -117,25 +140,43 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
-      // Verify user still exists in database and keep role in sync
+      // Verify user still exists in database and keep role/profile in sync
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { id: true, role: true, email: true }
+          include: { artistProfile: true }
         });
         if (!dbUser) {
           return null as any; // Invalidate session if user no longer exists
         }
         
         const adminEmail = process.env.ADMIN_EMAIL;
-        if (adminEmail && dbUser.email === adminEmail && dbUser.role !== 'ADMIN') {
-          await prisma.user.update({
-            where: { id: dbUser.id },
-            data: { role: 'ADMIN' }
-          });
+        if (adminEmail && dbUser.email === adminEmail) {
+          if (dbUser.role !== 'ADMIN') {
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { role: 'ADMIN' }
+            });
+          }
           token.role = 'ADMIN';
         } else {
-          token.role = dbUser.role;
+          // اگر کاربر غیرادمین پروفایل هنرمند ندارد، ایجاد خودکار پروفایل هنرمند
+          if (!dbUser.artistProfile) {
+            await prisma.artistProfile.create({
+              data: {
+                userId: dbUser.id,
+                isApproved: false,
+                isActive: false,
+              }
+            });
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { role: 'ARTIST' }
+            });
+            token.role = 'ARTIST';
+          } else {
+            token.role = dbUser.role;
+          }
         }
       }
       return token;

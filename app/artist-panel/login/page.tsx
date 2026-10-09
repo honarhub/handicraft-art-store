@@ -65,6 +65,25 @@ function ArtistLoginContent() {
     }
   };
 
+  const [upgrading, setUpgrading] = useState(false);
+
+  const handleUpgradeToArtist = async () => {
+    setUpgrading(true);
+    try {
+      const res = await fetch('/api/artist/upgrade', { method: 'POST' });
+      if (res.ok) {
+        window.location.href = '/artist-panel/dashboard';
+      } else {
+        const data = await res.json();
+        setErrorMsg(data.error || 'خطا در ارتقای حساب کاربری');
+        setUpgrading(false);
+      }
+    } catch {
+      setErrorMsg('خطا در برقراری ارتباط با سرور');
+      setUpgrading(false);
+    }
+  };
+
   // If already authenticated as a non-artist regular user, show role guidance
   if (status === 'authenticated' && session?.user?.role !== 'ARTIST' && session?.user?.role !== 'ADMIN') {
     return (
@@ -72,18 +91,25 @@ function ArtistLoginContent() {
         <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4">
           🎨
         </div>
-        <h3 className="text-xl font-black text-slate-800 mb-2">حساب شما دسترسی هنرمند ندارد</h3>
+        <h3 className="text-xl font-black text-slate-800 mb-2">فعال‌سازی پنل هنرمند</h3>
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-          شما در حال حاضر با حساب کاربری عادی (<strong className="text-slate-800">{session.user.email || session.user.name}</strong>) وارد شده‌اید. برای ورود به پنل هنرمندان، باید ثبت‌نام هنرمند انجام دهید.
+          شما با حساب (<strong className="text-slate-800">{session.user.email || session.user.name}</strong>) وارد شده‌اید. می‌توانید با یک کلیک دسترسی هنرمند را برای این حساب فعال کنید.
         </p>
 
+        {errorMsg && (
+          <div className="mb-4 bg-red-50 text-red-600 text-sm font-bold p-3 rounded-xl border border-red-100 text-center">
+            {errorMsg}
+          </div>
+        )}
+
         <div className="space-y-3">
-          <Link
-            href="/artist-panel/register"
-            className="block w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all text-center"
+          <button
+            onClick={handleUpgradeToArtist}
+            disabled={upgrading}
+            className="block w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all text-center disabled:opacity-50"
           >
-            ثبت‌نام و ایجاد پروفایل هنرمند
-          </Link>
+            {upgrading ? 'در حال فعال‌سازی...' : '✨ فعال‌سازی پنل هنرمند و ورود'}
+          </button>
 
           <button
             onClick={() => signOut({ callbackUrl: '/artist-panel/login' })}
