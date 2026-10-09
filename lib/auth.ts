@@ -51,6 +51,21 @@ export const authOptions: NextAuthOptions = {
           throw new Error("شما دسترسی ورود به پنل ادمین را ندارید");
         }
 
+        if (credentials.loginType === 'artist') {
+          if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
+            throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد");
+          }
+          const artist = await prisma.artistProfile.findUnique({
+            where: { userId: user.id }
+          });
+          if (!artist) {
+            throw new Error("پروفایل هنرمند برای این حساب یافت نشد. لطفاً ابتدا ثبت‌نام کنید.");
+          }
+          if (artist.isDeleted) {
+            throw new Error("حساب هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی تماس بگیرید.");
+          }
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -70,6 +85,7 @@ export const authOptions: NextAuthOptions = {
         
         // اگر کاربر لاگین کننده ادمین است
         if (adminEmail && user.email === adminEmail) {
+          user.role = 'ADMIN';
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email as string }
           });
@@ -79,7 +95,6 @@ export const authOptions: NextAuthOptions = {
               data: { role: 'ADMIN' }
             });
           }
-          user.role = 'ADMIN';
         } else {
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email as string },
@@ -102,17 +117,26 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
-      // Verify user still exists in database on every token refresh
+      // Verify user still exists in database and keep role in sync
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { id: true, role: true }
+          select: { id: true, role: true, email: true }
         });
         if (!dbUser) {
           return null as any; // Invalidate session if user no longer exists
         }
-        // Keep role in sync with database
-        token.role = dbUser.role;
+        
+        const adminEmail = process.env.ADMIN_EMAIL;
+        if (adminEmail && dbUser.email === adminEmail && dbUser.role !== 'ADMIN') {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { role: 'ADMIN' }
+          });
+          token.role = 'ADMIN';
+        } else {
+          token.role = dbUser.role;
+        }
       }
       return token;
     },
@@ -125,8 +149,8 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/login-switcher',
-    error: '/login-error', 
+    signIn: '/artist-panel/login',
+    error: '/login-error',
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
