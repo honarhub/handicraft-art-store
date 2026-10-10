@@ -140,44 +140,18 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
-      // Verify user still exists in database and keep role/profile in sync
-      if (token.id) {
+      // Only verify user exists - do NOT create profiles here (causes infinite loops)
+      // Profile creation happens in signIn callback
+      if (token.id && trigger !== 'update') {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          include: { artistProfile: true }
+          select: { id: true, role: true, email: true }
         });
         if (!dbUser) {
           return null as any; // Invalidate session if user no longer exists
         }
-        
-        const adminEmail = process.env.ADMIN_EMAIL;
-        if (adminEmail && dbUser.email === adminEmail) {
-          if (dbUser.role !== 'ADMIN') {
-            await prisma.user.update({
-              where: { id: dbUser.id },
-              data: { role: 'ADMIN' }
-            });
-          }
-          token.role = 'ADMIN';
-        } else {
-          // اگر کاربر غیرادمین پروفایل هنرمند ندارد، ایجاد خودکار پروفایل هنرمند
-          if (!dbUser.artistProfile) {
-            await prisma.artistProfile.create({
-              data: {
-                userId: dbUser.id,
-                isApproved: false,
-                isActive: false,
-              }
-            });
-            await prisma.user.update({
-              where: { id: dbUser.id },
-              data: { role: 'ARTIST' }
-            });
-            token.role = 'ARTIST';
-          } else {
-            token.role = dbUser.role;
-          }
-        }
+        // Keep role in sync with database
+        token.role = dbUser.role;
       }
       return token;
     },
