@@ -140,16 +140,27 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
-      // Only verify user exists - do NOT create profiles here (causes infinite loops)
-      // Profile creation happens in signIn callback
+      // Only verify user exists and auto-create profile if missing
       if (token.id && trigger !== 'update') {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { id: true, role: true, email: true }
+          select: { id: true, role: true, email: true, artistProfile: { select: { id: true } } }
         });
         if (!dbUser) {
           return null as any; // Invalidate session if user no longer exists
         }
+        
+        // Auto-create artist profile for new ARTIST users (like new Google sign-ins)
+        if (dbUser.role === 'ARTIST' && !dbUser.artistProfile) {
+          await prisma.artistProfile.create({
+            data: {
+              userId: dbUser.id,
+              isApproved: false,
+              isActive: false,
+            }
+          });
+        }
+        
         // Keep role in sync with database
         token.role = dbUser.role;
       }
