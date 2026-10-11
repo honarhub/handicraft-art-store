@@ -2,6 +2,80 @@ import { NextResponse } from 'next/server';
 import { generateWithFallback } from '@/lib/gemini';
 import prisma from '@/lib/prisma';
 
+// نگاشت تصاویر باکیفیت استاندارد متناسب با تخصص‌های صنایع دستی
+const specialtyCoverMap: Record<string, { cover: string; inTextImages: { url: string; alt: string }[] }> = {
+  'سفالگری': {
+    cover: '/hero/pottery-vessel.png',
+    inTextImages: [
+      { url: '/hero/ceramic-vase-green.png', alt: 'گلدان سرامیکی دست‌ساز فیروزه‌ای' },
+      { url: '/hero/ceramic-jug-green.png', alt: 'کوزه لعاب‌دار سنتی' }
+    ]
+  },
+  'میناکاری': {
+    cover: '/hero/mina-plate-blue.png',
+    inTextImages: [
+      { url: '/hero/mina-plate-blue-2.png', alt: 'بشقاب میناکاری اسلیمی اصفهان' }
+    ]
+  },
+  'قلمزنی': {
+    cover: '/hero/copper-ewer.png',
+    inTextImages: [
+      { url: '/hero/copper-ewer.png', alt: 'تنگ و گلاب‌پاش قلمزنی مسی' }
+    ]
+  },
+  'قالی‌بافی': {
+    cover: '/hero/rug-red-rect.png',
+    inTextImages: [
+      { url: '/hero/rug-red-square.png', alt: 'نقوش اصیل قالی دستباف ایرانی' }
+    ]
+  },
+  'گلیم‌بافی': {
+    cover: '/hero/rug-red-square.png',
+    inTextImages: [
+      { url: '/hero/rug-red-rect.png', alt: 'گلیم عشایری پشم طبیعی' }
+    ]
+  },
+  'منبت‌کاری': {
+    cover: '/hero/wood-carving-panel.png',
+    inTextImages: [
+      { url: '/hero/antique-chest.png', alt: 'صندوقچه چوبی منبت و خاتم' }
+    ]
+  },
+  'خاتم‌کاری': {
+    cover: '/hero/antique-chest.png',
+    inTextImages: [
+      { url: '/hero/wood-carving-panel.png', alt: 'نقوش هندسی ریز خاتم شیراز' }
+    ]
+  },
+  'مینیاتور': {
+    cover: '/hero/watercolor-painting.png',
+    inTextImages: [
+      { url: '/hero/crochet-flower.png', alt: 'ظرافت نقش‌مایه‌های اصیل ایرانی' }
+    ]
+  },
+  'تذهیب': {
+    cover: '/hero/watercolor-painting.png',
+    inTextImages: [
+      { url: '/hero/mina-plate-blue.png', alt: 'تلالو طلا و لاجورد در تذهیب' }
+    ]
+  },
+  'زیورآلات': {
+    cover: '/hero/bracelet.png',
+    inTextImages: [
+      { url: '/hero/copper-ewer.png', alt: 'فلزکاری ظریف دست‌ساز' }
+    ]
+  }
+};
+
+const defaultCovers = [
+  '/hero/pottery-vessel.png',
+  '/hero/mina-plate-blue.png',
+  '/hero/rug-red-rect.png',
+  '/hero/copper-ewer.png',
+  '/hero/antique-chest.png',
+  '/hero/wood-carving-panel.png'
+];
+
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -13,10 +87,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Gemini API key is not set' }, { status: 500 });
     }
 
-    // 1. Fetch a random specialty
+    // 1. Fetch a random approved specialty
     const specialties = await prisma.specialty.findMany({
       where: { isApproved: true },
-      take: 10,
+      take: 20,
     });
     
     if (specialties.length === 0) {
@@ -25,7 +99,7 @@ export async function GET(request: Request) {
     
     const randomSpecialty = specialties[Math.floor(Math.random() * specialties.length)];
 
-    // 2. Fetch some approved products related to this specialty
+    // 2. Fetch approved products related to this specialty
     const relatedProducts = await prisma.product.findMany({
       where: { 
         status: 'APPROVED',
@@ -33,54 +107,74 @@ export async function GET(request: Request) {
           some: { id: randomSpecialty.id }
         }
       },
-      take: 5,
+      take: 6,
       select: {
         id: true,
         title: true,
         description: true,
+        artist: {
+          select: {
+            id: true,
+            user: { select: { name: true } }
+          }
+        }
       }
     });
 
-    // 3. Build prompt
+    // 3. Match visual images for this specialty
+    const visualAssets = specialtyCoverMap[randomSpecialty.name] || {
+      cover: defaultCovers[Math.floor(Math.random() * defaultCovers.length)],
+      inTextImages: [
+        { url: '/hero/mina-plate-blue.png', alt: `اثر هنری دست‌ساز مرتبط با ${randomSpecialty.name}` }
+      ]
+    };
+
+    // 4. Build rich prompt with images and product links
     let productContext = '';
     if (relatedProducts.length > 0) {
       productContext = `
-      محصولات مرتبط موجود در سایت (حتما لینک این محصولات را در متن یا انتهای مقاله قرار دهید):
-      ${relatedProducts.map(p => `- ${p.title} (URL: /product/${p.id})`).join('\n')}
+      محصولات مرتبط موجود در پلتفرم هنرهاب (حتماً لینک چند مورد از آنها را در متن قرار دهید):
+      ${relatedProducts.map(p => `- نام اثر: "${p.title}" به آدرس URL: /product/${p.id} ${p.artist?.user?.name ? `(هنرمند: ${p.artist.user.name})` : ''}`).join('\n')}
       `;
     }
 
+    const availableInTextImgs = visualAssets.inTextImages.map(img => 
+      `<figure class="my-8 text-center"><img src="${img.url}" alt="${img.alt}" class="rounded-2xl max-h-96 mx-auto shadow-md border border-slate-100" /><figcaption class="text-xs text-slate-500 mt-2">${img.alt}</figcaption></figure>`
+    ).join('\n');
+
     const prompt = `
-      شما یک متخصص سئو، نویسنده خلاق و کارشناس صنایع دستی ایران هستید.
-      برای وبلاگ سایت "هنرهاب" (بازار آثار هنرمندان ایران) یک مقاله سئو شده، جذاب و کامل درباره "${randomSpecialty.name}" بنویسید.
+      شما یک نویسنده ارشد، متخصص سئو و کارشناس برجسته هنرهای دستی ایران برای وبلاگ "هنرهاب" هستید.
+      یک مقاله جذاب، فرهنگی، پرکشش و سئو شده درباره "${randomSpecialty.name}" بنویسید.
       
-      الزامات:
-      ۱. لحن: صمیمی، امروزی و در عین حال فاخر.
-      ۲. محتوا باید دارای تگ‌های HTML وبلاگ (مثل <h2>, <h3>, <p>, <ul>) باشد. از قرار دادن تگ‌های <html> یا <body> خودداری کنید.
-      ۳. در متن مقاله به طور طبیعی سایت هنرهاب را به عنوان بهترین بستر خرید این هنر معرفی کنید.
-      ${productContext ? `۴. ${productContext}` : ''}
+      الزامات محتوایی:
+      ۱. لحن: صمیمی، شیوا، امروزی و در عین حال فاخر و اصیل.
+      ۲. محتوا باید دارای ساختار کامل HTML وبلاگی باشد (شامل <h2>، <h3>، <p>، <ul>، <li>، <strong>). از تگ‌های <html> یا <body> استفاده نکنید.
+      ۳. حداقل ۲ تگ عکس از کدهای آماده زیر را به شکل طبیعی بین پاراگراف‌های مقاله قرار دهید:
+      ${availableInTextImgs}
+      ۴. در متن به شکل طبیعی و هوشمندانه، خرید مستقیم و بدون واسطه از هنرمندان ایرانی در "هنرهاب" را به عنوان بهترین روش حمایت و اصالت خرید معرفی کنید.
+      ${productContext ? `۵. ${productContext}` : ''}
       
-      پاسخ شما باید فقط و فقط یک آبجکت JSON معتبر به شکل زیر باشد (بدون هیچ فرمت مارک‌داون یا بک‌تیک):
+      پاسخ شما باید فقط و فقط یک آبجکت JSON معتبر به شکل زیر باشد (بدون هیچ مارک‌داون یا بک‌تیک \`\`\`):
       {
-        "title": "یک عنوان بسیار جذاب و کلیک‌خور",
-        "slug": "english-url-friendly-slug",
-        "content": "<p>محتوای HTML شما...</p>",
-        "excerpt": "یک خلاصه دو جمله‌ای جذاب",
-        "tags": ["تگ۱", "تگ۲"],
+        "title": "یک عنوان بسیار جذاب، کلیک‌خور و سئوشده",
+        "slug": "english-url-friendly-slug-about-topic",
+        "content": "<p>پاراگراف آغازین جذاب...</p><h2>...</h2>",
+        "excerpt": "خلاصه‌ای دو جمله‌ای و بسیار جذاب برای نمایش در پیش‌نمایش کارت و سئو",
+        "tags": ["تگ۱", "تگ۲", "${randomSpecialty.name}", "صنایع دستی ایران", "هنرهاب"],
         "seoMeta": {
-          "title": "عنوان سئو (حداکثر 60 کاراکتر)",
-          "description": "توضیحات متا سئو (حداکثر 160 کاراکتر)",
-          "keywords": "کلمه کلیدی۱, کلمه کلیدی۲"
+          "title": "عنوان سئو (زیر 60 کاراکتر)",
+          "description": "توضیحات متا سئو جذاب (زیر 160 کاراکتر)",
+          "keywords": "${randomSpecialty.name}, خرید ${randomSpecialty.name}, صنایع دستی, هنرهاب"
         }
       }
     `;
 
-    // 4. Call Gemini with automatic fallback
+    // 5. Call Gemini
     const responseText = await generateWithFallback(prompt);
     const cleanedText = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
     const blogData = JSON.parse(cleanedText);
 
-    // 5. Save to DB
+    // 6. Check unique slug
     const existingPost = await prisma.blogPost.findUnique({
       where: { slug: blogData.slug }
     });
@@ -89,20 +183,23 @@ export async function GET(request: Request) {
       ? `${blogData.slug}-${Date.now()}` 
       : blogData.slug;
 
+    // 7. Save to DB with coverImage and specialtyId
     const newPost = await prisma.blogPost.create({
       data: {
         title: blogData.title,
         slug: finalSlug,
         content: blogData.content,
         excerpt: blogData.excerpt,
-        tags: blogData.tags || [randomSpecialty.name],
+        coverImage: visualAssets.cover,
+        tags: blogData.tags || [randomSpecialty.name, 'صنایع دستی'],
         seoMeta: blogData.seoMeta,
+        specialtyId: randomSpecialty.id,
       }
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Blog post generated successfully!',
+      message: 'مقاله غنی هوش مصنوعی با موفقیت تولید و تصویرگذاری شد!',
       post: newPost
     });
 

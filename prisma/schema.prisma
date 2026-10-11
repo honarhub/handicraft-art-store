@@ -91,6 +91,7 @@ model ArtistProfile {
   products    Product[]
   transactions Transaction[]
   specialties Specialty[] // ارتباط Many-to-Many با تخصص‌ها
+  blogPosts   BlogPost[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -225,6 +226,7 @@ model Specialty {
   artists     ArtistProfile[]
   products    Product[]
   siteSettings SiteSettings[] // One to many for featured category
+  blogPosts   BlogPost[]
 }
 
 model SupportMessage {
@@ -274,16 +276,23 @@ model PasswordResetToken {
 }
 
 model BlogPost {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  title       String
-  content     String   @db.Text
-  excerpt     String?
-  coverImage  String?
-  tags        String[] @default([])
-  seoMeta     Json?    
-  isPublished Boolean  @default(true)
-  publishedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String         @id @default(cuid())
+  slug            String         @unique
+  title           String
+  content         String         @db.Text
+  excerpt         String?
+  coverImage      String?
+  tags            String[]       @default([])
+  seoMeta         Json?    
+  isPublished     Boolean        @default(true)
+  publishedAt     DateTime       @default(now())
+  
+  specialtyId     String?
+  specialty       Specialty?     @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+
+  artistProfileId String?
+  artistProfile   ArtistProfile? @relation(fields: [artistProfileId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }

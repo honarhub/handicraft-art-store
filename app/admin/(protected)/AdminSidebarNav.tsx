@@ -20,6 +20,7 @@ export default function AdminSidebarNav({ newRegistrationsCount, pendingArtistsC
     { href: '/admin/artists', label: '🎭 مدیریت هنرمندان', count: pendingArtistsCount, newCount: newRegistrationsCount },
     { href: '/admin/products', label: '📦 مدیریت محصولات', count: pendingProductsCount, badgeColor: 'bg-red-500 text-white shadow-[0_0_8px_rgba(239,68,68,0.5)]' },
     { href: '/admin/specialties', label: '🏷️ مدیریت تخصص‌ها', count: pendingSpecialtiesCount, badgeColor: 'bg-red-500 text-white' },
+    { href: '/admin/blog', label: '📝 مدیریت وبلاگ و مقالات' },
     { href: '/admin/support', label: '🎧 پشتیبانی و تیکت‌ها' },
     { href: '/admin/stock-requests', label: '🔔 درخواست‌های موجودی' },
     { href: '/admin/settings', label: '⚙️ تنظیمات سایت' },
