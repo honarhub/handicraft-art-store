@@ -1,21 +1,34 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
-  // Fetch latest products and posts for AI context
-  const products = await prisma.product.findMany({
-    where: { status: 'APPROVED' },
-    take: 10,
-    orderBy: { createdAt: 'desc' },
-    select: { id: true, title: true, description: true }
-  });
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-  const posts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
-    take: 5,
-    orderBy: { publishedAt: 'desc' },
-    select: { slug: true, title: true }
-  });
+export async function GET() {
+  let products: any[] = [];
+  let posts: any[] = [];
+
+  try {
+    products = await prisma.product.findMany({
+      where: { status: 'APPROVED' },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, title: true, description: true }
+    });
+  } catch (err) {
+    console.error('Error fetching products for llms.txt:', err);
+  }
+
+  try {
+    posts = await prisma.blogPost.findMany({
+      where: { isPublished: true },
+      take: 5,
+      orderBy: { publishedAt: 'desc' },
+      select: { slug: true, title: true }
+    });
+  } catch (err) {
+    console.error('Error fetching posts for llms.txt:', err);
+  }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://honarhub.com';
 

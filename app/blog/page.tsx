@@ -3,19 +3,28 @@ import Link from 'next/link';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'وبلاگ هنرهاب | مجله فرهنگ و صنایع دستی ایران',
   description: 'جدیدترین مقالات درباره صنایع دستی، هنرهای تجسمی و فرهنگ ایران زمین در وبلاگ هنرهاب.',
 };
 
 export default async function BlogIndex() {
-  const posts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
-    include: {
-      specialty: { select: { name: true } }
-    },
-    orderBy: { publishedAt: 'desc' },
-  });
+  let posts: any[] = [];
+  try {
+    posts = await prisma.blogPost.findMany({
+      where: { isPublished: true },
+      include: {
+        specialty: { select: { name: true } }
+      },
+      orderBy: { publishedAt: 'desc' },
+    });
+  } catch (error) {
+    console.error('Error fetching blog posts in BlogIndex:', error);
+    posts = [];
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">

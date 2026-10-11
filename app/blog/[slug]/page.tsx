@@ -15,9 +15,14 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = await prisma.blogPost.findUnique({
-    where: { slug, isPublished: true }
-  });
+  let post = null;
+  try {
+    post = await prisma.blogPost.findUnique({
+      where: { slug, isPublished: true }
+    });
+  } catch (error) {
+    console.error('Error fetching blog post in generateMetadata:', error);
+  }
 
   if (!post) {
     return { title: 'پیدا نشد | هنرهاب' };
@@ -52,17 +57,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   
-  const post = await prisma.blogPost.findUnique({
-    where: { slug, isPublished: true },
-    include: {
-      specialty: true,
-      artistProfile: {
-        include: {
-          user: { select: { name: true } }
+  let post = null;
+  try {
+    post = await prisma.blogPost.findUnique({
+      where: { slug, isPublished: true },
+      include: {
+        specialty: true,
+        artistProfile: {
+          include: {
+            user: { select: { name: true } }
+          }
         }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.error('Error fetching blog post in BlogPostPage:', error);
+  }
 
   if (!post) {
     notFound();
