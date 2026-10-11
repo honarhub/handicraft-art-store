@@ -5,7 +5,8 @@ import "./globals.css";
 const vazirmatn = Vazirmatn({
   variable: "--font-vazirmatn",
   subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "700", "900"],
+  display: "swap",
+  weight: ["200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const geistMono = Geist_Mono({
@@ -26,9 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="fa"
       dir="rtl"
-      className={`${vazirmatn.variable} ${geistMono.variable} h-full antialiased font-sans`}
+      className={`${vazirmatn.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className={`${vazirmatn.className} min-h-full flex flex-col font-sans`}>
         <AuthProvider>
           <CartProvider>
             {children}

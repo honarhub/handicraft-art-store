@@ -224,8 +224,9 @@ export default function ArtistLoginPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans" dir="rtl">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
-          <Link href="/" className="text-3xl font-black tracking-tighter text-slate-800">
-            هنرهاب <span className="text-teal-600">.</span>
+          <Link href="/" className="inline-flex items-center text-3xl font-black tracking-tight group" dir="rtl">
+            <span className="text-slate-900 transition-colors group-hover:text-emerald-700">هنر</span>
+            <span className="bg-[#FF9900] text-black px-2 py-0.5 rounded-md mr-1 text-2xl font-black shadow-sm transition-transform group-hover:scale-105">هاب</span>
           </Link>
         </div>
         <h2 className="mt-6 text-center text-2xl font-bold text-slate-900">ورود به پنل هنرمندان</h2>

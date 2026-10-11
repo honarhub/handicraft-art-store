@@ -97,7 +97,7 @@ export default async function Home() {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-8 max-w-4xl drop-shadow-sm animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
-            دست‌سازه‌هایی که <span className="text-emerald-600 italic font-serif relative">روح<span className="absolute -bottom-2 left-0 w-full h-2 bg-emerald-200/50 -rotate-2 rounded-full"></span></span> دارند.
+            دست‌سازه‌هایی که <span className="text-emerald-600 font-black relative">روح<span className="absolute -bottom-2 left-0 w-full h-2 bg-emerald-200/50 -rotate-2 rounded-full"></span></span> دارند.
           </h1>
           
           <p className="text-lg md:text-xl text-slate-500 mb-14 max-w-2xl leading-relaxed font-medium animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
