@@ -6,6 +6,9 @@ import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 import RelatedProductsCarousel, { RelatedProductItem } from '@/app/components/RelatedProductsCarousel';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface Props {
   params: Promise<{ slug: string }>;
 }

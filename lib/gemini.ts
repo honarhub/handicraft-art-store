@@ -4,8 +4,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Two models only: Pro first, Flash as backup. Fail fast if both unavailable.
 const MODELS = [
-  process.env.GEMINI_MODEL || 'gemini-pro-latest',  // Pro (user has Pro account)
-  'gemini-flash-latest',                              // Fast free fallback
+  process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+  'gemini-3.5-flash',
+  'gemini-pro-latest',
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
 ];
 
 export async function generateWithFallback(
