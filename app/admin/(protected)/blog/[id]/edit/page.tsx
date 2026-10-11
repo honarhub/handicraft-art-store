@@ -23,6 +23,8 @@ export default function BlogEditPage({ params }: { params: Promise<{ id: string 
   const [excerpt, setExcerpt] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [content, setContent] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingInText, setUploadingInText] = useState(false);
   const [tagsStr, setTagsStr] = useState('');
   const [isPublished, setIsPublished] = useState(true);
   const [specialtyId, setSpecialtyId] = useState('');
@@ -132,6 +134,52 @@ export default function BlogEditPage({ params }: { params: Promise<{ id: string 
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleUploadFile = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/admin/blog/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        return data.url;
+      } else {
+        alert(data.error || 'خطا در آپلود تصویر');
+        return null;
+      }
+    } catch (err) {
+      alert('خطا در برقراری ارتباط با سرور آپلود');
+      return null;
+    }
+  };
+
+  const onCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    const url = await handleUploadFile(file);
+    if (url) {
+      setCoverImage(url);
+    }
+    setUploadingCover(false);
+    e.target.value = '';
+  };
+
+  const onInTextFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingInText(true);
+    const url = await handleUploadFile(file);
+    if (url) {
+      const altText = prompt('توضیح کوتاه برای این تصویر (اختیاری):') || title || 'تصویر صنایع دستی';
+      insertImageIntoContent(url, altText);
+    }
+    setUploadingInText(false);
+    e.target.value = '';
   };
 
   const insertImageIntoContent = (imgUrl: string, altText: string) => {
@@ -256,7 +304,7 @@ export default function BlogEditPage({ params }: { params: Promise<{ id: string 
           {/* Cover Image Management */}
           <div className="p-5 bg-slate-50/70 rounded-xl border border-slate-200/80">
             <label className="block text-sm font-bold text-slate-800 mb-2">🖼️ تصویر شاخص (کاور مقاله)</label>
-            <div className="flex flex-col md:flex-row gap-4 items-start">
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
               <input
                 type="text"
                 value={coverImage}
@@ -264,11 +312,34 @@ export default function BlogEditPage({ params }: { params: Promise<{ id: string 
                 placeholder="آدرس اینترنتی یا مسیر عکس (مثال: /hero/mina-plate-blue.png)"
                 className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono dir-ltr text-right"
               />
+
+              {/* Upload Button */}
+              <label className="cursor-pointer px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                {uploadingCover ? (
+                  <>
+                    <span className="inline-block animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span>در حال آپلود...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📤</span>
+                    <span>آپلود تصویر جدید</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onCoverFileChange}
+                  disabled={uploadingCover}
+                  className="hidden"
+                />
+              </label>
+
               {coverImage && (
                 <button
                   type="button"
                   onClick={() => setCoverImage('')}
-                  className="px-3 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded-xl transition"
+                  className="px-3 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded-xl transition whitespace-nowrap"
                 >
                   حذف کاور
                 </button>
@@ -328,7 +399,29 @@ export default function BlogEditPage({ params }: { params: Promise<{ id: string 
             {/* In-text image insert toolbar */}
             <div className="p-3 bg-slate-100/80 rounded-t-xl border border-b-0 border-slate-200 flex flex-wrap items-center gap-2 text-xs">
               <span className="font-bold text-slate-600">افزودن عکس درون متن:</span>
-              {sampleImages.slice(0, 4).map((img) => (
+              
+              {/* Upload image to content */}
+              <label className="cursor-pointer px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold transition flex items-center gap-1 shadow-sm">
+                {uploadingInText ? (
+                  <span>در حال آپلود...</span>
+                ) : (
+                  <>
+                    <span>📤</span>
+                    <span>آپلود و درج عکس جدید</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onInTextFileChange}
+                  disabled={uploadingInText}
+                  className="hidden"
+                />
+              </label>
+
+              <div className="w-px h-4 bg-slate-300 mx-1"></div>
+
+              {sampleImages.slice(0, 5).map((img) => (
                 <button
                   key={img.url}
                   type="button"
