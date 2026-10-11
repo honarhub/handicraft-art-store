@@ -20,6 +20,7 @@ export default function SiteFooter() {
           <h4 className="text-white font-bold mb-6 tracking-wide">دسترسی سریع</h4>
           <ul className="space-y-4 font-medium text-sm">
             <li><a href="/products" className="hover:text-emerald-400 transition-colors">گالری آثار</a></li>
+            <li><a href="/blog" className="hover:text-emerald-400 transition-colors">مجله و وبلاگ هنرهاب</a></li>
             <li><a href="/artist-panel/login" className="hover:text-emerald-400 transition-colors">ورود هنرمندان</a></li>
             <li><a href="/about" className="hover:text-emerald-400 transition-colors">درباره ما</a></li>
           </ul>

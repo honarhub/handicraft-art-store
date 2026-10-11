@@ -11,6 +11,7 @@ export default function SiteHeader() {
         </a>
         <nav className="hidden md:flex gap-10 text-sm font-bold text-slate-600 items-center">
           <a href="/products" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">گالری آثار</a>
+          <a href="/blog" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">وبلاگ</a>
           <a href="/about" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">درباره ما</a>
           <a href="/artist-panel/login" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل هنرمندان</a>
           <a href="/admin" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل ادمین</a>
