@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ChangePasswordForm from '@/app/components/ChangePasswordForm';
+import AiContentCronSettings from './AiContentCronSettings';
 
 export type RowType = 'SPECIALTY' | 'ARTIST' | 'PRICE_UNDER' | 'PRICE_OVER' | 'CHEAPEST' | 'EXPENSIVE' | 'NEWEST';
 
@@ -259,6 +260,8 @@ export default function AdminSettingsPage() {
         </form>
       </div>
       
+      <AiContentCronSettings />
+
       <ChangePasswordForm />
     </div>
   );

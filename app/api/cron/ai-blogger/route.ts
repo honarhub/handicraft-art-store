@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateWithFallback } from '@/lib/gemini';
 import prisma from '@/lib/prisma';
+import { fetchRemoteCraftImages } from '@/lib/remoteImages';
 
 // نگاشت تصاویر باکیفیت استاندارد متناسب با تخصص‌های صنایع دستی
 const specialtyCoverMap: Record<string, { cover: string; inTextImages: { url: string; alt: string }[] }> = {
@@ -121,13 +122,25 @@ export async function GET(request: Request) {
       }
     });
 
-    // 3. Match visual images for this specialty
-    const visualAssets = specialtyCoverMap[randomSpecialty.name] || {
+    // 3. Match visual images for this specialty (Local + Remote internet search)
+    const localVisuals = specialtyCoverMap[randomSpecialty.name] || {
       cover: defaultCovers[Math.floor(Math.random() * defaultCovers.length)],
       inTextImages: [
         { url: '/hero/mina-plate-blue.png', alt: `اثر هنری دست‌ساز مرتبط با ${randomSpecialty.name}` }
       ]
     };
+
+    // Fetch dynamic high-res photos from Wikimedia / internet
+    const remoteImages = await fetchRemoteCraftImages(randomSpecialty.name, 2);
+    
+    // Choose cover: prefer remote if available, else local
+    const finalCover = remoteImages.length > 0 ? remoteImages[0].url : localVisuals.cover;
+
+    // Combine in-text images
+    const allInTextImages = [
+      ...localVisuals.inTextImages,
+      ...remoteImages
+    ];
 
     // 4. Build rich prompt with images and product links
     let productContext = '';
@@ -138,7 +151,7 @@ export async function GET(request: Request) {
       `;
     }
 
-    const availableInTextImgs = visualAssets.inTextImages.map(img => 
+    const availableInTextImgs = allInTextImages.map(img => 
       `<figure class="my-8 text-center"><img src="${img.url}" alt="${img.alt}" class="rounded-2xl max-h-96 mx-auto shadow-md border border-slate-100" /><figcaption class="text-xs text-slate-500 mt-2">${img.alt}</figcaption></figure>`
     ).join('\n');
 
@@ -190,7 +203,7 @@ export async function GET(request: Request) {
         slug: finalSlug,
         content: blogData.content,
         excerpt: blogData.excerpt,
-        coverImage: visualAssets.cover,
+        coverImage: finalCover,
         tags: blogData.tags || [randomSpecialty.name, 'صنایع دستی'],
         seoMeta: blogData.seoMeta,
         specialtyId: randomSpecialty.id,
