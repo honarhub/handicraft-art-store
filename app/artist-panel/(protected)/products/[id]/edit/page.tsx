@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
+import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
 import { useRouter, useParams } from 'next/navigation';
 
 export default function ArtistEditProductPage() {
@@ -14,6 +15,9 @@ export default function ArtistEditProductPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
+  const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
+  const [preOrderTiers, setPreOrderTiers] = useState<PreOrderTier[]>(DEFAULT_PREORDER_TIERS);
   const [seoMetaTitle, setSeoMetaTitle] = useState('');
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
@@ -48,6 +52,15 @@ export default function ArtistEditProductPage() {
         setSeoMetaTitle(data.seoMetaTitle || '');
         setSeoMetaDesc(data.seoMetaDesc || '');
         setSeoKeywords(data.seoKeywords || '');
+        setShippingMode(data.shippingMode || 'ARTIST_DIRECT');
+        setIsPreOrderEnabled(Boolean(data.isPreOrderEnabled));
+        if (data.preOrderTiers) {
+          const parsed = typeof data.preOrderTiers === 'string' ? JSON.parse(data.preOrderTiers) : data.preOrderTiers;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPreOrderTiers(parsed);
+          }
+        }
+
         if (data.mediaUrls && data.mediaUrls.length > 0) {
           setImages(data.mediaUrls);
         } else if (data.imageUrl) {
@@ -63,9 +76,7 @@ export default function ArtistEditProductPage() {
               setPrice(String(pricingData[0].price));
             }
           })
-          .catch(() => {
-             // It's okay if it fails, maybe it has no pricing tiers yet
-          })
+          .catch(() => {})
           .finally(() => {
             setLoading(false);
           });
@@ -157,17 +168,21 @@ export default function ArtistEditProductPage() {
           title,
           description,
           price,
+          shippingMode,
+          isPreOrderEnabled,
+          preOrderTiers,
           specialties: specialties.map(s => s.id),
           seoMetaTitle,
           seoMetaDesc,
           seoKeywords,
-          images: images.filter(img => img.startsWith('data:')) // Only send new uploads
+          images // Send all images (existing URLs + new base64 uploads)
         })
       });
 
       if (!res.ok) throw new Error('Error updating product');
       
-      alert('تغییرات با موفقیت ثبت شد و اثر در انتظار تایید مدیریت قرار گرفت.');
+      const resData = await res.json();
+      alert(resData.message || 'تغییرات با موفقیت ثبت شد و در انتظار تایید مدیریت قرار گرفت.');
       router.push('/artist-panel/products');
     } catch (error) {
       alert('خطا در ثبت تغییرات');
@@ -185,7 +200,7 @@ export default function ArtistEditProductPage() {
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-black text-slate-800">ویرایش اثر</h2>
-          <p className="text-slate-500 mt-1 text-sm">با هر ویرایش، وضعیت اثر مجدداً به "در انتظار تایید" تغییر می‌کند.</p>
+          <p className="text-slate-500 mt-1 text-sm">تغییرات شما پس از تایید مدیریت در سایت اعمال خواهد شد و محصول لایو قطع نخواهد شد.</p>
         </div>
         <button onClick={() => router.back()} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm transition-colors">
           انصراف و بازگشت
@@ -196,11 +211,11 @@ export default function ArtistEditProductPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
+            {/* Gallery */}
             <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100">
               <h4 className="font-bold text-slate-800 mb-2">گالری محصول (حداکثر ۵ فایل)</h4>
               <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-                شما می‌توانید تا ۵ عکس (حداکثر ۵ مگابایت) یا فیلم (حداکثر ۲۰ مگابایت) برای محصول خود آپلود کنید. اولین عکس به عنوان کاور نمایش داده می‌شود.
-                توجه کنید که آثار دست‌ساز معمولاً تک‌نسخه هستند بنابراین موجودی به صورت خودکار ۱ در نظر گرفته می‌شود.
+                شما می‌توانید تا ۵ عکس یا فیلم برای محصول خود قرار دهید. عکس‌های موجود حفظ می‌شوند و می‌توانید عکس جدید اضافه فرمایید.
               </p>
               <div className="flex flex-wrap gap-4 items-center">
                 {images.map((img, idx) => (
@@ -228,26 +243,83 @@ export default function ArtistEditProductPage() {
               </div>
             </div>
 
+            {/* Title */}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-2">عنوان اثر <span className="text-red-500">*</span></label>
               <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none transition-all" required />
             </div>
 
+            {/* Base Price */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان) <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه اثر (تومان) <span className="text-red-500">*</span></label>
               <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5,000,000" required />
             </div>
 
+            {/* Shipping Mode Selector */}
+            <div className="md:col-span-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+              <label className="block text-sm font-bold text-slate-800 mb-2">نحوه ارسال سفارش</label>
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                مشخص کنید ارسال این کالا مستقیماً توسط کارگاه شما انجام می‌شود یا کالا در انبار مرکزی هنرهاب قرار دارد:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShippingMode('ARTIST_DIRECT')}
+                  className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 cursor-pointer ${
+                    shippingMode === 'ARTIST_DIRECT'
+                      ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-xl">🎨</span>
+                  <div>
+                    <div className="font-bold text-sm">ارسال مستقیم از کارگاه هنرمند</div>
+                    <div className="text-xs text-slate-500 mt-1">محصول در کارگاه شماست و پس از ثبت سفارش توسط خودتان ارسال می‌گردد.</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShippingMode('HONARHUB_WAREHOUSE')}
+                  className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 cursor-pointer ${
+                    shippingMode === 'HONARHUB_WAREHOUSE'
+                      ? 'border-blue-500 bg-blue-50/50 text-blue-950 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-xl">📦</span>
+                  <div>
+                    <div className="font-bold text-sm">ارسال توسط هنرهاب (انبار مرکزی)</div>
+                    <div className="text-xs text-slate-500 mt-1">محصول قبلاً به انبار هنرهاب تحویل داده شده و ارسال فوری توسط هنرهاب انجام می‌شود.</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Pre-Order Manager */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌های مرتبط</label>
+              <PreOrderManager
+                basePrice={Number(price) || 0}
+                isPreOrderEnabled={isPreOrderEnabled}
+                setIsPreOrderEnabled={setIsPreOrderEnabled}
+                tiers={preOrderTiers}
+                setTiers={setPreOrderTiers}
+              />
+            </div>
+
+            {/* Specialties */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌ها و سبک‌های دسته‌بندی</label>
               <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
             </div>
 
+            {/* Description */}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-2">توضیحات اثر</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none leading-relaxed" rows={5}></textarea>
             </div>
 
+            {/* SEO */}
             <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4 relative">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -255,7 +327,7 @@ export default function ArtistEditProductPage() {
                     <span className="text-teal-600">🎯</span> سئو (SEO)
                   </h4>
                   <p className="text-xs text-slate-500 mt-2 max-w-xl leading-relaxed">
-                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است. در صورتی که دانشی در این زمینه ندارید، روی دکمه هوش مصنوعی کلیک کنید تا متون مناسب برای شما تولید شود.
+                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است.
                   </p>
                 </div>
                 <button 
@@ -283,8 +355,8 @@ export default function ArtistEditProductPage() {
           </div>
 
           <div className="pt-6 border-t border-slate-100 flex gap-4">
-            <button type="submit" disabled={submitLoading} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-teal-200 transition-all disabled:opacity-50">
-              {submitLoading ? 'در حال ثبت...' : 'ثبت تغییرات'}
+            <button type="submit" disabled={submitLoading} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-teal-200 transition-all disabled:opacity-50 cursor-pointer">
+              {submitLoading ? 'در حال ثبت...' : 'ثبت تغییرات و ارسال برای تایید'}
             </button>
           </div>
         </form>

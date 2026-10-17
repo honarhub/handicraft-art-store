@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
 
 export default function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -11,6 +12,9 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const [submitLoading, setSubmitLoading] = useState(false);
   const [product, setProduct] = useState<any>(null);
   const [price, setPrice] = useState('');
+  const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
+  const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
+  const [preOrderTiers, setPreOrderTiers] = useState<PreOrderTier[]>(DEFAULT_PREORDER_TIERS);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const persianToEnglish = (str: string) => {
@@ -23,12 +27,19 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const formattedPrice = price ? Number(price).toLocaleString('fa-IR') : '';
 
   useEffect(() => {
-    // We fetch from the existing product API. Note: We need a GET by ID API if we haven't made one.
-    // Let's just fetch all and filter for now to save time, or better, we should add a GET to /api/products/[id]/route.ts
     fetch(`/api/products/${id}`)
       .then(res => res.json())
       .then(data => {
         setProduct(data);
+        setShippingMode(data.shippingMode || 'ARTIST_DIRECT');
+        setIsPreOrderEnabled(Boolean(data.isPreOrderEnabled));
+        if (data.preOrderTiers) {
+          const parsed = typeof data.preOrderTiers === 'string' ? JSON.parse(data.preOrderTiers) : data.preOrderTiers;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPreOrderTiers(parsed);
+          }
+        }
+
         fetch(`/api/products/${id}/pricing`)
           .then(res => res.json())
           .then(pricingData => {
@@ -56,12 +67,14 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           action: 'updateDetails',
           title: product.title,
           description: product.description,
-          stockQuantity: parseInt(product.stockQuantity) >= 0 ? parseInt(product.stockQuantity) : 1,
+          stockQuantity: parseInt(product.stockQuantity) >= 0 ? parseInt(product.stockQuantity) : 0,
           isUnique: product.isUnique,
-          price // Passing price to update base tier (wait, updateDetails might not handle price)
+          shippingMode,
+          isPreOrderEnabled,
+          preOrderTiers,
+          price
         })
       });
-
 
       if (!res.ok) throw new Error('Error updating product');
       alert('محصول با موفقیت ویرایش شد');
@@ -80,8 +93,8 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
     <div className="p-8 max-w-4xl mx-auto" dir="rtl">
       <div className="mb-8 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">ویرایش محصول</h2>
-          <p className="text-slate-500 mt-1 text-sm">شناسه: {id}</p>
+          <h2 className="text-2xl font-black text-slate-800">ویرایش محصول (پنل مدیریت)</h2>
+          <p className="text-slate-500 mt-1 text-sm">شناسه محصول: {id}</p>
         </div>
         <button onClick={() => router.push('/admin/products')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm transition-colors">
           بازگشت به لیست
@@ -115,12 +128,62 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             <div className="flex flex-col justify-center pt-6">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" checked={product.isUnique || false} onChange={e => setProduct({...product, isUnique: e.target.checked})} className="w-5 h-5 rounded text-purple-600 focus:ring-purple-500 border-slate-300" />
-                <span className="text-sm font-bold text-slate-700">این محصول کاملاً منحصر‌به‌فرد است (Unique)</span>
+                <span className="text-sm font-bold text-slate-700">این محصول کاملاً منحصر‌به‌فرد است (تک‌نسخه)</span>
               </label>
             </div>
           </div>
 
-          <button type="submit" disabled={submitLoading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-purple-200 transition-all disabled:opacity-50 mt-4">
+          {/* Shipping Mode Selector */}
+          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+            <label className="block text-sm font-bold text-slate-800 mb-2">نحوه ارسال سفارش</label>
+            <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+              مشخص کنید ارسال این کالا مستقیماً توسط کارگاه هنرمند انجام می‌شود یا کالا در انبار مرکزی هنرهاب قرار دارد:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setShippingMode('ARTIST_DIRECT')}
+                className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 cursor-pointer ${
+                  shippingMode === 'ARTIST_DIRECT'
+                    ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/20'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-xl">🎨</span>
+                <div>
+                  <div className="font-bold text-sm">ارسال مستقیم از کارگاه هنرمند</div>
+                  <div className="text-xs text-slate-500 mt-1">محصول در کارگاه هنرمند نگهداری شده و با سفارش مشتری ارسال می‌گردد.</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShippingMode('HONARHUB_WAREHOUSE')}
+                className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 cursor-pointer ${
+                  shippingMode === 'HONARHUB_WAREHOUSE'
+                    ? 'border-blue-500 bg-blue-50/50 text-blue-950 ring-2 ring-blue-500/20'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span className="text-xl">📦</span>
+                <div>
+                  <div className="font-bold text-sm">ارسال توسط هنرهاب (انبار مرکزی)</div>
+                  <div className="text-xs text-slate-500 mt-1">محصول در انبار مرکزی هنرهاب موجود است و ارسال سریع دارد.</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Pre-Order Manager */}
+          <PreOrderManager
+            basePrice={Number(price) || 0}
+            isPreOrderEnabled={isPreOrderEnabled}
+            setIsPreOrderEnabled={setIsPreOrderEnabled}
+            tiers={preOrderTiers}
+            setTiers={setPreOrderTiers}
+          />
+
+          <button type="submit" disabled={submitLoading} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-purple-200 transition-all disabled:opacity-50 mt-4 cursor-pointer">
             {submitLoading ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
           </button>
         </form>

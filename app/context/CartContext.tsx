@@ -10,6 +10,9 @@ export interface CartItem {
   artistName: string;
   quantity: number;
   maxStock: number;
+  tierTitle?: string;
+  isPreOrder?: boolean;
+  deliveryTime?: string;
 }
 
 interface CartContextType {

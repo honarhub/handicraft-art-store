@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
+import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
 import { useRouter } from 'next/navigation';
 
 export default function ArtistAddProductPage() {
@@ -13,6 +14,9 @@ export default function ArtistAddProductPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
+  const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
+  const [preOrderTiers, setPreOrderTiers] = useState<PreOrderTier[]>(DEFAULT_PREORDER_TIERS);
   const [seoMetaTitle, setSeoMetaTitle] = useState('');
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
@@ -157,6 +161,9 @@ export default function ArtistAddProductPage() {
           title,
           description,
           price,
+          shippingMode,
+          isPreOrderEnabled,
+          preOrderTiers,
           specialties: specialties.map(s => s.id),
           seoMetaTitle,
           seoMetaDesc,
@@ -290,6 +297,58 @@ export default function ArtistAddProductPage() {
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">موجودی (تعداد)</label>
               <input type="number" min="0" value={stockQuantity} onChange={e => setStockQuantity(Number(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" required />
+            </div>
+
+            {/* Shipping Mode */}
+            <div className="md:col-span-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+              <label className="block text-sm font-bold text-slate-800 mb-2">نحوه ارسال سفارش</label>
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                مشخص کنید ارسال این کالا مستقیماً توسط کارگاه شما انجام می‌شود یا کالا در انبار مرکزی هنرهاب قرار دارد:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShippingMode('ARTIST_DIRECT')}
+                  className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 cursor-pointer ${
+                    shippingMode === 'ARTIST_DIRECT'
+                      ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-xl">🎨</span>
+                  <div>
+                    <div className="font-bold text-sm">ارسال مستقیم از کارگاه هنرمند</div>
+                    <div className="text-xs text-slate-500 mt-1">محصول در کارگاه شماست و پس از ثبت سفارش توسط خودتان ارسال می‌گردد.</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShippingMode('HONARHUB_WAREHOUSE')}
+                  className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 cursor-pointer ${
+                    shippingMode === 'HONARHUB_WAREHOUSE'
+                      ? 'border-blue-500 bg-blue-50/50 text-blue-950 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-xl">📦</span>
+                  <div>
+                    <div className="font-bold text-sm">ارسال توسط هنرهاب (انبار مرکزی)</div>
+                    <div className="text-xs text-slate-500 mt-1">محصول قبلاً به انبار هنرهاب تحویل داده شده و ارسال فوری توسط هنرهاب انجام می‌شود.</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Pre-Order Manager */}
+            <div className="md:col-span-2">
+              <PreOrderManager
+                basePrice={Number(price) || 0}
+                isPreOrderEnabled={isPreOrderEnabled}
+                setIsPreOrderEnabled={setIsPreOrderEnabled}
+                tiers={preOrderTiers}
+                setTiers={setPreOrderTiers}
+              />
             </div>
 
             <div className="md:col-span-2">

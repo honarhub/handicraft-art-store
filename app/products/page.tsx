@@ -52,7 +52,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   if (specialtyId) {
     whereClause.specialties = {
-      some: { id: specialtyId }
+      some: {
+        OR: [
+          { id: specialtyId },
+          { name: specialtyId }
+        ]
+      }
     };
   }
 

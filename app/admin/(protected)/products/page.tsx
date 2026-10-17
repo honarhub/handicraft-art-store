@@ -51,6 +51,39 @@ export default function AdminProductsPage() {
     handleUpdateStatus(id, 'REJECTED', reason);
   };
 
+  const handleApprovePendingEdits = async (id: string) => {
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approvePendingEdits' })
+      });
+      if (!res.ok) throw new Error('خطا');
+      alert('تغییرات پیشنهادی هنرمند با موفقیت تایید و اعمال شد.');
+      const refreshed = await fetch('/api/products', { cache: 'no-store' }).then(r => r.json());
+      setProducts(refreshed);
+    } catch (e) {
+      alert('خطا در تایید تغییرات');
+    }
+  };
+
+  const handleRejectPendingEdits = async (id: string) => {
+    const reason = prompt('لطفا دلیل رد تغییرات پیشنهادی را بنویسید:') || '';
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'rejectPendingEdits', adminFeedback: reason })
+      });
+      if (!res.ok) throw new Error('خطا');
+      alert('تغییرات رد شد.');
+      const refreshed = await fetch('/api/products', { cache: 'no-store' }).then(r => r.json());
+      setProducts(refreshed);
+    } catch (e) {
+      alert('خطا در رد تغییرات');
+    }
+  };
+
   // Filter and Sort Logic
   const filteredProducts = products.filter(p => {
     if (!searchQuery) return true;
@@ -124,6 +157,8 @@ export default function AdminProductsPage() {
                 <th className="px-6 py-4">عنوان محصول</th>
                 <th className="px-6 py-4">صاحب اثر (هنرمند)</th>
                 <th className="px-6 py-4">قیمت (تومان)</th>
+                <th className="px-6 py-4 text-center">نحوه ارسال</th>
+                <th className="px-6 py-4 text-center">پیش‌سفارش</th>
                 <th className="px-6 py-4 text-center">موجودی</th>
                 <th className="px-6 py-4 text-center">وضعیت انتشار</th>
                 <th className="px-6 py-4 text-left">عملیات</th>
@@ -132,11 +167,11 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
+                  <td colSpan={10} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
                 </tr>
               ) : sortedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
+                  <td colSpan={10} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
                 </tr>
               ) : sortedProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
@@ -159,16 +194,61 @@ export default function AdminProductsPage() {
                   <td className="px-6 py-4 text-slate-600 font-medium">
                     {product.price > 0 ? product.price.toLocaleString() : 'توافقی / نامشخص'}
                   </td>
-                  <td className="px-6 py-4 text-center font-bold text-slate-700">
-                    {product.stockQuantity || 1}
+                  <td className="px-6 py-4 text-center">
+                    {product.shippingMode === 'HONARHUB_WAREHOUSE' ? (
+                      <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                        📦 انبار هنرهاب
+                      </span>
+                    ) : (
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                        🎨 کارگاه هنرمند
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {product.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار تایید</span>}
-                    {product.status === 'APPROVED' && <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده</span>}
-                    {product.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">رد شده</span>}
+                    {product.isPreOrderEnabled ? (
+                      <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold">
+                        ✓ فعال
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">ندارد</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-center font-bold text-slate-700">
+                    {product.stockQuantity || 0}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex flex-col items-center gap-1">
+                      {product.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار تایید</span>}
+                      {product.status === 'APPROVED' && <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده</span>}
+                      {product.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">رد شده</span>}
+                      {product.hasPendingEdits && (
+                        <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded text-[11px] font-black animate-pulse">
+                          ⚠️ ویرایش منتظر تایید
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-left">
                     <div className="flex justify-end items-center gap-2">
+                      {product.hasPendingEdits && (
+                        <>
+                          <button 
+                            onClick={() => handleApprovePendingEdits(product.id)} 
+                            title="تایید ویرایش‌های پیشنهادی هنرمند" 
+                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white px-2 py-1 rounded-lg text-xs font-bold transition-colors border border-emerald-200"
+                          >
+                            تایید ویرایش
+                          </button>
+                          <button 
+                            onClick={() => handleRejectPendingEdits(product.id)} 
+                            title="رد ویرایش‌های پیشنهادی هنرمند" 
+                            className="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-2 py-1 rounded-lg text-xs font-bold transition-colors border border-red-200"
+                          >
+                            رد ویرایش
+                          </button>
+                        </>
+                      )}
                       {product.status === 'PENDING' && (
                         <>
                           <button onClick={() => handleUpdateStatus(product.id, 'APPROVED')} title="تایید محصول" className="text-emerald-600 hover:bg-emerald-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-emerald-100">
