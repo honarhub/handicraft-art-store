@@ -11,10 +11,60 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [product, setProduct] = useState<any>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [price, setPrice] = useState('');
   const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
   const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
   const [preOrderTiers, setPreOrderTiers] = useState<PreOrderTier[]>(DEFAULT_PREORDER_TIERS);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleManualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (images.length + files.length > 8) {
+      alert('حداکثر می‌توانید ۸ تصویر برای محصول انتخاب کنید.');
+      return;
+    }
+
+    const newImages: string[] = [];
+    for (const file of files) {
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      if (isImage && file.size > 8 * 1024 * 1024) {
+        alert(`فایل ${file.name} بیشتر از ۸ مگابایت است.`);
+        continue;
+      }
+      if (isVideo && file.size > 25 * 1024 * 1024) {
+        alert(`فایل ${file.name} بیشتر از ۲۵ مگابایت است.`);
+        continue;
+      }
+      try {
+        const base64 = await fileToBase64(file);
+        newImages.push(base64);
+      } catch (err) {
+        console.error('Error converting file', err);
+      }
+    }
+    setImages(prev => [...prev, ...newImages]);
+  };
+
+  const makePrimary = (idx: number) => {
+    if (idx === 0) return;
+    setImages(prev => {
+      const copy = [...prev];
+      const [selected] = copy.splice(idx, 1);
+      return [selected, ...copy];
+    });
+  };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const persianToEnglish = (str: string) => {
@@ -40,6 +90,14 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           }
         }
 
+        const loadedImages: string[] = [];
+        if (data.mediaUrls && Array.isArray(data.mediaUrls) && data.mediaUrls.length > 0) {
+          loadedImages.push(...data.mediaUrls);
+        } else if (data.imageUrl) {
+          loadedImages.push(data.imageUrl);
+        }
+        setImages(loadedImages);
+
         fetch(`/api/products/${id}/pricing`)
           .then(res => res.json())
           .then(pricingData => {
@@ -58,6 +116,10 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (images.length === 0) {
+      alert('حداقل یک تصویر برای محصول الزامی است.');
+      return;
+    }
     setSubmitLoading(true);
     try {
       const res = await fetch(`/api/products/${id}`, {
@@ -72,7 +134,8 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           shippingMode,
           isPreOrderEnabled,
           preOrderTiers,
-          price
+          price,
+          images
         })
       });
 
@@ -104,6 +167,74 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden p-6 md:p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           
+          {/* Gallery & Image Uploader */}
+          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-bold text-slate-800 text-sm md:text-base flex items-center gap-2">
+                <span>🖼️ تصاویر و رسانه‌های محصول</span>
+                <span className="text-xs font-normal text-slate-400">({images.length} از ۸ تصویر)</span>
+              </h4>
+            </div>
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              تصویر اول به عنوان تصویر اصلی (کاور) محصول در فروشگاه نمایش داده می‌شود. با کلیک بر روی هر عکس می‌توانید آن را به عنوان تصویر اصلی برگزینید یا با دکمه × آن را حذف فرمایید.
+            </p>
+
+            <div className="flex flex-wrap gap-4 items-center">
+              {images.map((img, idx) => (
+                <div 
+                  key={idx} 
+                  className={`relative w-28 h-28 rounded-2xl overflow-hidden border-2 group transition-all shadow-xs ${
+                    idx === 0 ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {img.startsWith('data:video') || img.endsWith('.mp4') ? (
+                    <video src={img} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={img} alt={`تصویر محصول ${idx + 1}`} className="w-full h-full object-cover" />
+                  )}
+
+                  {/* Primary Badge */}
+                  {idx === 0 && (
+                    <span className="absolute bottom-1.5 right-1.5 bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs">
+                      کاور اصلی
+                    </span>
+                  )}
+
+                  {/* Set Primary Button (for non-primary images) */}
+                  {idx !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => makePrimary(idx)}
+                      className="absolute bottom-1.5 right-1.5 bg-slate-900/80 hover:bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      title="انتخاب به عنوان تصویر اصلی"
+                    >
+                      اصلی کردن
+                    </button>
+                  )}
+
+                  {/* Remove Button */}
+                  <button 
+                    type="button"
+                    onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                    className="absolute top-1.5 left-1.5 bg-rose-500 hover:bg-rose-600 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm cursor-pointer"
+                    title="حذف تصویر"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* Upload Button */}
+              {images.length < 8 && (
+                <label className="w-28 h-28 rounded-2xl border-2 border-dashed border-slate-300 hover:border-purple-500 hover:bg-purple-50/50 flex flex-col items-center justify-center text-slate-400 hover:text-purple-600 cursor-pointer transition-all group">
+                  <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualUpload} />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-1 group-hover:scale-110 transition-transform"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  <span className="text-[11px] font-bold">+ افزودن عکس</span>
+                </label>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">عنوان محصول</label>
             <input type="text" value={product.title || ''} onChange={e => setProduct({...product, title: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-purple-500 outline-none" required />
