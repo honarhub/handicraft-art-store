@@ -55,23 +55,19 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           {/* Left/Bottom: Product Info & Purchase */}
           <div className="lg:w-1/2 flex flex-col">
             
-            {/* Top Trust Badges: Authenticity & Shipping Mode */}
+            {/* Top Trust Badge */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
-              {/* ۱۰۰٪ تضمین اصالت اثر */}
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200 shadow-2xs">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
-                <span>۱۰۰٪ تضمین اصالت اثر توسط هنرهاب</span>
-              </div>
-
-              {/* روش ارسال */}
               {product.shippingMode === 'HONARHUB_WAREHOUSE' ? (
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-800 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200 shadow-2xs">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-                  <span>ارسال توسط هنرهاب (انبار مرکزی)</span>
+                /* اگر ارسال از انبار مرکزی هنرهاب بود: عنوان ارسال از کارگاه حذف و عنوان ۱۰۰ درصد تضمین اصالت با رنگ سبز نمایش داده می‌شود */
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                  <span>۱۰۰٪ تضمین اصالت اثر توسط هنرهاب</span>
                 </div>
               ) : (
+                /* اگر ارسال مستقیم از کارگاه بود: همان جای قبلی با همان رنگ سبز و آیکون کارگاه/پست بدون عنوان ۱۰۰ درصد تضمین */
                 <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  {/* لوگو کارگاه و ارسال پستی اثر */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                   <span>ارسال مستقیم از کارگاه هنرمند</span>
                 </div>
               )}

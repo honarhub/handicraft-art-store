@@ -123,8 +123,19 @@ export default function PreOrderManager({
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <select
                       value={tier.priceType}
-                      onChange={(e) => updateTier(tier.id, { priceType: e.target.value as any })}
-                      className="text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 focus:border-purple-500 outline-none"
+                      onChange={(e) => {
+                        const newType = e.target.value as 'PERCENTAGE' | 'FIXED';
+                        let newValue = tier.value;
+                        if (newType === 'FIXED') {
+                          // وقتی مبلغ ثابت انتخاب می‌شود، قیمت پایه به عنوان پیش‌فرض قرار می‌گیرد
+                          newValue = tier.calculatedPrice > 0 ? tier.calculatedPrice : (basePrice > 0 ? basePrice : 0);
+                        } else if (newType === 'PERCENTAGE') {
+                          // وقتی درصد انتخاب می‌شود، اگر عدد خیلی بزرگ بود به درصد منطقی تبدیل شود
+                          newValue = (basePrice > 0 && tier.value > 200) ? Math.min(100, Math.round((tier.value / basePrice) * 100)) : (tier.value || 90);
+                        }
+                        updateTier(tier.id, { priceType: newType, value: newValue });
+                      }}
+                      className="text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 focus:border-purple-500 outline-none cursor-pointer"
                     >
                       <option value="PERCENTAGE">درصد از قیمت پایه</option>
                       <option value="FIXED">مبلغ ثابت (تومان)</option>
@@ -133,6 +144,9 @@ export default function PreOrderManager({
                     <div className="flex items-center gap-1.5">
                       <input
                         type="number"
+                        step={tier.priceType === 'PERCENTAGE' ? 5 : 10000}
+                        min={tier.priceType === 'PERCENTAGE' ? 5 : 0}
+                        max={tier.priceType === 'PERCENTAGE' ? 200 : undefined}
                         value={tier.value || ''}
                         onChange={(e) => updateTier(tier.id, { value: parseFloat(e.target.value) || 0 })}
                         placeholder={tier.priceType === 'PERCENTAGE' ? 'مثلا ۹۰' : 'مبلغ به تومان'}

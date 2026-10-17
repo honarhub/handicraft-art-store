@@ -201,8 +201,15 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
               </span>
             )}
           </div>
-          <div className="text-2xl md:text-3xl font-black text-emerald-600">
-            {currentPrice.toLocaleString('fa-IR')} <span className="text-sm font-bold text-emerald-800/60">تومان</span>
+          <div className="flex items-center gap-3">
+            {purchaseMode === 'PRE_ORDER' && product.basePrice > 0 && currentPrice !== product.basePrice && (
+              <div className="text-base md:text-lg font-bold text-slate-400 line-through">
+                {product.basePrice.toLocaleString('fa-IR')} <span className="text-xs">تومان</span>
+              </div>
+            )}
+            <div className="text-2xl md:text-3xl font-black text-emerald-600">
+              {currentPrice.toLocaleString('fa-IR')} <span className="text-sm font-bold text-emerald-800/60">تومان</span>
+            </div>
           </div>
         </div>
       ) : (

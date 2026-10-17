@@ -218,43 +218,32 @@ export default function AdminProductsPage() {
                     {product.stockQuantity || 0}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      {product.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار تایید</span>}
-                      {product.status === 'APPROVED' && <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده</span>}
-                      {product.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">رد شده</span>}
-                      {product.hasPendingEdits && (
-                        <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded text-[11px] font-black animate-pulse">
-                          ⚠️ ویرایش منتظر تایید
-                        </span>
-                      )}
-                    </div>
+                    {(product.hasPendingEdits || product.status === 'PENDING') ? (
+                      <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-bold">
+                        در انتظار تایید
+                      </span>
+                    ) : product.status === 'APPROVED' ? (
+                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">تایید شده</span>
+                    ) : (
+                      <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">رد شده</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-left">
                     <div className="flex justify-end items-center gap-2">
-                      {product.hasPendingEdits && (
+                      {(product.hasPendingEdits || product.status === 'PENDING') && (
                         <>
                           <button 
-                            onClick={() => handleApprovePendingEdits(product.id)} 
-                            title="تایید ویرایش‌های پیشنهادی هنرمند" 
-                            className="bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white px-2 py-1 rounded-lg text-xs font-bold transition-colors border border-emerald-200"
+                            onClick={() => product.hasPendingEdits ? handleApprovePendingEdits(product.id) : handleUpdateStatus(product.id, 'APPROVED')} 
+                            title={product.hasPendingEdits ? "تایید ویرایش‌های اثر" : "تایید محصول"} 
+                            className="text-emerald-600 hover:bg-emerald-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-emerald-100"
                           >
-                            تایید ویرایش
-                          </button>
-                          <button 
-                            onClick={() => handleRejectPendingEdits(product.id)} 
-                            title="رد ویرایش‌های پیشنهادی هنرمند" 
-                            className="bg-red-50 text-red-700 hover:bg-red-600 hover:text-white px-2 py-1 rounded-lg text-xs font-bold transition-colors border border-red-200"
-                          >
-                            رد ویرایش
-                          </button>
-                        </>
-                      )}
-                      {product.status === 'PENDING' && (
-                        <>
-                          <button onClick={() => handleUpdateStatus(product.id, 'APPROVED')} title="تایید محصول" className="text-emerald-600 hover:bg-emerald-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-emerald-100">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                           </button>
-                          <button onClick={() => handleUpdateStatus(product.id, 'REJECTED')} title="رد محصول" className="text-red-600 hover:bg-red-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-red-100">
+                          <button 
+                            onClick={() => product.hasPendingEdits ? handleRejectPendingEdits(product.id) : handleUpdateStatus(product.id, 'REJECTED')} 
+                            title={product.hasPendingEdits ? "رد ویرایش‌های اثر" : "رد محصول"} 
+                            className="text-red-600 hover:bg-red-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-red-100"
+                          >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                           </button>
                         </>

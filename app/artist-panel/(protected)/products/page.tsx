@@ -63,14 +63,32 @@ export default async function ArtistProductsPage() {
                   <td className="px-6 py-4">
                     <img src={product.imageUrl} alt={product.title} className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-200" />
                   </td>
-                  <td className="px-6 py-4 font-bold text-slate-800">{product.title}</td>
+                  <td className="px-6 py-4">
+                    <a 
+                      href={`/product/${product.id}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="font-bold text-slate-800 hover:text-teal-600 transition-colors inline-flex items-center gap-1.5 group"
+                      title="مشاهده صفحه محصول در سایت"
+                    >
+                      <span>{product.title}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-teal-600 transition-colors"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </a>
+                  </td>
                   <td className="px-6 py-4 text-slate-600 font-medium">
                     {product.pricingTiers[0]?.price > 0 ? product.pricingTiers[0].price.toLocaleString() : 'توافقی / نامشخص'}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {product.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار تایید</span>}
-                    {product.status === 'APPROVED' && <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده</span>}
-                    {product.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">رد شده</span>}
+                    {(product.pendingEdits || product.status === 'PENDING') ? (
+                      <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                        در انتظار تایید ادمین
+                      </span>
+                    ) : product.status === 'APPROVED' ? (
+                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">تایید شده</span>
+                    ) : (
+                      <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">رد شده</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-xs text-red-600 font-bold">
                     {product.status === 'REJECTED' && product.adminFeedback ? product.adminFeedback : '-'}
