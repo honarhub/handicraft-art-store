@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import ProductGallery from './ProductGallery';
 import ExpandableDescription from './ExpandableDescription';
 import ProductPurchaseSection from './ProductPurchaseSection';
+import ProductRatingBadge from './ProductRatingBadge';
 import ProductReviewsAndQA from './ProductReviewsAndQA';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
@@ -74,11 +75,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
               {/* Rating Quick Badge */}
               {avgRating && (
-                <a href="#reviews-section" className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full border border-slate-200 transition-colors">
-                  <span className="text-amber-500">★</span>
-                  <span>{avgRating}</span>
-                  <span className="text-slate-400 text-[10px]">({reviewCount} نظر)</span>
-                </a>
+                <ProductRatingBadge avgRating={avgRating} reviewCount={reviewCount} />
               )}
             </div>
 
@@ -137,9 +134,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
             {/* Low Stock Warning */}
             {product.stockQuantity > 0 && product.stockQuantity <= 3 && (
-              <div className="mb-4 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit animate-pulse">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                <span>تنها {product.stockQuantity.toLocaleString('fa-IR')} عدد در کارگاه هنرمند باقی مانده است</span>
+              <div className="mb-4 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span>
+                  تنها {product.stockQuantity.toLocaleString('fa-IR')} عدد {product.shippingMode === 'HONARHUB_WAREHOUSE' ? 'در انبار هنرهاب' : 'در کارگاه هنرمند'} باقی مانده است
+                </span>
               </div>
             )}
 
@@ -155,6 +154,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   stockQuantity: product.stockQuantity,
                   isPreOrderEnabled: product.isPreOrderEnabled,
                   preOrderTiers: product.preOrderTiers,
+                  shippingMode: product.shippingMode,
                   status: product.status
                 }}
               />

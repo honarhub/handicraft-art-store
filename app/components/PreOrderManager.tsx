@@ -64,6 +64,52 @@ export default function PreOrderManager({
     setTiers(updated);
   };
 
+  // Bounds for avoiding typos:
+  const maxFixedPrice = basePrice > 0 ? Math.max(basePrice * 5, 20_000_000) : 500_000_000;
+  const minFixedPrice = basePrice > 0 ? Math.max(10_000, Math.round(basePrice * 0.05)) : 10_000;
+
+  const handleFixedChange = (tierId: string, inputVal: string) => {
+    const cleanDigits = inputVal.replace(/[^0-9]/g, '');
+    if (!cleanDigits) {
+      updateTier(tierId, { value: 0 });
+      return;
+    }
+    let num = parseInt(cleanDigits, 10);
+    // Ceiling protection
+    if (num > maxFixedPrice) {
+      num = maxFixedPrice;
+    }
+    updateTier(tierId, { value: num });
+  };
+
+  const handleFixedBlur = (tierId: string, currentVal: number) => {
+    if (!currentVal || currentVal <= 0) {
+      updateTier(tierId, { value: basePrice > 0 ? basePrice : 0 });
+      return;
+    }
+    // Floor protection
+    if (currentVal < minFixedPrice) {
+      updateTier(tierId, { value: minFixedPrice });
+    }
+  };
+
+  const handlePercentageChange = (tierId: string, inputVal: string) => {
+    const cleanDigits = inputVal.replace(/[^0-9]/g, '');
+    if (!cleanDigits) {
+      updateTier(tierId, { value: 0 });
+      return;
+    }
+    let num = parseInt(cleanDigits, 10);
+    if (num > 200) num = 200;
+    updateTier(tierId, { value: num });
+  };
+
+  const handlePercentageBlur = (tierId: string, currentVal: number) => {
+    if (!currentVal || currentVal < 5) {
+      updateTier(tierId, { value: 5 });
+    }
+  };
+
   return (
     <div className="bg-purple-50/60 border border-purple-200 rounded-2xl p-5 md:p-6 space-y-4">
       {/* Pre-order Main Toggle */}
@@ -93,22 +139,27 @@ export default function PreOrderManager({
 
       {isPreOrderEnabled && (
         <div className="mt-4 pt-4 border-t border-purple-100 space-y-3">
-          <p className="text-xs text-purple-800 font-bold">
-            بازه(های) زمانی فعال برای این اثر را انتخاب کرده و قیمت هر بازه را مشخص فرمایید:
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-800">
+            <span className="font-bold">بازه(های) زمانی فعال برای این اثر را انتخاب کرده و قیمت هر بازه را مشخص فرمایید:</span>
+            {basePrice > 0 && (
+              <span className="text-[11px] text-slate-500">
+                (کف قیمت مجاز: {minFixedPrice.toLocaleString('fa-IR')} ت — سقف مجاز: {maxFixedPrice.toLocaleString('fa-IR')} ت)
+              </span>
+            )}
+          </div>
 
           <div className="space-y-3">
             {effectiveTiers.map((tier) => (
               <div 
                 key={tier.id}
-                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all ${
+                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all ${
                   tier.active 
                     ? 'bg-white border-purple-300 shadow-xs' 
                     : 'bg-white/50 border-slate-200 opacity-70'
                 }`}
               >
                 {/* Checkbox & Label */}
-                <label className="flex items-center gap-2.5 cursor-pointer">
+                <label className="flex items-center gap-2.5 cursor-pointer shrink-0 min-w-[130px]">
                   <input
                     type="checkbox"
                     checked={tier.active}
@@ -120,50 +171,65 @@ export default function PreOrderManager({
 
                 {/* Price configuration (when active) */}
                 {tier.active ? (
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
+                    {/* Select Dropdown */}
                     <select
                       value={tier.priceType}
                       onChange={(e) => {
                         const newType = e.target.value as 'PERCENTAGE' | 'FIXED';
                         let newValue = tier.value;
                         if (newType === 'FIXED') {
-                          // وقتی مبلغ ثابت انتخاب می‌شود، قیمت پایه به عنوان پیش‌فرض قرار می‌گیرد
                           newValue = tier.calculatedPrice > 0 ? tier.calculatedPrice : (basePrice > 0 ? basePrice : 0);
                         } else if (newType === 'PERCENTAGE') {
-                          // وقتی درصد انتخاب می‌شود، اگر عدد خیلی بزرگ بود به درصد منطقی تبدیل شود
                           newValue = (basePrice > 0 && tier.value > 200) ? Math.min(100, Math.round((tier.value / basePrice) * 100)) : (tier.value || 90);
                         }
                         updateTier(tier.id, { priceType: newType, value: newValue });
                       }}
-                      className="text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-1.5 bg-slate-50 focus:border-purple-500 outline-none cursor-pointer"
+                      className="w-[145px] shrink-0 text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-2 bg-slate-50 focus:border-purple-500 outline-none cursor-pointer"
                     >
                       <option value="PERCENTAGE">درصد از قیمت پایه</option>
                       <option value="FIXED">مبلغ ثابت (تومان)</option>
                     </select>
 
-                    <div className="flex items-center gap-1.5">
+                    {/* Price Input with commas for FIXED and step 5 for PERCENTAGE */}
+                    <div className="w-[150px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500">
                       <input
-                        type="number"
-                        step={tier.priceType === 'PERCENTAGE' ? 5 : 10000}
-                        min={tier.priceType === 'PERCENTAGE' ? 5 : 0}
-                        max={tier.priceType === 'PERCENTAGE' ? 200 : undefined}
-                        value={tier.value || ''}
-                        onChange={(e) => updateTier(tier.id, { value: parseFloat(e.target.value) || 0 })}
+                        type="text"
+                        inputMode="numeric"
+                        value={
+                          tier.priceType === 'PERCENTAGE'
+                            ? (tier.value || '')
+                            : (tier.value > 0 ? Number(tier.value).toLocaleString('en-US') : '')
+                        }
+                        onChange={(e) => {
+                          if (tier.priceType === 'PERCENTAGE') {
+                            handlePercentageChange(tier.id, e.target.value);
+                          } else {
+                            handleFixedChange(tier.id, e.target.value);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (tier.priceType === 'PERCENTAGE') {
+                            handlePercentageBlur(tier.id, tier.value);
+                          } else {
+                            handleFixedBlur(tier.id, tier.value);
+                          }
+                        }}
                         placeholder={tier.priceType === 'PERCENTAGE' ? 'مثلا ۹۰' : 'مبلغ به تومان'}
-                        className="w-28 text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-1.5 focus:border-purple-500 outline-none"
+                        className="w-full text-xs font-bold outline-none bg-transparent"
                       />
-                      <span className="text-xs text-slate-500 font-bold">
+                      <span className="text-[11px] text-slate-400 font-bold shrink-0 mr-1 select-none">
                         {tier.priceType === 'PERCENTAGE' ? '٪' : 'تومان'}
                       </span>
                     </div>
 
-                    {/* Calculated preview */}
-                    <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
-                      مبلغ نهایی: {tier.calculatedPrice.toLocaleString('fa-IR')} تومان
+                    {/* Calculated preview with fixed dimensions */}
+                    <div className="w-[185px] shrink-0 text-center text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                      مبلغ نهایی: <span className="font-black text-emerald-700">{tier.calculatedPrice.toLocaleString('fa-IR')}</span> تومان
                     </div>
                   </div>
                 ) : (
-                  <span className="text-xs text-slate-400">غیرفعال</span>
+                  <span className="text-xs text-slate-400 font-medium">غیرفعال برای این اثر</span>
                 )}
               </div>
             ))}

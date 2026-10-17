@@ -24,12 +24,18 @@ interface ProductPurchaseSectionProps {
     stockQuantity: number;
     isPreOrderEnabled: boolean;
     preOrderTiers?: any;
+    shippingMode?: string;
     status: string;
   };
 }
 
 export default function ProductPurchaseSection({ product }: ProductPurchaseSectionProps) {
   const { addToCart, items, removeFromCart } = useCart();
+
+  // Terms agreement state for pre-orders
+  const [isTermsAccepted, setIsTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showTermsError, setShowTermsError] = useState(false);
 
   // Parse active pre-order tiers
   const rawTiers: PreOrderTier[] = Array.isArray(product.preOrderTiers) 
@@ -76,6 +82,10 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
         isPreOrder: false
       }, 1);
     } else if (purchaseMode === 'PRE_ORDER' && selectedTier) {
+      if (!isTermsAccepted) {
+        setShowTermsError(true);
+        return;
+      }
       addToCart({
         productId: product.id,
         title: `${product.title} (پیش‌سفارش ${selectedTier.label})`,
@@ -125,7 +135,9 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            خرید فوری (موجود در کارگاه)
+            {product.shippingMode === 'HONARHUB_WAREHOUSE' 
+              ? 'خرید فوری (موجود در انبار هنرهاب)' 
+              : 'خرید فوری (موجود در کارگاه)'}
           </button>
           <button
             type="button"
@@ -240,22 +252,145 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
               </button>
             </div>
           ) : (
-            <button
-              onClick={handleAddToCart}
-              className={`w-full py-4 rounded-2xl font-black text-lg transition-all shadow-lg active:scale-98 flex items-center justify-center gap-2 text-white ${
-                purchaseMode === 'PRE_ORDER'
-                  ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/25 ring-2 ring-purple-600/30'
-                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-              <span>{purchaseMode === 'PRE_ORDER' ? 'ثبت و افزودن پیش‌سفارش به سبد' : 'افزودن به سبد خرید'}</span>
-            </button>
+            <div className="flex flex-col gap-3">
+              {/* Terms Agreement Checkbox for Pre-Orders */}
+              {purchaseMode === 'PRE_ORDER' && (
+                <div className={`p-3.5 rounded-2xl border transition-all ${
+                  showTermsError 
+                    ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-200' 
+                    : 'bg-purple-50/70 border-purple-200'
+                }`}>
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isTermsAccepted}
+                      onChange={(e) => {
+                        setIsTermsAccepted(e.target.checked);
+                        if (showTermsError) setShowTermsError(false);
+                      }}
+                      className="mt-0.5 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+                    />
+                    <span className="text-xs font-semibold text-slate-700 leading-relaxed">
+                      شرایط و قوانین سفارش ساخت اختصاصی را مطالعه نموده و می‌پذیرم.
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowTermsModal(true);
+                        }}
+                        className="text-purple-700 font-bold underline decoration-purple-300 underline-offset-4 hover:text-purple-900 mr-1 cursor-pointer inline-block"
+                      >
+                        (مشاهده قوانین)
+                      </button>
+                    </span>
+                  </label>
+                  {showTermsError && (
+                    <div className="text-[11px] font-bold text-rose-600 mt-2 flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                      <span>جهت ثبت پیش‌سفارش، لطفاً ابتدا تیک پذیرش قوانین را فعال فرمایید.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                onClick={handleAddToCart}
+                className={`w-full py-4 rounded-2xl font-black text-lg transition-all shadow-lg active:scale-98 flex items-center justify-center gap-2 text-white cursor-pointer ${
+                  purchaseMode === 'PRE_ORDER'
+                    ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/25 ring-2 ring-purple-600/30'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/25'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                <span>{purchaseMode === 'PRE_ORDER' ? 'ثبت و افزودن پیش‌سفارش به سبد' : 'افزودن به سبد خرید'}</span>
+              </button>
+            </div>
           )}
         </>
       ) : (
         <div className="flex flex-col gap-3">
           <StockNotifyButton productId={product.id} />
+        </div>
+      )}
+
+      {/* Pre-Order Terms Modal */}
+      {showTermsModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+          onClick={() => setShowTermsModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-purple-700 font-black text-base">
+                <span className="text-xl">📜</span>
+                <span>قوانین و شرایط سفارش ساخت (پیش‌سفارش)</span>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3.5 rounded-2xl flex items-start gap-2.5 font-medium">
+                <span className="text-lg shrink-0">⏱️</span>
+                <div>
+                  <strong className="font-bold text-amber-950 block mb-1">تفکیک زمان ساخت از زمان ارسال محصول:</strong>
+                  بازه زمانی انتخابی شما (مثلاً ۱ هفته، ۱ ماه و...) صرفاً مربوط به مدت زمان لازم جهت تولید، آماده‌سازی و خلق دستی اثر توسط کارگاه هنرمند است. زمان ارسال پستی یا ترابری پس از پایان دوره ساخت آغاز می‌شود و زمان ساخت شامل زمان ارسال مرسوله نمی‌باشد.
+                </div>
+              </div>
+
+              <div className="space-y-3 pr-1">
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-600 font-black mt-0.5">•</span>
+                  <div>
+                    <strong className="font-bold text-slate-800">اصالت و ماهیت صنایع دستی:</strong>
+                    آثار سفارشی به صورت تک به تک و با دست توسط هنرمند بازآفرینی می‌شوند؛ لذا وجود جزئیات منحصر‌به‌فرد یا تمایزهای بسیار اندک در بافت اثر نسبت به تصاویر، ویژگی طبیعی و نشانه اصالت هنر دست‌ساز است.
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-600 font-black mt-0.5">•</span>
+                  <div>
+                    <strong className="font-bold text-slate-800">تعهد ساخت و عدم امکان لغو یک‌طرفه:</strong>
+                    به دلیل اختصاص مواد اولیه، زمان و انرژی هنرمند، پس از شروع فرآیند ساخت، امکان انصراف یا استرداد وجه یک‌طرفه وجود ندارد.
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="text-purple-600 font-black mt-0.5">•</span>
+                  <div>
+                    <strong className="font-bold text-slate-800">ضمانت اصالت و سلامت فیزیکی توسط هنرهاب:</strong>
+                    پلتفرم هنرهاب سلامت فیزیکی اثر در هنگام تحویل و اصالت مواد اولیه به‌کار رفته را ۱۰۰٪ تضمین می‌نماید.
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 text-slate-500 text-[11px]">
+                برای مطالعه کلیه قوانین و حقوق متقابل، می‌توانید <a href="/terms" target="_blank" className="text-purple-600 underline font-bold">قوانین و مقررات عمومی سایت</a> را نیز بررسی فرمایید.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTermsAccepted(true);
+                  setShowTermsError(false);
+                  setShowTermsModal(false);
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm transition-colors shadow-md shadow-purple-600/20 cursor-pointer"
+              >
+                قوانین را مطالعه کردم و می‌پذیرم
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

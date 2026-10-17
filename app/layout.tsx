@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="fa"
       dir="rtl"
-      className={`${vazirmatn.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${vazirmatn.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
       <body className={`${vazirmatn.className} min-h-full flex flex-col font-sans`}>
         <AuthProvider>
