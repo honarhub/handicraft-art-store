@@ -10,14 +10,15 @@ export interface PreOrderTier {
   value: number;
   calculatedPrice: number;
   active: boolean;
+  maxCapacity?: number | null;
 }
 
 export const DEFAULT_PREORDER_TIERS: PreOrderTier[] = [
-  { id: '1_WEEK', duration: '1_WEEK', label: 'تحویل ۱ هفته‌ای', priceType: 'PERCENTAGE', value: 95, calculatedPrice: 0, active: false },
-  { id: '2_WEEKS', duration: '2_WEEKS', label: 'تحویل ۲ هفته‌ای', priceType: 'PERCENTAGE', value: 90, calculatedPrice: 0, active: false },
-  { id: '1_MONTH', duration: '1_MONTH', label: 'تحویل ۱ ماهه', priceType: 'PERCENTAGE', value: 80, calculatedPrice: 0, active: false },
-  { id: '3_MONTHS', duration: '3_MONTHS', label: 'تحویل ۳ ماهه', priceType: 'PERCENTAGE', value: 70, calculatedPrice: 0, active: false },
-  { id: '6_MONTHS', duration: '6_MONTHS', label: 'تحویل ۶ ماهه', priceType: 'PERCENTAGE', value: 50, calculatedPrice: 0, active: false }
+  { id: '1_WEEK', duration: '1_WEEK', label: 'تحویل ۱ هفته‌ای', priceType: 'PERCENTAGE', value: 95, calculatedPrice: 0, active: false, maxCapacity: null },
+  { id: '2_WEEKS', duration: '2_WEEKS', label: 'تحویل ۲ هفته‌ای', priceType: 'PERCENTAGE', value: 90, calculatedPrice: 0, active: false, maxCapacity: null },
+  { id: '1_MONTH', duration: '1_MONTH', label: 'تحویل ۱ ماهه', priceType: 'PERCENTAGE', value: 80, calculatedPrice: 0, active: false, maxCapacity: null },
+  { id: '3_MONTHS', duration: '3_MONTHS', label: 'تحویل ۳ ماهه', priceType: 'PERCENTAGE', value: 70, calculatedPrice: 0, active: false, maxCapacity: null },
+  { id: '6_MONTHS', duration: '6_MONTHS', label: 'تحویل ۶ ماهه', priceType: 'PERCENTAGE', value: 50, calculatedPrice: 0, active: false, maxCapacity: null }
 ];
 
 interface PreOrderManagerProps {
@@ -55,11 +56,18 @@ export default function PreOrderManager({
       const calculated = existing.priceType === 'PERCENTAGE'
         ? Math.round((basePrice * (existing.value || 100)) / 100)
         : (existing.value || basePrice);
-      return { ...existing, calculatedPrice: calculated };
+      return { 
+        ...existing, 
+        calculatedPrice: calculated,
+        maxCapacity: existing.maxCapacity !== undefined && existing.maxCapacity !== null && (existing.maxCapacity as any) !== ''
+          ? Number(existing.maxCapacity)
+          : null
+      };
     }
     return {
       ...def,
-      calculatedPrice: Math.round((basePrice * def.value) / 100)
+      calculatedPrice: Math.round((basePrice * def.value) / 100),
+      maxCapacity: null
     };
   });
 
@@ -83,6 +91,28 @@ export default function PreOrderManager({
       return t;
     });
     emitUpdate(updated, hasCapacityLimit, maxCapacity);
+  };
+
+  const handleStepPercentage = (tierId: string, delta: number) => {
+    const currentTier = effectiveTiers.find(t => t.id === tierId);
+    const currentVal = currentTier?.value || 0;
+    let nextVal = Math.round(currentVal / 5) * 5 + delta;
+    if (nextVal < 5) nextVal = 5;
+    if (nextVal > 200) nextVal = 200;
+    updateTier(tierId, { value: nextVal });
+  };
+
+  const handleStepCapacity = (tierId: string, delta: number) => {
+    const currentTier = effectiveTiers.find(t => t.id === tierId);
+    const currentVal = (currentTier?.maxCapacity !== undefined && currentTier?.maxCapacity !== null) 
+      ? Number(currentTier.maxCapacity) 
+      : 0;
+    const nextVal = currentVal + delta;
+    if (nextVal <= 0) {
+      updateTier(tierId, { maxCapacity: null });
+    } else {
+      updateTier(tierId, { maxCapacity: nextVal });
+    }
   };
 
   const handleToggleCapacityLimit = (checked: boolean) => {
@@ -172,45 +202,21 @@ export default function PreOrderManager({
       {isPreOrderEnabled && (
         <div className="mt-4 pt-4 border-t border-purple-100 space-y-4">
           
-          {/* Pre-Order Capacity Limit Control */}
-          <div className="bg-white/90 p-4 rounded-xl border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={hasCapacityLimit}
-                onChange={(e) => handleToggleCapacityLimit(e.target.checked)}
-                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
-              />
+          {/* Pre-Order Capacity Info Banner */}
+          <div className="bg-white/90 p-4 rounded-xl border border-purple-200/80 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-base shrink-0">
+                📊
+              </div>
               <div>
                 <span className="font-bold text-xs sm:text-sm text-slate-800 block">
-                  محدودیت سقف پذیرش سفارش (ظرفیت کارگاه)
+                  محدودیت سقف پذیرش سفارش به تفکیک هر بازه زمانی
                 </span>
                 <span className="text-[11px] text-slate-500 font-normal">
-                  در صورت فعال‌سازی، پس از تکمیل این تعداد پیش‌سفارش، امکان سفارش‌گیری خودکار بسته می‌شود.
+                  می‌توانید برای هر بازه زمانی (۱ هفته، ۲ هفته و...) سقف مشخصی تعیین فرمایید؛ در صورت خالی بودن سقف، سفارش‌گیری در آن بازه به صورت نامحدود خواهد بود.
                 </span>
               </div>
-            </label>
-
-            {hasCapacityLimit ? (
-              <div className="flex items-center gap-2 shrink-0 bg-purple-50/60 p-1.5 px-3 rounded-lg border border-purple-200">
-                <span className="text-xs text-purple-900 font-bold">سقف تعداد:</span>
-                <div className="flex items-center border border-purple-300 rounded-md px-2 py-0.5 bg-white focus-within:ring-1 focus-within:ring-purple-500">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={maxCapacity !== null && maxCapacity > 0 ? maxCapacity : ''}
-                    onChange={(e) => handleCapacityChange(e.target.value)}
-                    placeholder="۵"
-                    className="w-12 text-center text-xs font-bold outline-none"
-                  />
-                  <span className="text-[10px] text-slate-400 font-bold mr-1">عدد</span>
-                </div>
-              </div>
-            ) : (
-              <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full font-bold shrink-0 text-center">
-                ظرفیت نامحدود (بدون سقف عددی)
-              </span>
-            )}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-800 pt-1">
@@ -226,7 +232,7 @@ export default function PreOrderManager({
             {effectiveTiers.map((tier) => (
               <div 
                 key={tier.id}
-                className={`flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all ${
+                className={`flex flex-col xl:flex-row xl:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all ${
                   tier.active 
                     ? 'bg-white border-purple-300 shadow-xs' 
                     : 'bg-white/50 border-slate-200 opacity-70'
@@ -243,9 +249,9 @@ export default function PreOrderManager({
                   <span className="font-bold text-sm text-slate-800">{tier.label}</span>
                 </label>
 
-                {/* Price configuration (when active) */}
+                {/* Price configuration & Capacity (when active) */}
                 {tier.active ? (
-                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     {/* Select Dropdown */}
                     <select
                       value={tier.priceType}
@@ -265,8 +271,8 @@ export default function PreOrderManager({
                       <option value="FIXED">مبلغ ثابت (تومان)</option>
                     </select>
 
-                    {/* Price Input with commas for FIXED and step 5 for PERCENTAGE */}
-                    <div className="w-[150px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500">
+                    {/* Price Input with commas for FIXED and 5% up/down arrows for PERCENTAGE */}
+                    <div className="w-[155px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2 py-1 bg-white focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500">
                       <input
                         type="text"
                         inputMode="numeric"
@@ -282,6 +288,17 @@ export default function PreOrderManager({
                             handleFixedChange(tier.id, e.target.value);
                           }
                         }}
+                        onKeyDown={(e) => {
+                          if (tier.priceType === 'PERCENTAGE') {
+                            if (e.key === 'ArrowUp') {
+                              e.preventDefault();
+                              handleStepPercentage(tier.id, 5);
+                            } else if (e.key === 'ArrowDown') {
+                              e.preventDefault();
+                              handleStepPercentage(tier.id, -5);
+                            }
+                          }
+                        }}
                         onBlur={() => {
                           if (tier.priceType === 'PERCENTAGE') {
                             handlePercentageBlur(tier.id, tier.value);
@@ -292,14 +309,96 @@ export default function PreOrderManager({
                         placeholder={tier.priceType === 'PERCENTAGE' ? 'مثلا ۹۰' : 'مبلغ به تومان'}
                         className="w-full text-xs font-bold outline-none bg-transparent"
                       />
+
+                      {/* 5% Up/Down Stepper Arrows (Only in PERCENTAGE mode) */}
+                      {tier.priceType === 'PERCENTAGE' && (
+                        <div className="flex flex-col justify-center border-r border-slate-200 pr-1 pl-1 gap-0.5 select-none shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleStepPercentage(tier.id, 5)}
+                            className="p-0.5 hover:bg-purple-100 text-slate-500 hover:text-purple-700 rounded transition-colors cursor-pointer"
+                            title="افزایش ۵ درصدی (یا کلید فلش بالا)"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStepPercentage(tier.id, -5)}
+                            className="p-0.5 hover:bg-purple-100 text-slate-500 hover:text-purple-700 rounded transition-colors cursor-pointer"
+                            title="کاهش ۵ درصدی (یا کلید فلش پایین)"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                          </button>
+                        </div>
+                      )}
+
                       <span className="text-[11px] text-slate-400 font-bold shrink-0 mr-1 select-none">
                         {tier.priceType === 'PERCENTAGE' ? '٪' : 'تومان'}
                       </span>
                     </div>
 
                     {/* Calculated preview with fixed dimensions */}
-                    <div className="w-[185px] shrink-0 text-center text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                    <div className="w-[180px] shrink-0 text-center text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
                       مبلغ نهایی: <span className="font-black text-emerald-700">{tier.calculatedPrice.toLocaleString('fa-IR')}</span> تومان
+                    </div>
+
+                    {/* Capacity limit for this specific tier */}
+                    <div 
+                      className="w-[145px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2 py-1 bg-white focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500"
+                      title="سقف پذیرش سفارش در این بازه زمانی (خالی = نامحدود)"
+                    >
+                      <span className="text-[11px] text-slate-500 font-bold shrink-0 ml-1 select-none">
+                        سقف:
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={
+                          tier.maxCapacity !== undefined && tier.maxCapacity !== null
+                            ? tier.maxCapacity
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const clean = e.target.value.replace(/[^0-9]/g, '');
+                          const num = clean ? parseInt(clean, 10) : null;
+                          updateTier(tier.id, { maxCapacity: num });
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            handleStepCapacity(tier.id, 1);
+                          } else if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            handleStepCapacity(tier.id, -1);
+                          }
+                        }}
+                        placeholder="نامحدود"
+                        className="w-full text-center text-xs font-bold outline-none bg-transparent placeholder:text-slate-400 placeholder:font-normal"
+                      />
+                      
+                      {/* Up/down arrows for capacity */}
+                      <div className="flex flex-col justify-center border-r border-slate-200 pr-1 pl-1 gap-0.5 select-none shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleStepCapacity(tier.id, 1)}
+                          className="p-0.5 hover:bg-purple-100 text-slate-500 hover:text-purple-700 rounded transition-colors cursor-pointer"
+                          title="افزایش سقف سفارش"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleStepCapacity(tier.id, -1)}
+                          className="p-0.5 hover:bg-purple-100 text-slate-500 hover:text-purple-700 rounded transition-colors cursor-pointer"
+                          title="کاهش سقف سفارش"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                      </div>
+
+                      <span className="text-[10px] text-slate-400 font-bold shrink-0 mr-1 select-none">
+                        عدد
+                      </span>
                     </div>
                   </div>
                 ) : (

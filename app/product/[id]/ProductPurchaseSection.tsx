@@ -12,6 +12,7 @@ export interface PreOrderTier {
   value: number;
   calculatedPrice: number;
   active: boolean;
+  maxCapacity?: number | null;
 }
 
 interface ProductPurchaseSectionProps {
@@ -51,9 +52,24 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
     ? Number(rawData.maxCapacity)
     : null;
 
+  // Determine capacity for each tier
+  const getTierCapacity = (t?: PreOrderTier | null): number | null => {
+    if (!t) return null;
+    if (t.maxCapacity !== undefined && t.maxCapacity !== null && (t.maxCapacity as any) !== '') {
+      return Number(t.maxCapacity);
+    }
+    if (hasCapacityLimit && maxCapacity !== null) {
+      return maxCapacity;
+    }
+    return null;
+  };
+
   const activeTiers = rawTiers.filter(t => t.active);
-  const isCapacityFull = hasCapacityLimit && maxCapacity !== null && maxCapacity <= 0;
-  const hasActivePreOrder = product.isPreOrderEnabled && activeTiers.length > 0 && !isCapacityFull;
+  const openTiers = activeTiers.filter(t => {
+    const cap = getTierCapacity(t);
+    return cap === null || cap > 0;
+  });
+  const hasActivePreOrder = product.isPreOrderEnabled && openTiers.length > 0;
 
   // Selected mode: 'IN_STOCK' (if available) or 'PRE_ORDER'
   const isOutOfStock = product.stockQuantity <= 0;
@@ -62,10 +78,12 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
   );
 
   const [selectedTierId, setSelectedTierId] = useState<string>(
-    activeTiers[0]?.id || ''
+    openTiers[0]?.id || activeTiers[0]?.id || ''
   );
 
-  const selectedTier = activeTiers.find(t => t.id === selectedTierId) || activeTiers[0];
+  const selectedTier = activeTiers.find(t => t.id === selectedTierId) || openTiers[0] || activeTiers[0];
+  const selectedTierCapacity = getTierCapacity(selectedTier);
+  const isSelectedTierFull = selectedTierCapacity !== null && selectedTierCapacity <= 0;
 
   const isPreOrderMode = purchaseMode === 'PRE_ORDER';
 
@@ -78,7 +96,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
 
   // Available stock limit depending on mode
   const maxAvailableStock = isPreOrderMode
-    ? (hasCapacityLimit && maxCapacity !== null ? maxCapacity : 9999)
+    ? (selectedTierCapacity !== null ? selectedTierCapacity : 9999)
     : product.stockQuantity;
 
   // Decoupled cart tracking: isolate in-stock from pre-order
@@ -112,7 +130,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
         isPreOrder: false
       }, 1);
     } else if (purchaseMode === 'PRE_ORDER' && selectedTier) {
-      if (isCapacityFull) {
+      if (isSelectedTierFull) {
         alert('ظرفیت پذیرش این سفارش ساخت تکمیل شده است.');
         return;
       }
@@ -211,14 +229,14 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
             هنرمند این اثر را با عشق به سفارش شما می‌سازد. با انتخاب بازه‌های طولانی‌تر، از قیمت‌های ویژه کارگاهی بهره‌مند شوید:
           </p>
 
-          {hasCapacityLimit && maxCapacity !== null && (
+          {selectedTierCapacity !== null && (
             <div className="mb-3 flex items-center justify-between bg-white/95 border border-purple-200 px-3.5 py-2 rounded-xl text-xs shadow-2xs">
               <span className="font-bold text-purple-900 flex items-center gap-1.5">
                 <span>⏱️</span>
-                <span>سقف پذیرش سفارش در کارگاه:</span>
+                <span>سقف پذیرش سفارش در بازه {selectedTier?.label}:</span>
               </span>
               <span className="font-black text-purple-700 bg-purple-100/70 px-2.5 py-0.5 rounded-md">
-                تنها {maxCapacity.toLocaleString('fa-IR')} سفارش
+                {selectedTierCapacity > 0 ? `تنها ${selectedTierCapacity.toLocaleString('fa-IR')} سفارش` : 'ظرفیت تکمیل شده'}
               </span>
             </div>
           )}
@@ -229,25 +247,43 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
                 ? Math.round((product.basePrice * tier.value) / 100) 
                 : tier.value;
               const isSelected = selectedTier?.id === tier.id;
+              const tierCap = getTierCapacity(tier);
+              const isTierFull = tierCap !== null && tierCap <= 0;
 
               return (
                 <button
                   key={tier.id}
                   type="button"
-                  onClick={() => setSelectedTierId(tier.id)}
+                  onClick={() => !isTierFull && setSelectedTierId(tier.id)}
+                  disabled={isTierFull}
                   className={`flex flex-col p-3 rounded-xl border text-right transition-all cursor-pointer ${
-                    isSelected 
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-600/30' 
-                      : 'bg-white text-slate-700 border-purple-100 hover:border-purple-300'
+                    isTierFull
+                      ? 'bg-slate-100 text-slate-400 border-slate-200 opacity-60 cursor-not-allowed'
+                      : isSelected 
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-md ring-2 ring-purple-600/30' 
+                        : 'bg-white text-slate-700 border-purple-100 hover:border-purple-300'
                   }`}
                 >
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-black text-sm">{tier.label}</span>
-                    {tier.priceType === 'PERCENTAGE' && tier.value < 100 && (
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-purple-800 text-purple-100' : 'bg-purple-100 text-purple-700'}`}>
-                        {100 - tier.value}٪ تخفیف ساخت
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {tierCap !== null && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                          isTierFull 
+                            ? 'bg-rose-100 text-rose-700' 
+                            : isSelected 
+                              ? 'bg-purple-800 text-purple-100' 
+                              : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {isTierFull ? 'ظرفیت تکمیل' : `سقف: ${tierCap.toLocaleString('fa-IR')}`}
+                        </span>
+                      )}
+                      {tier.priceType === 'PERCENTAGE' && tier.value < 100 && (
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-purple-800 text-purple-100' : 'bg-purple-100 text-purple-700'}`}>
+                          {100 - tier.value}٪ تخفیف
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className={`text-xs font-semibold ${isSelected ? 'text-purple-100' : 'text-slate-500'}`}>
                     مبلغ نهایی: <span className="font-bold text-sm">{tierPrice.toLocaleString('fa-IR')}</span> تومان
