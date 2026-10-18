@@ -42,6 +42,8 @@ export default async function ArtistProductsPage() {
                 <th className="px-6 py-4">تصویر</th>
                 <th className="px-6 py-4">عنوان اثر</th>
                 <th className="px-6 py-4">قیمت (تومان)</th>
+                <th className="px-6 py-4 text-center">پیش‌سفارش</th>
+                <th className="px-6 py-4 text-center">موجودی</th>
                 <th className="px-6 py-4 text-center">وضعیت انتشار</th>
                 <th className="px-6 py-4">بازخورد ادمین</th>
                 <th className="px-6 py-4 text-left">عملیات</th>
@@ -50,7 +52,7 @@ export default async function ArtistProductsPage() {
             <tbody className="divide-y divide-slate-100">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500 font-medium">شما هنوز هیچ اثری ثبت نکرده‌اید.</td>
+                  <td colSpan={9} className="text-center py-12 text-slate-500 font-medium">شما هنوز هیچ اثری ثبت نکرده‌اید.</td>
                 </tr>
               ) : products.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
@@ -77,6 +79,18 @@ export default async function ArtistProductsPage() {
                   </td>
                   <td className="px-6 py-4 text-slate-600 font-medium">
                     {product.pricingTiers[0]?.price > 0 ? product.pricingTiers[0].price.toLocaleString() : 'توافقی / نامشخص'}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {product.isPreOrderEnabled ? (
+                      <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold">
+                        ✓ فعال
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">ندارد</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-center font-bold text-slate-700">
+                    {product.stockQuantity ?? 0}
                   </td>
                   <td className="px-6 py-4 text-center">
                     {(product.pendingEdits || product.status === 'PENDING') ? (
