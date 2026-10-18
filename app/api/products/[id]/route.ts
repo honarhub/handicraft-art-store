@@ -80,7 +80,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         seoKeywords: edits.seoKeywords !== undefined ? edits.seoKeywords : currentProduct.seoKeywords,
         status: 'APPROVED',
         pendingEdits: null,
-        adminFeedback: null
+        adminFeedback: body.adminFeedback || null
       };
 
       if (edits.specialties && Array.isArray(edits.specialties)) {
@@ -110,6 +110,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const updated = await prisma.product.update({
         where: { id },
         data: {
+          status: 'APPROVED',
           pendingEdits: null,
           adminFeedback: body.adminFeedback || 'تغییرات پیشنهادی شما تایید نشد.'
         }
@@ -212,37 +213,95 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
       const finalImageUrl = finalMediaUrls[0] || currentProduct.imageUrl;
 
-      // If product was already APPROVED, store proposed edits in pendingEdits
-      // This protects the live product from displaying unapproved changes or buggy single images!
+      // If product was already APPROVED, check whether text or photo was changed
       if (currentProduct.status === 'APPROVED') {
-        const proposedEdits = {
-          title: title || currentProduct.title,
-          description: description || currentProduct.description,
-          price: body.price ? parseFloat(body.price) : undefined,
-          imageUrl: finalImageUrl,
-          mediaUrls: finalMediaUrls.length > 0 ? finalMediaUrls : currentProduct.mediaUrls,
-          specialties: specialties && Array.isArray(specialties) ? specialties : currentProduct.specialties.map(s => s.id),
-          shippingMode: shippingMode || currentProduct.shippingMode,
-          isPreOrderEnabled: isPreOrderEnabled !== undefined ? Boolean(isPreOrderEnabled) : currentProduct.isPreOrderEnabled,
-          preOrderTiers: preOrderTiers !== undefined ? preOrderTiers : currentProduct.preOrderTiers,
-          seoMetaTitle: seoMetaTitle || currentProduct.seoMetaTitle,
-          seoMetaDesc: seoMetaDesc || currentProduct.seoMetaDesc,
-          seoKeywords: seoKeywords || currentProduct.seoKeywords,
-          submittedAt: new Date().toISOString()
-        };
+        const isTitleChanged = Boolean(title && title.trim() !== currentProduct.title.trim());
+        const isDescriptionChanged = Boolean(description && description.trim() !== currentProduct.description.trim());
+        const isTextChanged = isTitleChanged || isDescriptionChanged;
 
-        const updated = await prisma.product.update({
-          where: { id },
-          data: {
-            pendingEdits: proposedEdits,
+        const hasNewUploads = incomingImages.some(img => img.startsWith('data:'));
+        const currentMedia = (currentProduct.mediaUrls && currentProduct.mediaUrls.length > 0)
+          ? currentProduct.mediaUrls 
+          : (currentProduct.imageUrl ? [currentProduct.imageUrl] : []);
+
+        const isPhotoChanged = hasNewUploads || 
+          finalMediaUrls.length !== currentMedia.length || 
+          finalMediaUrls.some((url, idx) => url !== currentMedia[idx]) ||
+          (finalImageUrl !== currentProduct.imageUrl);
+
+        const requiresAdminApproval = isTextChanged || isPhotoChanged;
+
+        if (requiresAdminApproval) {
+          // تغییرات شامل عکس یا متن است: نیاز به تایید ادمین دارد و موقتا وضعیت به PENDING تغییر می‌یابد
+          const proposedEdits = {
+            title: title || currentProduct.title,
+            description: description || currentProduct.description,
+            price: body.price ? parseFloat(body.price) : undefined,
+            imageUrl: finalImageUrl,
+            mediaUrls: finalMediaUrls.length > 0 ? finalMediaUrls : currentProduct.mediaUrls,
+            specialties: specialties && Array.isArray(specialties) ? specialties : currentProduct.specialties.map(s => s.id),
+            shippingMode: shippingMode || currentProduct.shippingMode,
+            isPreOrderEnabled: isPreOrderEnabled !== undefined ? Boolean(isPreOrderEnabled) : currentProduct.isPreOrderEnabled,
+            preOrderTiers: preOrderTiers !== undefined ? preOrderTiers : currentProduct.preOrderTiers,
+            seoMetaTitle: seoMetaTitle || currentProduct.seoMetaTitle,
+            seoMetaDesc: seoMetaDesc || currentProduct.seoMetaDesc,
+            seoKeywords: seoKeywords || currentProduct.seoKeywords,
+            submittedAt: new Date().toISOString()
+          };
+
+          const updated = await prisma.product.update({
+            where: { id },
+            data: {
+              status: 'PENDING',
+              pendingEdits: proposedEdits,
+              adminFeedback: null
+            }
+          });
+
+          return NextResponse.json({
+            ...updated,
+            message: 'تغییرات شامل متن یا عکس اثر است و برای بررسی ادمین ارسال شد. تا زمان تایید، محصول در انتظار تایید قرار گرفت.'
+          });
+        } else {
+          // تغییر فقط در سایر پارامترها (قیمت، نحوه ارسال، پیش‌سفارش، تخصص‌ها و...) بوده است: اعمال خودکار و مستقیم
+          const directUpdateData: any = {
+            shippingMode: shippingMode || currentProduct.shippingMode,
+            isPreOrderEnabled: isPreOrderEnabled !== undefined ? Boolean(isPreOrderEnabled) : currentProduct.isPreOrderEnabled,
+            preOrderTiers: preOrderTiers !== undefined ? preOrderTiers : currentProduct.preOrderTiers,
+            seoMetaTitle: seoMetaTitle !== undefined ? seoMetaTitle : currentProduct.seoMetaTitle,
+            seoMetaDesc: seoMetaDesc !== undefined ? seoMetaDesc : currentProduct.seoMetaDesc,
+            seoKeywords: seoKeywords !== undefined ? seoKeywords : currentProduct.seoKeywords,
+            status: 'APPROVED',
+            pendingEdits: null,
             adminFeedback: null
-          }
-        });
+          };
 
-        return NextResponse.json({
-          ...updated,
-          message: 'تغییرات شما برای بررسی ادمین ارسال شد و پس از تایید اعمال می‌گردد.'
-        });
+          if (specialties && Array.isArray(specialties)) {
+            directUpdateData.specialties = {
+              set: specialties.map((sid: string) => ({ id: sid }))
+            };
+          }
+
+          const updated = await prisma.product.update({
+            where: { id },
+            data: directUpdateData
+          });
+
+          if (body.price) {
+            const existingTiers = await prisma.pricingTier.findMany({ where: { productId: id } });
+            if (existingTiers.length > 0) {
+              await prisma.pricingTier.update({
+                where: { id: existingTiers[0].id },
+                data: { price: parseFloat(body.price) }
+              });
+            }
+          }
+
+          return NextResponse.json({
+            ...updated,
+            message: 'تغییرات پارامترهای محصول با موفقیت و به صورت خودکار اعمال شد.'
+          });
+        }
       } else {
         // Product is PENDING or REJECTED: update directly
         const updateData: any = {

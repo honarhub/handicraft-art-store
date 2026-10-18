@@ -30,7 +30,16 @@ export async function GET() {
       stockQuantity: p.stockQuantity,
       shippingMode: p.shippingMode || 'ARTIST_DIRECT',
       isPreOrderEnabled: p.isPreOrderEnabled,
-      hasPendingEdits: p.pendingEdits !== null
+      hasPendingEdits: Boolean(
+        p.pendingEdits && (
+          typeof p.pendingEdits === 'string'
+            ? p.pendingEdits !== 'null' && p.pendingEdits !== '{}'
+            : Object.keys(p.pendingEdits as object).length > 0
+        )
+      ),
+      pendingEdits: typeof p.pendingEdits === 'string' ? JSON.parse(p.pendingEdits) : p.pendingEdits,
+      mediaUrls: p.mediaUrls,
+      description: p.description
     }));
 
     return NextResponse.json(formatted);
