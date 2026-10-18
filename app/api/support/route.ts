@@ -2,6 +2,55 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const messages = await prisma.supportMessage.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { product: true }
+    });
+
+    return NextResponse.json(messages);
+  } catch (error) {
+    console.error('Support GET Error:', error);
+    return NextResponse.json({ error: 'خطا در دریافت پیام‌ها' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id || !status) {
+      return NextResponse.json({ error: 'اطلاعات ناقص است' }, { status: 400 });
+    }
+
+    const updated = await prisma.supportMessage.update({
+      where: { id },
+      data: { status }
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Support PATCH Error:', error);
+    return NextResponse.json({ error: 'خطا در بروزرسانی وضعیت پیام' }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   try {

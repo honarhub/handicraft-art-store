@@ -37,6 +37,7 @@ export default function AdminSpecialtiesPage() {
       });
       if (res.ok) {
         setSpecialties(prev => prev.map(s => s.id === id ? { ...s, isApproved: !currentStatus } : s));
+        window.dispatchEvent(new CustomEvent('admin-counts-update'));
       }
     } catch (error) {
       alert('خطا در تغییر وضعیت');

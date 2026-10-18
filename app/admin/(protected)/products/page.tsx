@@ -40,6 +40,7 @@ export default function AdminProductsPage() {
       if (!res.ok) throw new Error('خطا در بروزرسانی');
       
       setProducts(products.map(p => p.id === id ? { ...p, status } : p));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
     } catch (err) {
       alert('خطا در اعمال تغییرات');
     }
@@ -62,6 +63,7 @@ export default function AdminProductsPage() {
       alert('تغییرات پیشنهادی هنرمند با موفقیت تایید و اعمال شد.');
       const refreshed = await fetch('/api/products', { cache: 'no-store' }).then(r => r.json());
       setProducts(refreshed);
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
     } catch (e) {
       alert('خطا در تایید تغییرات');
     }
@@ -79,6 +81,7 @@ export default function AdminProductsPage() {
       alert('تغییرات رد شد.');
       const refreshed = await fetch('/api/products', { cache: 'no-store' }).then(r => r.json());
       setProducts(refreshed);
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
     } catch (e) {
       alert('خطا در رد تغییرات');
     }
@@ -94,7 +97,16 @@ export default function AdminProductsPage() {
       || (p.id.toLowerCase().includes(q));
   });
 
+  const isPending = (p: any) => Boolean(p.hasPendingEdits || p.status === 'PENDING');
+
   const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const aPending = isPending(a);
+    const bPending = isPending(b);
+
+    // اولویت قطعی با محصولاتی است که در انتظار تایید هستند تا حتما بالای لیست قرار گیرند
+    if (aPending && !bPending) return -1;
+    if (!aPending && bPending) return 1;
+
     if (sortPrice === 'none') return 0;
     if (sortPrice === 'asc') return a.price - b.price;
     return b.price - a.price; // desc
@@ -173,8 +185,17 @@ export default function AdminProductsPage() {
                 <tr>
                   <td colSpan={10} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
                 </tr>
-              ) : sortedProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+              ) : sortedProducts.map((product) => {
+                const isWaiting = isPending(product);
+                return (
+                  <tr 
+                    key={product.id} 
+                    className={`transition-colors ${
+                      isWaiting 
+                        ? 'bg-amber-50/40 hover:bg-amber-100/60 border-r-4 border-r-amber-500' 
+                        : 'hover:bg-slate-50'
+                    }`}
+                  >
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <span className="font-black text-slate-800 text-lg">#{product.displayId}</span>
@@ -254,7 +275,8 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
             </tbody>
           </table>
         </div>

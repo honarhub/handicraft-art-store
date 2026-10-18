@@ -47,20 +47,44 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   });
 
   // گرفتن تعداد درخواست‌های ویرایش پروفایل هنرمندان
-  // با دریافت اطلاعات و فیلتر در مموری برای جلوگیری از مشکلات Null در فیلد JSON
   const allArtistsForCount = await prisma.artistProfile.findMany({
     where: { isDeleted: false },
     select: { pendingEdits: true }
   });
   const pendingArtistsCount = allArtistsForCount.filter((a) => {
     if (!a.pendingEdits) return false;
-    // Check if it's a string (like "null" or "{}") or object
-    const edits = typeof a.pendingEdits === 'string' ? JSON.parse(a.pendingEdits) : a.pendingEdits;
-    return edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+    try {
+      const edits = typeof a.pendingEdits === 'string' ? JSON.parse(a.pendingEdits) : a.pendingEdits;
+      return edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+    } catch {
+      return false;
+    }
   }).length;
 
-  const pendingProductsCount = await prisma.product.count({
+  // گرفتن تعداد محصولات: جدید و در انتظار تایید تغییرات
+  const allProductsForCount = await prisma.product.findMany({
+    where: { deletedAt: null },
+    select: { pendingEdits: true, status: true }
+  });
+  const pendingProductEditsCount = allProductsForCount.filter((p) => {
+    if (!p.pendingEdits) return false;
+    try {
+      const edits = typeof p.pendingEdits === 'string' ? JSON.parse(p.pendingEdits) : p.pendingEdits;
+      return edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+    } catch {
+      return false;
+    }
+  }).length;
+  const newProductsCount = allProductsForCount.filter((p) => p.status === 'PENDING').length;
+
+  // پیام‌های پشتیبانی
+  const pendingSupportCount = await prisma.supportMessage.count({
     where: { status: 'PENDING' }
+  });
+
+  // درخواست‌های موجودی
+  const pendingStockRequestsCount = await prisma.stockNotification.count({
+    where: { isNotified: false }
   });
 
   return (
@@ -72,10 +96,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <p className="text-xs text-slate-500 mt-1">مدیریت کل سیستم</p>
         </div>
         <AdminSidebarNav 
-          newRegistrationsCount={newRegistrationsCount}
-          pendingArtistsCount={pendingArtistsCount}
-          pendingProductsCount={pendingProductsCount}
-          pendingSpecialtiesCount={pendingSpecialtiesCount}
+          initialCounts={{
+            newRegistrationsCount,
+            pendingArtistsCount,
+            newProductsCount,
+            pendingProductEditsCount,
+            pendingSpecialtiesCount,
+            pendingSupportCount,
+            pendingStockRequestsCount
+          }}
         />
         <div className="p-4 mt-auto border-t border-slate-800">
           <a href="/" target="_blank" className="px-4 py-2 w-full text-center rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors text-xs text-slate-400 block">
