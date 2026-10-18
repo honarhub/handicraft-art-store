@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useCart } from '../context/CartContext';
+import { useCart, getCartItemId } from '../context/CartContext';
 import CartIcon from '../components/CartIcon';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 
 export default function CartPage() {
   const { items, addToCart, removeFromCart, updateQuantity, totalItems, totalPrice } = useCart();
-  const [removedItems, setRemovedItems] = useState<{ [productId: string]: { item: any, timeLeft: number, isHovered?: boolean } }>({});
+  const [removedItems, setRemovedItems] = useState<{ [itemKey: string]: { item: any, timeLeft: number, isHovered?: boolean } }>({});
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,40 +32,42 @@ export default function CartPage() {
   }, []);
 
   const handleRemoveRequest = (item: any) => {
-    removeFromCart(item.productId);
+    const itemKey = getCartItemId(item);
+    removeFromCart(itemKey);
     setRemovedItems(prev => ({
       ...prev,
-      [item.productId]: { item, timeLeft: 5, isHovered: false }
+      [itemKey]: { item, timeLeft: 5, isHovered: false }
     }));
   };
 
-  const handleUndo = (productId: string) => {
-    const removed = removedItems[productId];
+  const handleUndo = (itemKey: string) => {
+    const removed = removedItems[itemKey];
     if (removed) {
       addToCart(removed.item, removed.item.quantity);
       setRemovedItems(prev => {
         const next = { ...prev };
-        delete next[productId];
+        delete next[itemKey];
         return next;
       });
     }
   };
 
-  const handleHover = (productId: string, isHovered: boolean) => {
+  const handleHover = (itemKey: string, isHovered: boolean) => {
     setRemovedItems(prev => {
-      if (!prev[productId]) return prev;
+      if (!prev[itemKey]) return prev;
       return {
         ...prev,
-        [productId]: { ...prev[productId], isHovered }
+        [itemKey]: { ...prev[itemKey], isHovered }
       };
     });
   };
 
   const handleQuantityDecrease = (item: any) => {
+    const itemKey = getCartItemId(item);
     if (item.quantity <= 1) {
       handleRemoveRequest(item);
     } else {
-      updateQuantity(item.productId, item.quantity - 1);
+      updateQuantity(itemKey, item.quantity - 1);
     }
   };
 
@@ -91,8 +93,10 @@ export default function CartPage() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Cart Items */}
             <div className="lg:w-2/3 flex flex-col gap-4">
-              {items.map((item) => (
-                <div key={item.productId} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col sm:flex-row gap-6 items-center">
+              {items.map((item) => {
+                const itemKey = getCartItemId(item);
+                return (
+                <div key={itemKey} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col sm:flex-row gap-6 items-center">
                   <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
                     <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                   </div>
@@ -103,11 +107,22 @@ export default function CartPage() {
                         <a href={`/product/${item.productId}`} className="text-lg font-bold text-slate-800 hover:text-emerald-600 transition-colors line-clamp-1">
                           {item.title}
                         </a>
-                        <div className="text-sm text-slate-500 mt-1">اثر: {item.artistName}</div>
+                        <div className="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-2">
+                          <span>اثر: {item.artistName}</span>
+                          {item.isPreOrder ? (
+                            <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                              ⏱️ پیش‌سفارش ساخت ({item.tierTitle || 'سفارشی'})
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                              ⚡ خرید فوری (موجود در کارگاه/انبار)
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <button 
                         onClick={() => handleRemoveRequest(item)}
-                        className="text-slate-400 hover:text-red-500 p-2 transition-colors rounded-lg hover:bg-red-50"
+                        className="text-slate-400 hover:text-red-500 p-2 transition-colors rounded-lg hover:bg-red-50 cursor-pointer"
                         title="حذف از سبد"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
@@ -118,7 +133,7 @@ export default function CartPage() {
                       <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl p-1 w-fit">
                         <button 
                           onClick={() => handleQuantityDecrease(item)}
-                          className={`w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-colors ${
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm transition-colors cursor-pointer ${
                             item.quantity === 1 
                               ? 'text-rose-500 hover:text-rose-600 hover:bg-rose-50' 
                               : 'text-slate-600'
@@ -133,9 +148,9 @@ export default function CartPage() {
                         </button>
                         <span className="font-bold text-slate-800 w-6 text-center">{item.quantity}</span>
                         <button 
-                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                          onClick={() => updateQuantity(itemKey, item.quantity + 1)}
                           disabled={item.quantity >= item.maxStock}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-slate-600 disabled:opacity-50 disabled:hover:bg-transparent"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-slate-600 disabled:opacity-50 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                         </button>
@@ -146,15 +161,15 @@ export default function CartPage() {
                       </div>
                     </div>
                     {item.quantity >= item.maxStock && (
-                       <div className="text-xs text-orange-500 mt-2 font-medium">حداکثر موجودی انتخاب شده است</div>
+                       <div className="text-xs text-orange-500 mt-2 font-medium">حداکثر سقف مجاز انتخاب شده است</div>
                     )}
                   </div>
                 </div>
-              ))}
+              );})}
               
               {/* Removed Items Undo List */}
-              {Object.values(removedItems).map(({ item, isHovered }) => (
-                <div key={item.productId} className="bg-red-50/50 rounded-2xl border border-red-100 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden">
+              {Object.entries(removedItems).map(([itemKey, { item, isHovered }]) => (
+                <div key={itemKey} className="bg-red-50/50 rounded-2xl border border-red-100 p-4 flex flex-col sm:flex-row gap-4 items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden">
                   <div className="flex items-center gap-4 w-full sm:w-auto">
                     <div className="w-12 h-12 rounded-lg overflow-hidden opacity-50 grayscale flex-shrink-0">
                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
@@ -166,10 +181,10 @@ export default function CartPage() {
                   </div>
                   <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
                     <button 
-                      onClick={() => handleUndo(item.productId)}
-                      onMouseEnter={() => handleHover(item.productId, true)}
-                      onMouseLeave={() => handleHover(item.productId, false)}
-                      className="group relative bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center gap-3 shadow-sm overflow-hidden"
+                      onClick={() => handleUndo(itemKey)}
+                      onMouseEnter={() => handleHover(itemKey, true)}
+                      onMouseLeave={() => handleHover(itemKey, false)}
+                      className="group relative bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center gap-3 shadow-sm overflow-hidden cursor-pointer"
                     >
                       <div className="relative w-6 h-6 flex items-center justify-center">
                         <svg className="w-full h-full -rotate-90 text-red-100" viewBox="0 0 36 36">

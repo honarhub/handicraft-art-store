@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useCart } from '../../context/CartContext';
+import { useCart, getCartItemId } from '../../context/CartContext';
 import StockNotifyButton from './StockNotifyButton';
 
 export interface PreOrderTier {
@@ -67,33 +67,48 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
 
   const selectedTier = activeTiers.find(t => t.id === selectedTierId) || activeTiers[0];
 
+  const isPreOrderMode = purchaseMode === 'PRE_ORDER';
+
   // Current effective price based on selected mode
-  const currentPrice = purchaseMode === 'PRE_ORDER' && selectedTier 
+  const currentPrice = isPreOrderMode && selectedTier 
     ? (selectedTier.priceType === 'PERCENTAGE' 
         ? Math.round((product.basePrice * selectedTier.value) / 100) 
         : selectedTier.value)
     : product.basePrice;
 
   // Available stock limit depending on mode
-  const maxAvailableStock = purchaseMode === 'PRE_ORDER'
+  const maxAvailableStock = isPreOrderMode
     ? (hasCapacityLimit && maxCapacity !== null ? maxCapacity : 9999)
     : product.stockQuantity;
 
-  // Check cart status
-  const cartItem = items.find(item => item.productId === product.id);
-  const currentQuantityInCart = cartItem ? cartItem.quantity : 0;
+  // Decoupled cart tracking: isolate in-stock from pre-order
+  const inStockCartItem = items.find(item => item.productId === product.id && !item.isPreOrder);
+  const preOrderCartItem = items.find(
+    item => item.productId === product.id && item.isPreOrder && item.tierTitle === selectedTier?.label
+  );
+  const totalPreOrdersCount = items
+    .filter(item => item.productId === product.id && item.isPreOrder)
+    .reduce((sum, i) => sum + i.quantity, 0);
+
+  const activeCartItem = isPreOrderMode ? preOrderCartItem : inStockCartItem;
+  const currentQuantityInCart = activeCartItem ? activeCartItem.quantity : 0;
+  const activeCartItemId = activeCartItem
+    ? getCartItemId(activeCartItem)
+    : (isPreOrderMode ? `${product.id}_preorder_${selectedTier?.label || 'default'}` : `${product.id}_instock`);
+
   const isMaxReached = currentQuantityInCart >= maxAvailableStock;
 
   const handleAddToCart = () => {
     if (purchaseMode === 'IN_STOCK') {
       if (isOutOfStock || isMaxReached) return;
       addToCart({
+        id: `${product.id}_instock`,
         productId: product.id,
         title: product.title,
         price: product.basePrice,
         imageUrl: product.imageUrl,
         artistName: product.artistName,
-        maxStock: maxAvailableStock,
+        maxStock: product.stockQuantity,
         isPreOrder: false
       }, 1);
     } else if (purchaseMode === 'PRE_ORDER' && selectedTier) {
@@ -106,6 +121,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
         return;
       }
       addToCart({
+        id: `${product.id}_preorder_${selectedTier.label}`,
         productId: product.id,
         title: `${product.title} (پیش‌سفارش ${selectedTier.label})`,
         price: currentPrice,
@@ -120,7 +136,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
   };
 
   const handleRemoveFromCart = () => {
-    removeFromCart(product.id);
+    removeFromCart(activeCartItemId);
   };
 
   if (product.status === 'PENDING') {
@@ -148,26 +164,38 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
           <button
             type="button"
             onClick={() => setPurchaseMode('IN_STOCK')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
               purchaseMode === 'IN_STOCK'
                 ? 'bg-white text-slate-800 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            {product.shippingMode === 'HONARHUB_WAREHOUSE' 
-              ? 'خرید فوری (موجود در انبار هنرهاب)' 
-              : 'خرید فوری (موجود در کارگاه)'}
+            <span>
+              {product.shippingMode === 'HONARHUB_WAREHOUSE' 
+                ? 'خرید فوری (موجود در انبار هنرهاب)' 
+                : 'خرید فوری (موجود در کارگاه)'}
+            </span>
+            {inStockCartItem && inStockCartItem.quantity > 0 && (
+              <span className="bg-emerald-100 text-emerald-800 text-[11px] font-black px-1.5 py-0.5 rounded-full">
+                {inStockCartItem.quantity.toLocaleString('fa-IR')}
+              </span>
+            )}
           </button>
           <button
             type="button"
             onClick={() => setPurchaseMode('PRE_ORDER')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all ${
+            className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
               purchaseMode === 'PRE_ORDER'
                 ? 'bg-white text-purple-700 shadow-sm'
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            ✨ سفارش ساخت اختصاصی
+            <span>✨ سفارش ساخت اختصاصی</span>
+            {totalPreOrdersCount > 0 && (
+              <span className="bg-purple-100 text-purple-800 text-[11px] font-black px-1.5 py-0.5 rounded-full">
+                {totalPreOrdersCount.toLocaleString('fa-IR')}
+              </span>
+            )}
           </button>
         </div>
       )}
@@ -273,7 +301,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
                 {/* Increase Button (Left in RTL) */}
                 <button
                   type="button"
-                  onClick={() => updateQuantity(product.id, currentQuantityInCart + 1)}
+                  onClick={() => updateQuantity(activeCartItemId, currentQuantityInCart + 1)}
                   disabled={currentQuantityInCart >= maxAvailableStock}
                   className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 shadow-xs disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-slate-700 transition-all cursor-pointer disabled:cursor-not-allowed"
                   title="افزایش تعداد"
@@ -293,7 +321,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
                 {currentQuantityInCart === 1 ? (
                   <button
                     type="button"
-                    onClick={() => removeFromCart(product.id)}
+                    onClick={() => removeFromCart(activeCartItemId)}
                     className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 shadow-xs transition-all cursor-pointer"
                     title="حذف از سبد خرید"
                   >
@@ -302,7 +330,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
                 ) : (
                   <button
                     type="button"
-                    onClick={() => updateQuantity(product.id, currentQuantityInCart - 1)}
+                    onClick={() => updateQuantity(activeCartItemId, currentQuantityInCart - 1)}
                     className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-slate-100 text-slate-700 shadow-xs transition-all cursor-pointer"
                     title="کاهش تعداد"
                   >
