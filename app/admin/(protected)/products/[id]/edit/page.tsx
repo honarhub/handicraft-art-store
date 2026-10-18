@@ -85,7 +85,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
         setIsPreOrderEnabled(Boolean(data.isPreOrderEnabled));
         if (data.preOrderTiers) {
           const parsed = typeof data.preOrderTiers === 'string' ? JSON.parse(data.preOrderTiers) : data.preOrderTiers;
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (parsed) {
             setPreOrderTiers(parsed);
           }
         }

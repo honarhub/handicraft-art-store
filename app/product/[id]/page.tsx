@@ -5,6 +5,7 @@ import ProductGallery from './ProductGallery';
 import ExpandableDescription from './ExpandableDescription';
 import ProductPurchaseSection from './ProductPurchaseSection';
 import ProductRatingBadge from './ProductRatingBadge';
+import ProductActionButtons from './ProductActionButtons';
 import ProductReviewsAndQA from './ProductReviewsAndQA';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
@@ -56,27 +57,32 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           {/* Left/Bottom: Product Info & Purchase */}
           <div className="lg:w-1/2 flex flex-col">
             
-            {/* Top Trust Badge */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              {product.shippingMode === 'HONARHUB_WAREHOUSE' ? (
-                /* اگر ارسال از انبار مرکزی هنرهاب بود: عنوان ارسال از کارگاه حذف و عنوان ۱۰۰ درصد تضمین اصالت با رنگ سبز نمایش داده می‌شود */
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
-                  <span>۱۰۰٪ تضمین اصالت اثر توسط هنرهاب</span>
-                </div>
-              ) : (
-                /* اگر ارسال مستقیم از کارگاه بود: همان جای قبلی با همان رنگ سبز و آیکون کارگاه/پست بدون عنوان ۱۰۰ درصد تضمین */
-                <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
-                  {/* لوگو کارگاه و ارسال پستی اثر */}
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                  <span>ارسال مستقیم از کارگاه هنرمند</span>
-                </div>
-              )}
+            {/* Top Trust Badge & Quick Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {product.shippingMode === 'HONARHUB_WAREHOUSE' ? (
+                  /* اگر ارسال از انبار مرکزی هنرهاب بود: عنوان ارسال از کارگاه حذف و عنوان ۱۰۰ درصد تضمین اصالت با رنگ سبز نمایش داده می‌شود */
+                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                    <span>۱۰۰٪ تضمین اصالت اثر توسط هنرهاب</span>
+                  </div>
+                ) : (
+                  /* اگر ارسال مستقیم از کارگاه بود: همان جای قبلی با همان رنگ سبز و آیکون کارگاه/پست بدون عنوان ۱۰۰ درصد تضمین */
+                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
+                    {/* لوگو کارگاه و ارسال پستی اثر */}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <span>ارسال مستقیم از کارگاه هنرمند</span>
+                  </div>
+                )}
 
-              {/* Rating Quick Badge */}
-              {avgRating && (
-                <ProductRatingBadge avgRating={avgRating} reviewCount={reviewCount} />
-              )}
+                {/* Rating Quick Badge */}
+                {avgRating && (
+                  <ProductRatingBadge avgRating={avgRating} reviewCount={reviewCount} />
+                )}
+              </div>
+
+              {/* Wishlist and Share */}
+              <ProductActionButtons productId={product.id} title={product.title} />
             </div>
 
             {/* Title */}

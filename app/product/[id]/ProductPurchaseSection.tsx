@@ -30,20 +30,30 @@ interface ProductPurchaseSectionProps {
 }
 
 export default function ProductPurchaseSection({ product }: ProductPurchaseSectionProps) {
-  const { addToCart, items, removeFromCart } = useCart();
+  const { addToCart, items, removeFromCart, updateQuantity } = useCart();
 
   // Terms agreement state for pre-orders
   const [isTermsAccepted, setIsTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showTermsError, setShowTermsError] = useState(false);
 
-  // Parse active pre-order tiers
-  const rawTiers: PreOrderTier[] = Array.isArray(product.preOrderTiers) 
-    ? product.preOrderTiers 
-    : (typeof product.preOrderTiers === 'string' ? JSON.parse(product.preOrderTiers || '[]') : []);
+  // Parse pre-order settings and capacity limit
+  const rawData = typeof product.preOrderTiers === 'string' 
+    ? JSON.parse(product.preOrderTiers || '[]') 
+    : (product.preOrderTiers || []);
+
+  const rawTiers: PreOrderTier[] = Array.isArray(rawData) 
+    ? rawData 
+    : (Array.isArray(rawData?.tiers) ? rawData.tiers : []);
+
+  const hasCapacityLimit: boolean = Boolean(rawData?.hasCapacityLimit);
+  const maxCapacity: number | null = rawData?.maxCapacity !== undefined && rawData?.maxCapacity !== null && rawData?.maxCapacity !== ''
+    ? Number(rawData.maxCapacity)
+    : null;
 
   const activeTiers = rawTiers.filter(t => t.active);
-  const hasActivePreOrder = product.isPreOrderEnabled && activeTiers.length > 0;
+  const isCapacityFull = hasCapacityLimit && maxCapacity !== null && maxCapacity <= 0;
+  const hasActivePreOrder = product.isPreOrderEnabled && activeTiers.length > 0 && !isCapacityFull;
 
   // Selected mode: 'IN_STOCK' (if available) or 'PRE_ORDER'
   const isOutOfStock = product.stockQuantity <= 0;
@@ -64,10 +74,15 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
         : selectedTier.value)
     : product.basePrice;
 
+  // Available stock limit depending on mode
+  const maxAvailableStock = purchaseMode === 'PRE_ORDER'
+    ? (hasCapacityLimit && maxCapacity !== null ? maxCapacity : 9999)
+    : product.stockQuantity;
+
   // Check cart status
   const cartItem = items.find(item => item.productId === product.id);
   const currentQuantityInCart = cartItem ? cartItem.quantity : 0;
-  const isMaxReached = !isOutOfStock && currentQuantityInCart >= product.stockQuantity;
+  const isMaxReached = currentQuantityInCart >= maxAvailableStock;
 
   const handleAddToCart = () => {
     if (purchaseMode === 'IN_STOCK') {
@@ -78,10 +93,14 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
         price: product.basePrice,
         imageUrl: product.imageUrl,
         artistName: product.artistName,
-        maxStock: product.stockQuantity,
+        maxStock: maxAvailableStock,
         isPreOrder: false
       }, 1);
     } else if (purchaseMode === 'PRE_ORDER' && selectedTier) {
+      if (isCapacityFull) {
+        alert('ظرفیت پذیرش این سفارش ساخت تکمیل شده است.');
+        return;
+      }
       if (!isTermsAccepted) {
         setShowTermsError(true);
         return;
@@ -92,7 +111,7 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
         price: currentPrice,
         imageUrl: product.imageUrl,
         artistName: product.artistName,
-        maxStock: 99,
+        maxStock: maxAvailableStock,
         isPreOrder: true,
         tierTitle: selectedTier.label,
         deliveryTime: selectedTier.label
@@ -163,6 +182,18 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
           <p className="text-xs text-purple-700 mb-4 leading-relaxed">
             هنرمند این اثر را با عشق به سفارش شما می‌سازد. با انتخاب بازه‌های طولانی‌تر، از قیمت‌های ویژه کارگاهی بهره‌مند شوید:
           </p>
+
+          {hasCapacityLimit && maxCapacity !== null && (
+            <div className="mb-3 flex items-center justify-between bg-white/95 border border-purple-200 px-3.5 py-2 rounded-xl text-xs shadow-2xs">
+              <span className="font-bold text-purple-900 flex items-center gap-1.5">
+                <span>⏱️</span>
+                <span>سقف پذیرش سفارش در کارگاه:</span>
+              </span>
+              <span className="font-black text-purple-700 bg-purple-100/70 px-2.5 py-0.5 rounded-md">
+                تنها {maxCapacity.toLocaleString('fa-IR')} سفارش
+              </span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {activeTiers.map((tier) => {
@@ -236,20 +267,58 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
       {(!isOutOfStock || (purchaseMode === 'PRE_ORDER' && hasActivePreOrder)) ? (
         <>
           {currentQuantityInCart > 0 ? (
-            <div className="w-full flex gap-3">
+            <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Stepper with +/- and Trash */}
+              <div className="flex items-center justify-between bg-slate-50 border-2 border-slate-200 rounded-2xl p-1.5 sm:w-44 shadow-2xs">
+                {/* Increase Button (Left in RTL) */}
+                <button
+                  type="button"
+                  onClick={() => updateQuantity(product.id, currentQuantityInCart + 1)}
+                  disabled={currentQuantityInCart >= maxAvailableStock}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 shadow-xs disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-slate-700 transition-all cursor-pointer disabled:cursor-not-allowed"
+                  title="افزایش تعداد"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+
+                {/* Quantity Number */}
+                <div className="flex flex-col items-center justify-center px-2 select-none">
+                  <span className="font-black text-lg text-slate-800 leading-none">
+                    {currentQuantityInCart.toLocaleString('fa-IR')}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold mt-0.5">در سبد خرید</span>
+                </div>
+
+                {/* Decrease Button: Trash if 1, Minus if > 1 (Right in RTL) */}
+                {currentQuantityInCart === 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => removeFromCart(product.id)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 shadow-xs transition-all cursor-pointer"
+                    title="حذف از سبد خرید"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(product.id, currentQuantityInCart - 1)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white hover:bg-slate-100 text-slate-700 shadow-xs transition-all cursor-pointer"
+                    title="کاهش تعداد"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  </button>
+                )}
+              </div>
+
+              {/* View in Cart Button */}
               <a 
                 href="/cart" 
-                className="flex-[2] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 py-3.5 rounded-2xl font-black text-base transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-5 rounded-2xl font-black text-base transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-98"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                مشاهده در سبد خرید
+                <span>مشاهده در سبد خرید</span>
               </a>
-              <button 
-                onClick={handleRemoveFromCart} 
-                className="flex-[1] bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 py-3.5 rounded-2xl font-bold text-sm transition-colors flex items-center justify-center"
-              >
-                حذف از سبد
-              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-3">

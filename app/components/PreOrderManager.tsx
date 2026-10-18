@@ -24,8 +24,8 @@ interface PreOrderManagerProps {
   basePrice: number;
   isPreOrderEnabled: boolean;
   setIsPreOrderEnabled: (val: boolean) => void;
-  tiers: PreOrderTier[];
-  setTiers: (tiers: PreOrderTier[]) => void;
+  tiers: any;
+  setTiers: (tiers: any) => void;
 }
 
 export default function PreOrderManager({
@@ -35,9 +35,22 @@ export default function PreOrderManager({
   tiers,
   setTiers
 }: PreOrderManagerProps) {
+  // Extract tiers list and capacity limit settings (supports array or object format)
+  const rawTiersList: PreOrderTier[] = Array.isArray(tiers)
+    ? tiers
+    : (tiers && typeof tiers === 'object' && Array.isArray(tiers.tiers) ? tiers.tiers : DEFAULT_PREORDER_TIERS);
+
+  const hasCapacityLimit: boolean = (tiers && typeof tiers === 'object' && !Array.isArray(tiers))
+    ? Boolean(tiers.hasCapacityLimit)
+    : false;
+
+  const maxCapacity: number | null = (tiers && typeof tiers === 'object' && !Array.isArray(tiers))
+    ? (tiers.maxCapacity !== undefined && tiers.maxCapacity !== null && tiers.maxCapacity !== '' ? Number(tiers.maxCapacity) : null)
+    : null;
+
   // Ensure all 5 standard tiers exist
   const effectiveTiers: PreOrderTier[] = DEFAULT_PREORDER_TIERS.map(def => {
-    const existing = tiers?.find(t => t.id === def.id || t.duration === def.duration);
+    const existing = rawTiersList?.find(t => t.id === def.id || t.duration === def.duration);
     if (existing) {
       const calculated = existing.priceType === 'PERCENTAGE'
         ? Math.round((basePrice * (existing.value || 100)) / 100)
@@ -50,6 +63,14 @@ export default function PreOrderManager({
     };
   });
 
+  const emitUpdate = (newTiers: PreOrderTier[], newHasLimit: boolean, newCapacity: number | null) => {
+    setTiers({
+      tiers: newTiers,
+      hasCapacityLimit: newHasLimit,
+      maxCapacity: newCapacity
+    });
+  };
+
   const updateTier = (id: string, updates: Partial<PreOrderTier>) => {
     const updated = effectiveTiers.map(t => {
       if (t.id === id) {
@@ -61,7 +82,18 @@ export default function PreOrderManager({
       }
       return t;
     });
-    setTiers(updated);
+    emitUpdate(updated, hasCapacityLimit, maxCapacity);
+  };
+
+  const handleToggleCapacityLimit = (checked: boolean) => {
+    const newCap = checked ? (maxCapacity || 5) : null;
+    emitUpdate(effectiveTiers, checked, newCap);
+  };
+
+  const handleCapacityChange = (valStr: string) => {
+    const clean = valStr.replace(/[^0-9]/g, '');
+    const num = clean ? parseInt(clean, 10) : 0;
+    emitUpdate(effectiveTiers, true, num);
   };
 
   // Bounds for avoiding typos:
@@ -138,8 +170,50 @@ export default function PreOrderManager({
       </div>
 
       {isPreOrderEnabled && (
-        <div className="mt-4 pt-4 border-t border-purple-100 space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-800">
+        <div className="mt-4 pt-4 border-t border-purple-100 space-y-4">
+          
+          {/* Pre-Order Capacity Limit Control */}
+          <div className="bg-white/90 p-4 rounded-xl border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hasCapacityLimit}
+                onChange={(e) => handleToggleCapacityLimit(e.target.checked)}
+                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+              />
+              <div>
+                <span className="font-bold text-xs sm:text-sm text-slate-800 block">
+                  محدودیت سقف پذیرش سفارش (ظرفیت کارگاه)
+                </span>
+                <span className="text-[11px] text-slate-500 font-normal">
+                  در صورت فعال‌سازی، پس از تکمیل این تعداد پیش‌سفارش، امکان سفارش‌گیری خودکار بسته می‌شود.
+                </span>
+              </div>
+            </label>
+
+            {hasCapacityLimit ? (
+              <div className="flex items-center gap-2 shrink-0 bg-purple-50/60 p-1.5 px-3 rounded-lg border border-purple-200">
+                <span className="text-xs text-purple-900 font-bold">سقف تعداد:</span>
+                <div className="flex items-center border border-purple-300 rounded-md px-2 py-0.5 bg-white focus-within:ring-1 focus-within:ring-purple-500">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={maxCapacity !== null && maxCapacity > 0 ? maxCapacity : ''}
+                    onChange={(e) => handleCapacityChange(e.target.value)}
+                    placeholder="۵"
+                    className="w-12 text-center text-xs font-bold outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 font-bold mr-1">عدد</span>
+                </div>
+              </div>
+            ) : (
+              <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full font-bold shrink-0 text-center">
+                ظرفیت نامحدود (بدون سقف عددی)
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-purple-800 pt-1">
             <span className="font-bold">بازه(های) زمانی فعال برای این اثر را انتخاب کرده و قیمت هر بازه را مشخص فرمایید:</span>
             {basePrice > 0 && (
               <span className="text-[11px] text-slate-500">
