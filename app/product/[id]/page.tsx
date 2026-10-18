@@ -1,6 +1,8 @@
 import React from 'react';
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import ProductGallery from './ProductGallery';
 import ExpandableDescription from './ExpandableDescription';
 import ProductPurchaseSection from './ProductPurchaseSection';
@@ -27,6 +29,24 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   if (!product || product.deletedAt || !product.artist.isActive || product.artist.isDeleted) {
     notFound();
+  }
+
+  // اگر محصول جدیدی است که هنوز تایید اولیه نگرفته است، فقط برای ادمین و هنرمند صاحب محصول نمایش داده شود و برای دیگران 404 باشد
+  const hasEdits = Boolean(
+    product.pendingEdits && (
+      typeof product.pendingEdits === 'string'
+        ? product.pendingEdits !== 'null' && product.pendingEdits !== '{}'
+        : Object.keys(product.pendingEdits as object).length > 0
+    )
+  );
+
+  if ((product.status === 'PENDING' || product.status === 'REJECTED') && !hasEdits) {
+    const session = await getServerSession(authOptions);
+    const isOwner = session?.user?.id === product.artist.userId;
+    const isAdmin = session?.user?.role === 'ADMIN';
+    if (!isAdmin && !isOwner) {
+      notFound();
+    }
   }
 
   // Calculate average rating

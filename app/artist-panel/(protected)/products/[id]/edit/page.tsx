@@ -22,6 +22,7 @@ export default function ArtistEditProductPage() {
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
   const [images, setImages] = useState<string[]>([]); // Array of base64 strings or URLs
+  const [stockQuantity, setStockQuantity] = useState(1);
 
   // Helper for price formatting
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,6 +55,7 @@ export default function ArtistEditProductPage() {
         setSeoKeywords(data.seoKeywords || '');
         setShippingMode(data.shippingMode || 'ARTIST_DIRECT');
         setIsPreOrderEnabled(Boolean(data.isPreOrderEnabled));
+        if (data.stockQuantity !== undefined) setStockQuantity(data.stockQuantity);
         if (data.preOrderTiers) {
           const parsed = typeof data.preOrderTiers === 'string' ? JSON.parse(data.preOrderTiers) : data.preOrderTiers;
           if (parsed) {
@@ -175,7 +177,8 @@ export default function ArtistEditProductPage() {
           seoMetaTitle,
           seoMetaDesc,
           seoKeywords,
-          images // Send all images (existing URLs + new base64 uploads)
+          images, // Send all images (existing URLs + new base64 uploads)
+          stockQuantity
         })
       });
 
@@ -249,10 +252,22 @@ export default function ArtistEditProductPage() {
               <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none transition-all" required />
             </div>
 
-            {/* Base Price */}
-            <div className="md:col-span-2">
+            {/* Base Price & Stock */}
+            <div className="md:col-span-1">
               <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه اثر (تومان) <span className="text-red-500">*</span></label>
               <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5,000,000" required />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-bold text-slate-700 mb-2">موجودی انبار (تعداد) <span className="text-red-500">*</span></label>
+              <input 
+                type="number" 
+                min="0" 
+                value={stockQuantity} 
+                onChange={e => setStockQuantity(Number(e.target.value))} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" 
+                required 
+              />
             </div>
 
             {/* Shipping Mode Selector */}

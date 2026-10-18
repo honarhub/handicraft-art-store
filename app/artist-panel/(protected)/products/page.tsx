@@ -104,8 +104,23 @@ export default async function ArtistProductsPage() {
                       <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">رد شده</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-xs text-red-600 font-bold">
-                    {product.status === 'REJECTED' && product.adminFeedback ? product.adminFeedback : '-'}
+                  <td className="px-6 py-4 text-xs font-medium max-w-xs">
+                    {product.adminFeedback ? (
+                      <div className={`p-2.5 rounded-xl text-xs leading-relaxed border ${
+                        product.status === 'REJECTED' 
+                          ? 'bg-red-50 text-red-700 border-red-200' 
+                          : product.status === 'APPROVED'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}>
+                        <div className="font-bold mb-0.5 flex items-center gap-1 text-[11px]">
+                          <span>💬 پیام ادمین:</span>
+                        </div>
+                        {product.adminFeedback}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-left">
                     <a href={`/artist-panel/products/${product.id}/edit`} title="ویرایش" className="inline-flex text-blue-600 hover:bg-blue-50 w-8 h-8 items-center justify-center rounded-lg transition-colors border border-transparent hover:border-blue-100">

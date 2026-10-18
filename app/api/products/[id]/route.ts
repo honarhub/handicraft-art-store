@@ -75,6 +75,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         shippingMode: edits.shippingMode || currentProduct.shippingMode,
         isPreOrderEnabled: edits.isPreOrderEnabled !== undefined ? edits.isPreOrderEnabled : currentProduct.isPreOrderEnabled,
         preOrderTiers: edits.preOrderTiers !== undefined ? edits.preOrderTiers : currentProduct.preOrderTiers,
+        stockQuantity: edits.stockQuantity !== undefined ? parseInt(edits.stockQuantity) : currentProduct.stockQuantity,
         seoMetaTitle: edits.seoMetaTitle !== undefined ? edits.seoMetaTitle : currentProduct.seoMetaTitle,
         seoMetaDesc: edits.seoMetaDesc !== undefined ? edits.seoMetaDesc : currentProduct.seoMetaDesc,
         seoKeywords: edits.seoKeywords !== undefined ? edits.seoKeywords : currentProduct.seoKeywords,
@@ -241,6 +242,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             mediaUrls: finalMediaUrls.length > 0 ? finalMediaUrls : currentProduct.mediaUrls,
             specialties: specialties && Array.isArray(specialties) ? specialties : currentProduct.specialties.map(s => s.id),
             shippingMode: shippingMode || currentProduct.shippingMode,
+            stockQuantity: body.stockQuantity !== undefined ? parseInt(body.stockQuantity) : currentProduct.stockQuantity,
             isPreOrderEnabled: isPreOrderEnabled !== undefined ? Boolean(isPreOrderEnabled) : currentProduct.isPreOrderEnabled,
             preOrderTiers: preOrderTiers !== undefined ? preOrderTiers : currentProduct.preOrderTiers,
             seoMetaTitle: seoMetaTitle || currentProduct.seoMetaTitle,
@@ -263,9 +265,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             message: 'تغییرات شامل متن یا عکس اثر است و برای بررسی ادمین ارسال شد. تا زمان تایید، محصول در انتظار تایید قرار گرفت.'
           });
         } else {
-          // تغییر فقط در سایر پارامترها (قیمت، نحوه ارسال، پیش‌سفارش، تخصص‌ها و...) بوده است: اعمال خودکار و مستقیم
+          // تغییر فقط در سایر پارامترها (قیمت، موجودی، نحوه ارسال، پیش‌سفارش، تخصص‌ها و...) بوده است: اعمال خودکار و مستقیم
           const directUpdateData: any = {
             shippingMode: shippingMode || currentProduct.shippingMode,
+            stockQuantity: body.stockQuantity !== undefined ? parseInt(body.stockQuantity) : currentProduct.stockQuantity,
             isPreOrderEnabled: isPreOrderEnabled !== undefined ? Boolean(isPreOrderEnabled) : currentProduct.isPreOrderEnabled,
             preOrderTiers: preOrderTiers !== undefined ? preOrderTiers : currentProduct.preOrderTiers,
             seoMetaTitle: seoMetaTitle !== undefined ? seoMetaTitle : currentProduct.seoMetaTitle,
@@ -315,6 +318,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           imageUrl: finalImageUrl,
           mediaUrls: finalMediaUrls.length > 0 ? finalMediaUrls : currentProduct.mediaUrls,
           shippingMode: shippingMode || currentProduct.shippingMode,
+          stockQuantity: body.stockQuantity !== undefined ? parseInt(body.stockQuantity) : currentProduct.stockQuantity,
           isPreOrderEnabled: isPreOrderEnabled !== undefined ? Boolean(isPreOrderEnabled) : currentProduct.isPreOrderEnabled,
           preOrderTiers: preOrderTiers !== undefined ? preOrderTiers : currentProduct.preOrderTiers
         };

@@ -37,12 +37,12 @@ export async function GET() {
       }
     }).length;
 
-    // 4. محصولات: جدید (PENDING) و محصولات دارای تغییرات پیشنهادی (pendingEdits)
+    // 4. محصولات: جدید (PENDING بدون ویرایش) و محصولات دارای تغییرات پیشنهادی (pendingEdits)
     const allProductsForCount = await prisma.product.findMany({
       where: { deletedAt: null },
       select: { pendingEdits: true, status: true }
     });
-    const pendingProductEditsCount = allProductsForCount.filter((p) => {
+    const hasProductEdits = (p: any) => {
       if (!p.pendingEdits) return false;
       try {
         const edits = typeof p.pendingEdits === 'string' ? JSON.parse(p.pendingEdits) : p.pendingEdits;
@@ -50,8 +50,11 @@ export async function GET() {
       } catch {
         return false;
       }
-    }).length;
-    const newProductsCount = allProductsForCount.filter((p) => p.status === 'PENDING').length;
+    };
+
+    const pendingProductEditsCount = allProductsForCount.filter((p) => hasProductEdits(p)).length;
+    // محصولات جدید: فقط آن‌هایی که PENDING هستند و اصلاحیه/ویرایش نیستند
+    const newProductsCount = allProductsForCount.filter((p) => p.status === 'PENDING' && !hasProductEdits(p)).length;
 
     // 5. پیام‌های پشتیبانی در انتظار پاسخ
     const pendingSupportCount = await prisma.supportMessage.count({
