@@ -37,7 +37,7 @@ export default function WishlistIcon() {
   return (
     <a 
       href="/wishlist" 
-      className="relative p-2 text-slate-700 hover:text-rose-600 transition-colors"
+      className="relative p-2 text-slate-700 hover:text-emerald-600 transition-colors"
       title="محصولات نشان‌شده (علاقه‌مندی‌ها)"
       aria-label="لیست علاقه‌مندی‌ها"
     >
@@ -46,12 +46,11 @@ export default function WishlistIcon() {
         width="22" 
         height="22" 
         viewBox="0 0 24 24" 
-        fill={count > 0 ? "currentColor" : "none"} 
+        fill="none" 
         stroke="currentColor" 
         strokeWidth="2" 
         strokeLinecap="round" 
-        strokeLinejoin="round" 
-        className={count > 0 ? "text-rose-500" : ""}
+        strokeLinejoin="round"
       >
         <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
       </svg>
