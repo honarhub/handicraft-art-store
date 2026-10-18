@@ -1,5 +1,6 @@
 import React from 'react';
 import CartIcon from './CartIcon';
+import WishlistIcon from './WishlistIcon';
 
 export default function SiteHeader() {
   return (
@@ -9,15 +10,20 @@ export default function SiteHeader() {
           <span className="text-slate-900 transition-colors group-hover:text-emerald-700">هنر</span>
           <span className="bg-[#FF9900] text-black px-2 py-0.5 rounded-md mr-1 text-xl md:text-2xl font-black shadow-sm transition-transform group-hover:scale-105">هاب</span>
         </a>
-        <nav className="hidden md:flex gap-10 text-sm font-bold text-slate-600 items-center">
-          <a href="/products" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">گالری آثار</a>
-          <a href="/blog" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">وبلاگ</a>
-          <a href="/about" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">درباره ما</a>
-          <a href="/artist-panel/login" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل هنرمندان</a>
-          <a href="/admin" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل ادمین</a>
-          <div className="w-px h-5 bg-slate-200"></div>
-          <CartIcon />
-        </nav>
+        <div className="flex items-center gap-4">
+          <nav className="hidden md:flex gap-8 text-sm font-bold text-slate-600 items-center">
+            <a href="/products" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">گالری آثار</a>
+            <a href="/blog" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">وبلاگ</a>
+            <a href="/about" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">درباره ما</a>
+            <a href="/artist-panel/login" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل هنرمندان</a>
+            <a href="/admin" className="hover:text-emerald-600 transition-all hover:-translate-y-0.5">پنل ادمین</a>
+          </nav>
+          <div className="hidden md:block w-px h-5 bg-slate-200"></div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <WishlistIcon />
+            <CartIcon />
+          </div>
+        </div>
       </div>
     </header>
   );

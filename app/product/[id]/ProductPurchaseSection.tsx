@@ -55,10 +55,16 @@ export default function ProductPurchaseSection({ product }: ProductPurchaseSecti
   // Determine capacity for each tier
   const getTierCapacity = (t?: PreOrderTier | null): number | null => {
     if (!t) return null;
+    // Explicit numeric capacity
     if (t.maxCapacity !== undefined && t.maxCapacity !== null && (t.maxCapacity as any) !== '') {
       return Number(t.maxCapacity);
     }
-    if (hasCapacityLimit && maxCapacity !== null) {
+    // Explicitly null / unlimited: do NOT fall back to legacy global limit
+    if (t.maxCapacity === null) {
+      return null;
+    }
+    // Fallback to legacy global limit ONLY if maxCapacity property was never defined on this tier
+    if (t.maxCapacity === undefined && hasCapacityLimit && maxCapacity !== null) {
       return maxCapacity;
     }
     return null;

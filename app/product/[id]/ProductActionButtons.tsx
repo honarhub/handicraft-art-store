@@ -161,50 +161,54 @@ export default function ProductActionButtons({ productId, title }: ProductAction
               لینک صفحه این اثر را کپی کرده یا مستقیماً در پیام‌رسان‌ها به اشتراک بگذارید:
             </p>
 
-            {/* Quick Messengers */}
-            <div className="grid grid-cols-4 gap-2.5 my-1">
+            {/* Quick Messengers (Telegram, WhatsApp, Bale) */}
+            <div className="grid grid-cols-3 gap-3 my-2">
               <a 
                 href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-700 hover:text-sky-600 transition-colors"
-                title="تلگرام"
+                className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-sky-50/70 hover:bg-sky-100/80 border border-sky-100 text-slate-700 hover:text-sky-700 transition-all group"
+                title="اشتراک در تلگرام"
               >
-                <span className="text-xl">✈️</span>
-                <span className="text-[10px] font-bold">تلگرام</span>
+                <div className="transition-transform group-hover:scale-110">
+                  <svg className="w-9 h-9 drop-shadow-xs" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="24" cy="24" r="24" fill="#24A1DE"/>
+                    <path d="M34.5 13.5L10.5 22.8C9.5 23.2 9.5 23.8 10.3 24.1L16.5 26L30.9 16.9C31.6 16.5 32.2 16.7 31.7 17.2L20 27.7V33C20.6 33 20.8 32.7 21.2 32.3L24.1 29.5L30.1 33.9C31.2 34.5 32 34.2 32.3 32.9L36.2 14.6C36.6 13 35.6 12.3 34.5 13.5Z" fill="white"/>
+                  </svg>
+                </div>
+                <span className="text-xs font-bold">تلگرام</span>
               </a>
 
               <a 
                 href={`https://api.whatsapp.com/send?text=${encodeURIComponent(title + '\n' + shareUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-600 transition-colors"
-                title="واتس‌اپ"
+                className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-100 text-slate-700 hover:text-emerald-700 transition-all group"
+                title="اشتراک در واتس‌اپ"
               >
-                <span className="text-xl">💬</span>
-                <span className="text-[10px] font-bold">واتس‌اپ</span>
-              </a>
-
-              <a 
-                href={`https://eitaa.com/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-slate-50 hover:bg-orange-50 text-slate-700 hover:text-orange-600 transition-colors"
-                title="ایتا"
-              >
-                <span className="text-xl">🟠</span>
-                <span className="text-[10px] font-bold">ایتا</span>
+                <div className="transition-transform group-hover:scale-110">
+                  <svg className="w-9 h-9 drop-shadow-xs" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="24" cy="24" r="24" fill="#25D366"/>
+                    <path d="M34.3 13.7C31.6 11 27.9 9.5 24 9.5C16 9.5 9.5 16 9.5 24C9.5 26.6 10.2 29.1 11.5 31.3L9 40.5L18.4 38C20.5 39.1 22.2 39.7 24 39.7C32 39.7 38.5 33.2 38.5 25.2C38.5 21.3 37 17.6 34.3 13.7ZM24 37.2C22.4 37.2 20.8 36.8 19.4 36L18.9 35.7L13.3 37.2L14.8 31.8L14.5 31.3C13.6 29.9 13.1 28.2 13.1 26.5C13.1 19.3 19 13.4 26.2 13.4C29.7 13.4 33 14.8 35.5 17.3C38 19.8 39.4 23.1 39.4 26.6C39.4 33.8 33.5 37.2 24 37.2ZM30.4 28.7C30 28.5 28.3 27.7 28 27.5C27.7 27.3 27.5 27.2 27.3 27.6C27.1 28 26.5 28.7 26.3 28.9C26.1 29.1 25.9 29.1 25.5 28.9C25.1 28.7 23.9 28.3 22.4 27C21.2 25.9 20.4 24.6 20.2 24.2C20 23.8 20.2 23.6 20.4 23.4C20.6 23.2 20.8 22.9 21 22.7C21.2 22.5 21.3 22.3 21.4 22.1C21.5 21.9 21.5 21.7 21.4 21.5C21.3 21.3 20.7 19.9 20.4 19.3C20.1 18.7 19.8 18.8 19.6 18.8C19.4 18.8 19.2 18.8 19 18.8C18.8 18.8 18.4 18.9 18.1 19.2C17.8 19.5 16.9 20.3 16.9 22C16.9 23.7 18.1 25.3 18.3 25.5C18.5 25.7 20.7 29.1 24.1 30.6C24.9 31 25.6 31.2 26.1 31.4C27 31.7 27.8 31.6 28.4 31.5C29.1 31.4 30.6 30.6 30.9 29.7C31.2 28.8 31.2 28.1 31.1 27.9C31 27.8 30.8 27.7 30.4 27.5Z" fill="white"/>
+                  </svg>
+                </div>
+                <span className="text-xs font-bold">واتس‌اپ</span>
               </a>
 
               <a 
                 href={`https://ble.ir/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-600 transition-colors"
-                title="بله"
+                className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-teal-50/70 hover:bg-teal-100/80 border border-teal-100 text-slate-700 hover:text-teal-700 transition-all group"
+                title="اشتراک در پیام‌رسان بله"
               >
-                <span className="text-xl">🔷</span>
-                <span className="text-[10px] font-bold">بله</span>
+                <div className="transition-transform group-hover:scale-110">
+                  <svg className="w-9 h-9 drop-shadow-xs" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="24" cy="24" r="24" fill="#00A693"/>
+                    <path d="M24 12C17.37 12 12 17.37 12 24C12 26.24 12.61 28.34 13.68 30.15L12.5 35.5L17.97 34.35C19.74 35.39 21.8 36 24 36C30.63 36 36 30.63 36 24C36 17.37 30.63 12 24 12ZM21.5 17.5C23.43 17.5 25 19.07 25 21C25 22.93 23.43 24.5 21.5 24.5C19.57 24.5 18 22.93 18 21C18 19.07 19.57 17.5 21.5 17.5ZM26.5 30.5C24.57 30.5 23 28.93 23 27C23 25.07 24.57 23.5 26.5 23.5C28.43 23.5 30 25.07 30 27C30 28.93 28.43 30.5 26.5 30.5Z" fill="white"/>
+                  </svg>
+                </div>
+                <span className="text-xs font-bold">بله</span>
               </a>
             </div>
 

@@ -71,11 +71,11 @@ export default function PreOrderManager({
     };
   });
 
-  const emitUpdate = (newTiers: PreOrderTier[], newHasLimit: boolean, newCapacity: number | null) => {
+  const emitUpdate = (newTiers: PreOrderTier[]) => {
     setTiers({
       tiers: newTiers,
-      hasCapacityLimit: newHasLimit,
-      maxCapacity: newCapacity
+      hasCapacityLimit: false,
+      maxCapacity: null
     });
   };
 
@@ -90,7 +90,7 @@ export default function PreOrderManager({
       }
       return t;
     });
-    emitUpdate(updated, hasCapacityLimit, maxCapacity);
+    emitUpdate(updated);
   };
 
   const handleStepPercentage = (tierId: string, delta: number) => {
@@ -113,17 +113,6 @@ export default function PreOrderManager({
     } else {
       updateTier(tierId, { maxCapacity: nextVal });
     }
-  };
-
-  const handleToggleCapacityLimit = (checked: boolean) => {
-    const newCap = checked ? (maxCapacity || 5) : null;
-    emitUpdate(effectiveTiers, checked, newCap);
-  };
-
-  const handleCapacityChange = (valStr: string) => {
-    const clean = valStr.replace(/[^0-9]/g, '');
-    const num = clean ? parseInt(clean, 10) : 0;
-    emitUpdate(effectiveTiers, true, num);
   };
 
   // Bounds for avoiding typos:
