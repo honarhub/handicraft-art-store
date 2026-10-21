@@ -31,6 +31,30 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
+function appendFeedbackHistory(
+  existingHistory: any,
+  message: string,
+  status: string
+) {
+  let list: any[] = [];
+  if (Array.isArray(existingHistory)) {
+    list = [...existingHistory];
+  } else if (typeof existingHistory === 'string') {
+    try {
+      const parsed = JSON.parse(existingHistory);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {}
+  }
+  const newEntry = {
+    id: `fb_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    message,
+    status,
+    createdAt: new Date().toISOString(),
+    read: false
+  };
+  return [newEntry, ...list].slice(0, 3);
+}
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -46,10 +70,41 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'محصول یافت نشد' }, { status: 404 });
     }
 
+    if (action === 'markFeedbackRead') {
+      let history: any[] = [];
+      if (Array.isArray(currentProduct.adminFeedbackHistory)) {
+        history = (currentProduct.adminFeedbackHistory as any[]).map(item => ({ ...item, read: true }));
+      } else if (typeof currentProduct.adminFeedbackHistory === 'string') {
+        try {
+          const parsed = JSON.parse(currentProduct.adminFeedbackHistory);
+          if (Array.isArray(parsed)) {
+            history = parsed.map(item => ({ ...item, read: true }));
+          }
+        } catch {}
+      }
+
+      const updated = await prisma.product.update({
+        where: { id },
+        data: {
+          adminFeedbackRead: true,
+          adminFeedbackHistory: history.length > 0 ? history : undefined
+        }
+      });
+      return NextResponse.json({ success: true, updated });
+    }
+
     if (action === 'updateStatus') {
       const updateData: any = { status };
       if (adminFeedback !== undefined) {
-        updateData.adminFeedback = adminFeedback;
+        updateData.adminFeedback = adminFeedback || null;
+        if (adminFeedback && adminFeedback.trim()) {
+          updateData.adminFeedbackHistory = appendFeedbackHistory(
+            currentProduct.adminFeedbackHistory,
+            adminFeedback.trim(),
+            status || currentProduct.status
+          );
+          updateData.adminFeedbackRead = false;
+        }
       }
       const updated = await prisma.product.update({
         where: { id },
@@ -67,6 +122,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ? JSON.parse(currentProduct.pendingEdits) 
         : (currentProduct.pendingEdits as any);
 
+      const feedbackText = body.adminFeedback?.trim();
+      const newHistory = appendFeedbackHistory(
+        currentProduct.adminFeedbackHistory,
+        feedbackText || 'تغییرات پیشنهادی اثر تایید و اعمال شد.',
+        'APPROVED'
+      );
+
       const updateData: any = {
         title: edits.title || currentProduct.title,
         description: edits.description || currentProduct.description,
@@ -81,7 +143,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         seoKeywords: edits.seoKeywords !== undefined ? edits.seoKeywords : currentProduct.seoKeywords,
         status: 'APPROVED',
         pendingEdits: null,
-        adminFeedback: body.adminFeedback || null
+        adminFeedback: feedbackText || null,
+        adminFeedbackHistory: newHistory,
+        adminFeedbackRead: !feedbackText
       };
 
       if (edits.specialties && Array.isArray(edits.specialties)) {
@@ -108,12 +172,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     if (action === 'rejectPendingEdits') {
+      const feedbackText = body.adminFeedback?.trim() || 'تغییرات پیشنهادی شما تایید نشد.';
+      const newHistory = appendFeedbackHistory(
+        currentProduct.adminFeedbackHistory,
+        feedbackText,
+        'REJECTED'
+      );
+
       const updated = await prisma.product.update({
         where: { id },
         data: {
           status: 'APPROVED',
           pendingEdits: null,
-          adminFeedback: body.adminFeedback || 'تغییرات پیشنهادی شما تایید نشد.'
+          adminFeedback: feedbackText,
+          adminFeedbackHistory: newHistory,
+          adminFeedbackRead: false
         }
       });
       return NextResponse.json(updated);

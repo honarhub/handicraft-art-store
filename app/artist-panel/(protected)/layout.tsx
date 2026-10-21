@@ -37,6 +37,13 @@ export default async function ArtistPanelLayout({ children }: { children: React.
     redirect('/artist-panel/login?error=deleted');
   }
 
+  const unreadFeedbackCount = await prisma.product.count({
+    where: {
+      artistId: artist.id,
+      adminFeedbackRead: false,
+      adminFeedback: { not: null }
+    }
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
@@ -59,8 +66,15 @@ export default async function ArtistPanelLayout({ children }: { children: React.
           <a href="/artist-panel/dashboard" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center gap-3">
             📊 پیشخوان من
           </a>
-          <a href="/artist-panel/products" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center gap-3">
-            📦 مدیریت آثار و محصولات
+          <a href="/artist-panel/products" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center justify-between">
+            <span className="flex items-center gap-3">
+              📦 مدیریت آثار و محصولات
+            </span>
+            {unreadFeedbackCount > 0 && (
+              <span className="bg-amber-400 text-teal-950 font-black text-xs px-2 py-0.5 rounded-full animate-pulse shadow-sm">
+                {unreadFeedbackCount}
+              </span>
+            )}
           </a>
           <a href="/artist-panel/profile" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center gap-3">
             👤 ویرایش پروفایل

@@ -122,7 +122,9 @@ model Product {
   seoKeywords     String?
   
   status          ProductStatus  @default(PENDING) // نیازمند تایید ادمین کل
-  adminFeedback   String?        // دلیل رد محصول توسط ادمین
+  adminFeedback       String?        // دلیل رد محصول یا آخرین بازخورد ادمین
+  adminFeedbackHistory Json?         // تاریخچه آخرین پیام‌ها و بازخوردهای ادمین
+  adminFeedbackRead   Boolean        @default(false) // وضعیت مشاهده بازخورد توسط هنرمند
   deletedAt       DateTime?      // پیاده‌سازی Soft Delete برای جلوگیری از خطای انسانی
   
   createdAt       DateTime       @default(now())
