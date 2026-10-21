@@ -27,7 +27,19 @@ export async function GET() {
       status: p.status,
       price: p.pricingTiers[0]?.price || 0,
       specialties: p.specialties.map(s => s.name).join('، '),
-      stockQuantity: p.stockQuantity
+      stockQuantity: p.stockQuantity,
+      shippingMode: p.shippingMode || 'ARTIST_DIRECT',
+      isPreOrderEnabled: p.isPreOrderEnabled,
+      hasPendingEdits: Boolean(
+        p.pendingEdits && (
+          typeof p.pendingEdits === 'string'
+            ? p.pendingEdits !== 'null' && p.pendingEdits !== '{}'
+            : Object.keys(p.pendingEdits as object).length > 0
+        )
+      ),
+      pendingEdits: typeof p.pendingEdits === 'string' ? JSON.parse(p.pendingEdits) : p.pendingEdits,
+      mediaUrls: p.mediaUrls,
+      description: p.description
     }));
 
     return NextResponse.json(formatted);
@@ -57,7 +69,7 @@ export async function GET() {
         if (artist) artistId = artist.id;
       }
         
-        const { title, description, image, images, artistId: bodyArtistId, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price, stockQuantity } = body;
+        const { title, description, image, images, artistId: bodyArtistId, specialties, seoMetaTitle, seoMetaDesc, seoKeywords, price, stockQuantity, shippingMode, isPreOrderEnabled, preOrderTiers } = body;
         artistId = artistId || bodyArtistId;
 
         if (!title || !artistId) {
@@ -101,6 +113,9 @@ export async function GET() {
         imageUrl,
         mediaUrls,
         artistId,
+        shippingMode: shippingMode || 'ARTIST_DIRECT',
+        isPreOrderEnabled: Boolean(isPreOrderEnabled),
+        preOrderTiers: preOrderTiers || undefined,
         seoMetaTitle,
         seoMetaDesc,
         seoKeywords,

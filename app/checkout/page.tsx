@@ -202,7 +202,7 @@ export default function CheckoutPage() {
               <h3 className="font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4">فاکتور شما</h3>
               <div className="space-y-3 mb-6 max-h-48 overflow-y-auto pr-2">
                 {items.map(item => (
-                  <div key={item.productId} className="flex items-center gap-3">
+                  <div key={item.id || `${item.productId}_${item.isPreOrder ? item.tierTitle : 'instock'}`} className="flex items-center gap-3">
                     <img src={item.imageUrl} alt={item.title} className="w-12 h-12 rounded-lg object-cover" />
                     <div className="flex-1">
                       <div className="text-sm font-bold text-slate-800 line-clamp-1">{item.title}</div>

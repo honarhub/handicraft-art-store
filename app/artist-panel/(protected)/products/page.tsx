@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
+import ArtistProductFeedbackButton from './ArtistProductFeedbackButton';
 
 export default async function ArtistProductsPage() {
   const session = await getServerSession(authOptions);
@@ -42,15 +43,17 @@ export default async function ArtistProductsPage() {
                 <th className="px-6 py-4">تصویر</th>
                 <th className="px-6 py-4">عنوان اثر</th>
                 <th className="px-6 py-4">قیمت (تومان)</th>
+                <th className="px-6 py-4 text-center">پیش‌سفارش</th>
+                <th className="px-6 py-4 text-center">موجودی</th>
                 <th className="px-6 py-4 text-center">وضعیت انتشار</th>
-                <th className="px-6 py-4">بازخورد ادمین</th>
+                <th className="px-6 py-4 text-center">پیام ادمین</th>
                 <th className="px-6 py-4 text-left">عملیات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500 font-medium">شما هنوز هیچ اثری ثبت نکرده‌اید.</td>
+                  <td colSpan={9} className="text-center py-12 text-slate-500 font-medium">شما هنوز هیچ اثری ثبت نکرده‌اید.</td>
                 </tr>
               ) : products.map((product) => (
                 <tr key={product.id} className="hover:bg-slate-50 transition-colors">
@@ -63,17 +66,54 @@ export default async function ArtistProductsPage() {
                   <td className="px-6 py-4">
                     <img src={product.imageUrl} alt={product.title} className="w-12 h-12 rounded-lg object-cover bg-slate-100 border border-slate-200" />
                   </td>
-                  <td className="px-6 py-4 font-bold text-slate-800">{product.title}</td>
+                  <td className="px-6 py-4">
+                    <a 
+                      href={`/product/${product.id}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="font-bold text-slate-800 hover:text-teal-600 transition-colors inline-flex items-center gap-1.5 group"
+                      title="مشاهده صفحه محصول در سایت"
+                    >
+                      <span>{product.title}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 group-hover:text-teal-600 transition-colors"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </a>
+                  </td>
                   <td className="px-6 py-4 text-slate-600 font-medium">
                     {product.pricingTiers[0]?.price > 0 ? product.pricingTiers[0].price.toLocaleString() : 'توافقی / نامشخص'}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {product.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار تایید</span>}
-                    {product.status === 'APPROVED' && <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده</span>}
-                    {product.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">رد شده</span>}
+                    {product.isPreOrderEnabled ? (
+                      <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold">
+                        ✓ فعال
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">ندارد</span>
+                    )}
                   </td>
-                  <td className="px-6 py-4 text-xs text-red-600 font-bold">
-                    {product.status === 'REJECTED' && product.adminFeedback ? product.adminFeedback : '-'}
+                  <td className="px-6 py-4 text-center font-bold text-slate-700">
+                    {product.stockQuantity ?? 0}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {(product.pendingEdits || product.status === 'PENDING') ? (
+                      <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                        در انتظار تایید ادمین
+                      </span>
+                    ) : product.status === 'APPROVED' ? (
+                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">تایید شده</span>
+                    ) : (
+                      <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">رد شده</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <ArtistProductFeedbackButton
+                      productId={product.id}
+                      productTitle={product.title}
+                      adminFeedback={product.adminFeedback}
+                      adminFeedbackHistory={product.adminFeedbackHistory}
+                      adminFeedbackRead={product.adminFeedbackRead}
+                      status={product.status}
+                    />
                   </td>
                   <td className="px-6 py-4 text-left">
                     <a href={`/artist-panel/products/${product.id}/edit`} title="ویرایش" className="inline-flex text-blue-600 hover:bg-blue-50 w-8 h-8 items-center justify-center rounded-lg transition-colors border border-transparent hover:border-blue-100">

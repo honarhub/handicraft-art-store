@@ -101,7 +101,7 @@ export default function AdminArtistsPage() {
       if (!res.ok) throw new Error('خطا در تایید هنرمند');
       
       setArtists(artists.map(a => a.id === id ? { ...a, isApproved: true, isActive: true } : a));
-      window.location.reload();
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
     } catch (error) {
       alert('عملیات با خطا مواجه شد');
     }
@@ -118,6 +118,7 @@ export default function AdminArtistsPage() {
       if (!res.ok) throw new Error('خطا در رد هنرمند');
       
       setArtists(artists.filter(a => a.id !== id));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
     } catch (error) {
       alert('عملیات با خطا مواجه شد');
     }

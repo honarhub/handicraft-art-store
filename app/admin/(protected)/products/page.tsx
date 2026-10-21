@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminPromptModal from '@/app/components/AdminPromptModal';
+import ProductReviewEditsModal from '@/app/components/ProductReviewEditsModal';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -11,6 +12,7 @@ export default function AdminProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortPrice, setSortPrice] = useState<'none' | 'asc' | 'desc'>('none');
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, id: string}>({isOpen: false, id: ''});
+  const [reviewModalProduct, setReviewModalProduct] = useState<any | null>(null);
 
   useEffect(() => {
     fetch('/api/products', { cache: 'no-store' })
@@ -40,6 +42,7 @@ export default function AdminProductsPage() {
       if (!res.ok) throw new Error('خطا در بروزرسانی');
       
       setProducts(products.map(p => p.id === id ? { ...p, status } : p));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
     } catch (err) {
       alert('خطا در اعمال تغییرات');
     }
@@ -49,6 +52,62 @@ export default function AdminProductsPage() {
     const id = modalConfig.id;
     setModalConfig({ isOpen: false, id: '' });
     handleUpdateStatus(id, 'REJECTED', reason);
+  };
+
+  const handleApprovePendingEdits = async (id: string, feedback: string = '') => {
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approvePendingEdits', adminFeedback: feedback })
+      });
+      if (!res.ok) throw new Error('خطا');
+      alert('تغییرات پیشنهادی هنرمند با موفقیت تایید و اعمال شد.');
+      const refreshed = await fetch('/api/products', { cache: 'no-store' }).then(r => r.json());
+      setProducts(refreshed);
+      setReviewModalProduct(null);
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
+    } catch (e) {
+      alert('خطا در تایید تغییرات');
+    }
+  };
+
+  const handleRejectPendingEdits = async (id: string, feedback: string = '') => {
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'rejectPendingEdits', adminFeedback: feedback })
+      });
+      if (!res.ok) throw new Error('خطا');
+      alert('تغییرات پیشنهادی رد شد.');
+      const refreshed = await fetch('/api/products', { cache: 'no-store' }).then(r => r.json());
+      setProducts(refreshed);
+      setReviewModalProduct(null);
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
+    } catch (e) {
+      alert('خطا در رد تغییرات');
+    }
+  };
+
+  const handleApproveProductOrEdits = async (id: string, feedback: string = '') => {
+    const product = products.find(p => p.id === id);
+    if (product?.hasPendingEdits) {
+      await handleApprovePendingEdits(id, feedback);
+    } else {
+      await handleUpdateStatus(id, 'APPROVED', feedback);
+      setReviewModalProduct(null);
+    }
+  };
+
+  const handleRejectProductOrEdits = async (id: string, feedback: string = '') => {
+    const product = products.find(p => p.id === id);
+    if (product?.hasPendingEdits) {
+      await handleRejectPendingEdits(id, feedback);
+    } else {
+      await handleUpdateStatus(id, 'REJECTED', feedback);
+      setReviewModalProduct(null);
+    }
   };
 
   // Filter and Sort Logic
@@ -61,7 +120,16 @@ export default function AdminProductsPage() {
       || (p.id.toLowerCase().includes(q));
   });
 
+  const isPending = (p: any) => Boolean(p.hasPendingEdits || p.status === 'PENDING');
+
   const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const aPending = isPending(a);
+    const bPending = isPending(b);
+
+    // اولویت قطعی با محصولاتی است که در انتظار تایید هستند تا حتما بالای لیست قرار گیرند
+    if (aPending && !bPending) return -1;
+    if (!aPending && bPending) return 1;
+
     if (sortPrice === 'none') return 0;
     if (sortPrice === 'asc') return a.price - b.price;
     return b.price - a.price; // desc
@@ -75,6 +143,14 @@ export default function AdminProductsPage() {
         placeholder="لطفا دلیل رد این محصول را برای هنرمند توضیح دهید..."
         onConfirm={submitReject}
         onCancel={() => setModalConfig({ isOpen: false, id: '' })}
+      />
+
+      <ProductReviewEditsModal 
+        isOpen={Boolean(reviewModalProduct)}
+        product={reviewModalProduct}
+        onClose={() => setReviewModalProduct(null)}
+        onApprove={handleApproveProductOrEdits}
+        onReject={handleRejectProductOrEdits}
       />
       
       <div className="flex justify-between items-center mb-8">
@@ -124,6 +200,8 @@ export default function AdminProductsPage() {
                 <th className="px-6 py-4">عنوان محصول</th>
                 <th className="px-6 py-4">صاحب اثر (هنرمند)</th>
                 <th className="px-6 py-4">قیمت (تومان)</th>
+                <th className="px-6 py-4 text-center">نحوه ارسال</th>
+                <th className="px-6 py-4 text-center">پیش‌سفارش</th>
                 <th className="px-6 py-4 text-center">موجودی</th>
                 <th className="px-6 py-4 text-center">وضعیت انتشار</th>
                 <th className="px-6 py-4 text-left">عملیات</th>
@@ -132,14 +210,23 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
+                  <td colSpan={10} className="text-center py-12 text-slate-500 font-medium">در حال بارگذاری...</td>
                 </tr>
               ) : sortedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
+                  <td colSpan={10} className="text-center py-12 text-slate-500 font-medium">محصولی برای نمایش وجود ندارد.</td>
                 </tr>
-              ) : sortedProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-slate-50 transition-colors">
+              ) : sortedProducts.map((product) => {
+                const isWaiting = isPending(product);
+                return (
+                  <tr 
+                    key={product.id} 
+                    className={`transition-colors ${
+                      isWaiting 
+                        ? 'bg-amber-50/40 hover:bg-amber-100/60 border-r-4 border-r-amber-500' 
+                        : 'hover:bg-slate-50'
+                    }`}
+                  >
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <span className="font-black text-slate-800 text-lg">#{product.displayId}</span>
@@ -159,25 +246,57 @@ export default function AdminProductsPage() {
                   <td className="px-6 py-4 text-slate-600 font-medium">
                     {product.price > 0 ? product.price.toLocaleString() : 'توافقی / نامشخص'}
                   </td>
-                  <td className="px-6 py-4 text-center font-bold text-slate-700">
-                    {product.stockQuantity || 1}
+                  <td className="px-6 py-4 text-center">
+                    {product.shippingMode === 'HONARHUB_WAREHOUSE' ? (
+                      <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                        📦 انبار هنرهاب
+                      </span>
+                    ) : (
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1">
+                        🎨 کارگاه هنرمند
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {product.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار تایید</span>}
-                    {product.status === 'APPROVED' && <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده</span>}
-                    {product.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-bold">رد شده</span>}
+                    {product.isPreOrderEnabled ? (
+                      <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold">
+                        ✓ فعال
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">ندارد</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-center font-bold text-slate-700">
+                    {product.stockQuantity || 0}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {(product.hasPendingEdits || product.status === 'PENDING') ? (
+                      <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-bold">
+                        در انتظار تایید
+                      </span>
+                    ) : product.status === 'APPROVED' ? (
+                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">تایید شده</span>
+                    ) : (
+                      <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">رد شده</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-left">
                     <div className="flex justify-end items-center gap-2">
-                      {product.status === 'PENDING' && (
-                        <>
-                          <button onClick={() => handleUpdateStatus(product.id, 'APPROVED')} title="تایید محصول" className="text-emerald-600 hover:bg-emerald-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-emerald-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          </button>
-                          <button onClick={() => handleUpdateStatus(product.id, 'REJECTED')} title="رد محصول" className="text-red-600 hover:bg-red-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-red-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                          </button>
-                        </>
+                      {(product.hasPendingEdits || product.status === 'PENDING') && (
+                        <button 
+                          onClick={() => setReviewModalProduct(product)} 
+                          title={product.hasPendingEdits ? "بررسی تغییرات پیشنهادی اثر" : "بررسی و تایید محصول جدید"} 
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors border shadow-2xs cursor-pointer ${
+                            product.hasPendingEdits
+                              ? 'text-amber-800 bg-amber-100 hover:bg-amber-200 border-amber-300'
+                              : 'text-purple-700 bg-purple-100 hover:bg-purple-200 border-purple-300'
+                          }`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        </button>
                       )}
                       <a href={`/admin/products/${product.id}/edit`} title="ویرایش" className="text-blue-600 hover:bg-blue-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-blue-100">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -185,7 +304,8 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
             </tbody>
           </table>
         </div>

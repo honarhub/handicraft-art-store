@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
+import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
 import { useRouter } from 'next/navigation';
 
 export default function ArtistAddProductPage() {
@@ -13,6 +14,9 @@ export default function ArtistAddProductPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
+  const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
+  const [preOrderTiers, setPreOrderTiers] = useState<PreOrderTier[]>(DEFAULT_PREORDER_TIERS);
   const [seoMetaTitle, setSeoMetaTitle] = useState('');
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
@@ -157,6 +161,9 @@ export default function ArtistAddProductPage() {
           title,
           description,
           price,
+          shippingMode,
+          isPreOrderEnabled,
+          preOrderTiers,
           specialties: specialties.map(s => s.id),
           seoMetaTitle,
           seoMetaDesc,
@@ -290,6 +297,53 @@ export default function ArtistAddProductPage() {
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">موجودی (تعداد)</label>
               <input type="number" min="0" value={stockQuantity} onChange={e => setStockQuantity(Number(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" required />
+            </div>
+
+            {/* Shipping Mode */}
+            <div className="md:col-span-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+              <label className="block text-sm font-bold text-slate-800 mb-2">نحوه ارسال سفارش</label>
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                ارسال آثار توسط هنرمند به صورت مستقیم از کارگاه انجام می‌شود. ارسال از انبار مرکزی تنها توسط مدیریت سایت قابل فعال‌سازی است.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div
+                  className="p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 border-emerald-500 bg-emerald-50/60 text-emerald-950 ring-2 ring-emerald-500/20"
+                >
+                  <span className="text-xl">🎨</span>
+                  <div>
+                    <div className="font-bold text-sm flex items-center gap-2">
+                      <span>ارسال مستقیم از کارگاه هنرمند</span>
+                      <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">پیش‌فرض هنرمند</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">محصول در کارگاه شماست و پس از ثبت سفارش توسط خودتان ارسال می‌گردد.</div>
+                  </div>
+                </div>
+
+                <div
+                  className="p-4 rounded-xl border-2 text-right flex items-start gap-3 border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60"
+                  title="این گزینه پس از تحویل کالا به انبار مرکزی، صرفاً توسط مدیریت سایت فعال می‌گردد"
+                >
+                  <span className="text-xl grayscale">📦</span>
+                  <div>
+                    <div className="font-bold text-sm flex items-center gap-1.5">
+                      <span>ارسال توسط هنرهاب (انبار مرکزی)</span>
+                      <span className="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-normal">غیرفعال برای هنرمند</span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">این گزینه منوط به تحویل کالا به انبار هنرهاب بوده و توسط مدیریت فعال می‌شود.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pre-Order Manager */}
+            <div className="md:col-span-2">
+              <PreOrderManager
+                basePrice={Number(price) || 0}
+                isPreOrderEnabled={isPreOrderEnabled}
+                setIsPreOrderEnabled={setIsPreOrderEnabled}
+                tiers={preOrderTiers}
+                setTiers={setPreOrderTiers}
+              />
             </div>
 
             <div className="md:col-span-2">

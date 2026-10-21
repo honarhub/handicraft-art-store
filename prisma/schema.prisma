@@ -60,6 +60,8 @@ model User {
   artistProfile ArtistProfile?
   orders        Order[]
   certificates  ProductCertificate[] // مدارک مالکیت محصولات خریداری شده
+  reviews       ProductReview[]
+  questions     ProductQuestion[]
 }
 
 enum Role {
@@ -107,8 +109,12 @@ model Product {
   artist          ArtistProfile  @relation(fields: [artistId], references: [id], onDelete: Cascade)
   
   // انبارداری و نوع محصول
-  stockQuantity   Int            @default(1)
-  isUnique        Boolean        @default(true) // محصول تک‌نسخه است یا قابل تولید مجدد
+  stockQuantity      Int            @default(1)
+  isUnique           Boolean        @default(true) // محصول تک‌نسخه است یا قابل تولید مجدد
+  shippingMode       String         @default("ARTIST_DIRECT") // "ARTIST_DIRECT" | "HONARHUB_WAREHOUSE"
+  isPreOrderEnabled  Boolean        @default(false)
+  preOrderTiers      Json?          // تنظیمات بازه‌های پیش‌سفارش
+  pendingEdits       Json?          // تغییرات پیشنهادی در انتظار تایید ادمین
   
   // فیلدهای سئو تولید شده توسط هوش مصنوعی
   seoMetaTitle    String?
@@ -116,7 +122,9 @@ model Product {
   seoKeywords     String?
   
   status          ProductStatus  @default(PENDING) // نیازمند تایید ادمین کل
-  adminFeedback   String?        // دلیل رد محصول توسط ادمین
+  adminFeedback       String?        // دلیل رد محصول یا آخرین بازخورد ادمین
+  adminFeedbackHistory Json?         // تاریخچه آخرین پیام‌ها و بازخوردهای ادمین
+  adminFeedbackRead   Boolean        @default(false) // وضعیت مشاهده بازخورد توسط هنرمند
   deletedAt       DateTime?      // پیاده‌سازی Soft Delete برای جلوگیری از خطای انسانی
   
   createdAt       DateTime       @default(now())
@@ -128,6 +136,8 @@ model Product {
   certificates    ProductCertificate[]
   supportMessages SupportMessage[]
   stockNotifications StockNotification[]
+  reviews         ProductReview[]
+  questions       ProductQuestion[]
 }
 
 model Transaction {
@@ -295,4 +305,36 @@ model BlogPost {
 
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+}
+
+model ProductReview {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating     Int      // 1 to 5
+  comment    String   @db.Text
+  isBuyer    Boolean  @default(false)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model ProductQuestion {
+  id         String    @id @default(cuid())
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   String    @db.Text
+  answer     String?   @db.Text
+  answeredAt DateTime?
+  isApproved Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+
+  @@index([productId])
+  @@index([userId])
 }
