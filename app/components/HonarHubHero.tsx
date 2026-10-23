@@ -13,7 +13,7 @@ import React from 'react';
  *     orbits the HonarHub brand mark.
  *  3) The pottery vessel NEVER repeats. The constellation orbits continuously.
  *  4) Hovering over the constellation pauses the rotation so the user can inspect items.
- *  5) Clicking any item opens the product page in a new tab (target="_blank").
+ *  5) Clicking any item (front or back) opens the product page in a new tab (target="_blank").
  */
 
 export type HeroProduct = {
@@ -94,7 +94,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           {/* مدار داخلی: ۳ محصول */}
           <div className="ring ring-inner">
             {innerRelics.map((relic, i) => {
-              const pos = ringPosition(i, innerRelics.length, 20);
+              const pos = ringPosition(i, innerRelics.length, 21);
               return (
                 <div className="relic-item relic-item--inner" style={pos} key={`inner-${relic.id}-${i}`}>
                   <a
@@ -115,7 +115,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           {/* مدار میانی: ۴ محصول */}
           <div className="ring ring-middle">
             {middleRelics.map((relic, i) => {
-              const pos = ringPosition(i, middleRelics.length, 35);
+              const pos = ringPosition(i, middleRelics.length, 36);
               return (
                 <div className="relic-item relic-item--middle" style={pos} key={`middle-${relic.id}-${i}`}>
                   <a
@@ -181,7 +181,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           width: 22%;
           perspective: 600px;
           animation: relicJourney 4.5s cubic-bezier(0.65, 0, 0.35, 1) forwards;
-          pointer-events: none;
+          pointer-events: none !important;
           z-index: 20;
         }
         @keyframes relicJourney {
@@ -213,7 +213,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           transform: translateX(-50%);
           text-align: center;
           width: 100%;
-          pointer-events: none;
+          pointer-events: none !important;
         }
         .era-old {
           top: 76%;
@@ -249,7 +249,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           background: radial-gradient(circle, #fff 55%, rgba(255, 255, 255, 0) 75%);
           transform: translate(-50%, -50%) scale(0);
           animation: burstPulse 4.8s linear forwards;
-          pointer-events: none;
+          pointer-events: none !important;
           z-index: 25;
         }
         @keyframes burstPulse {
@@ -264,6 +264,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           inset: 0;
           opacity: 0;
           animation: actTwoFadeIn 5s ease-out forwards;
+          pointer-events: none;
         }
         @keyframes actTwoFadeIn {
           0%, 78% { opacity: 0; }
@@ -280,6 +281,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           perspective: 1200px;
           transform-style: preserve-3d;
           cursor: default;
+          pointer-events: auto;
         }
 
         /* توقف چرخش منظومه با رفتن ماوس روی آن */
@@ -294,6 +296,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           border-radius: 50%;
           background: radial-gradient(circle, rgba(255, 175, 50, 0.4), rgba(255, 175, 50, 0) 60%);
           animation: pulseGlow 4s ease-in-out infinite alternate;
+          pointer-events: none !important;
         }
         @keyframes pulseGlow {
           from { transform: scale(1); opacity: 0.8; }
@@ -304,44 +307,48 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           position: absolute;
           border-radius: 50%;
           border: 1.5px dashed rgba(201, 147, 47, 0.35);
-          transform: rotateX(65deg);
+          transform: rotateX(55deg);
+          pointer-events: none !important;
         }
-        .track-inner { inset: 30%; }
-        .track-middle { inset: 15%; }
+        .track-inner { inset: 29%; }
+        .track-middle { inset: 14%; }
         .track-outer { inset: 0%; }
 
         .ring {
           position: absolute;
           inset: 0;
           transform-style: preserve-3d;
+          pointer-events: none !important;
         }
         .ring-inner { animation: spin-inner 28s linear infinite; }
         .ring-middle { animation: spin-middle 36s linear infinite reverse; }
         .ring-outer { animation: spin-outer 44s linear infinite; }
 
         @keyframes spin-inner {
-          from { transform: rotateX(65deg) rotateZ(0deg); }
-          to { transform: rotateX(65deg) rotateZ(360deg); }
+          from { transform: rotateX(55deg) rotateZ(0deg); }
+          to { transform: rotateX(55deg) rotateZ(360deg); }
         }
         @keyframes spin-middle {
-          from { transform: rotateX(65deg) rotateZ(0deg); }
-          to { transform: rotateX(65deg) rotateZ(-360deg); }
+          from { transform: rotateX(55deg) rotateZ(0deg); }
+          to { transform: rotateX(55deg) rotateZ(-360deg); }
         }
         @keyframes spin-outer {
-          from { transform: rotateX(65deg) rotateZ(0deg); }
-          to { transform: rotateX(65deg) rotateZ(360deg); }
+          from { transform: rotateX(55deg) rotateZ(0deg); }
+          to { transform: rotateX(55deg) rotateZ(360deg); }
         }
 
         .relic-item {
           position: absolute;
           transform: translate(-50%, -50%);
           transform-style: preserve-3d;
+          pointer-events: none !important;
           transition: transform 0.25s ease;
         }
         .relic-item--inner { width: 14%; aspect-ratio: 1; }
         .relic-item--middle { width: 13%; aspect-ratio: 1; }
         .relic-item--outer { width: 11%; aspect-ratio: 1; }
 
+        /* تگ لینک قابل کلیک (چه در بخش جلو و چه در بخش عقب مدار) */
         .relic-item-inner {
           display: flex;
           align-items: center;
@@ -353,16 +360,17 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.22), 0 0 0 2px rgba(255, 255, 255, 0.95);
           overflow: visible;
           position: relative;
-          cursor: pointer;
+          cursor: pointer !important;
+          pointer-events: auto !important;
           transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
         }
 
         .relic-item:hover {
-          z-index: 60;
+          z-index: 200 !important;
         }
         .relic-item:hover .relic-item-inner {
-          transform: scale(1.18);
-          box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.35), 0 0 0 2.5px #f59e0b;
+          transform: scale(1.22) translateZ(40px) !important;
+          box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.38), 0 0 0 3px #f59e0b;
         }
 
         .relic-item-inner--inner { animation: counter-spin-inner 28s linear infinite; }
@@ -370,16 +378,16 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
         .relic-item-inner--outer { animation: counter-spin-outer 44s linear infinite; }
 
         @keyframes counter-spin-inner {
-          from { transform: rotateZ(0deg) rotateX(-65deg); }
-          to { transform: rotateZ(-360deg) rotateX(-65deg); }
+          from { transform: rotateZ(0deg) rotateX(-55deg); }
+          to { transform: rotateZ(-360deg) rotateX(-55deg); }
         }
         @keyframes counter-spin-middle {
-          from { transform: rotateZ(0deg) rotateX(-65deg); }
-          to { transform: rotateZ(360deg) rotateX(-65deg); }
+          from { transform: rotateZ(0deg) rotateX(-55deg); }
+          to { transform: rotateZ(360deg) rotateX(-55deg); }
         }
         @keyframes counter-spin-outer {
-          from { transform: rotateZ(0deg) rotateX(-65deg); }
-          to { transform: rotateZ(-360deg) rotateX(-65deg); }
+          from { transform: rotateZ(0deg) rotateX(-55deg); }
+          to { transform: rotateZ(-360deg) rotateX(-55deg); }
         }
 
         .relic-item-inner :global(img) {
@@ -388,6 +396,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           object-fit: cover;
           border-radius: 9999px;
           display: block;
+          pointer-events: none;
         }
 
         .relic-tooltip {
@@ -395,7 +404,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           bottom: -32px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(15, 23, 42, 0.92);
+          background: rgba(15, 23, 42, 0.94);
           color: #ffffff;
           font-size: 11px;
           font-weight: 700;
@@ -405,8 +414,8 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           pointer-events: none;
           opacity: 0;
           transition: opacity 0.2s ease, transform 0.2s ease;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-          z-index: 100;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+          z-index: 300;
         }
         .relic-item:hover .relic-tooltip {
           opacity: 1;
@@ -417,10 +426,10 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
           position: absolute;
           left: 50%;
           top: 50%;
-          transform: translate(-50%, -50%) translateZ(200px);
+          transform: translate(-50%, -50%) translateZ(100px);
           text-align: center;
           z-index: 40;
-          pointer-events: none;
+          pointer-events: none !important;
         }
         .center-brand h1 {
           margin: 0;

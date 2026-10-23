@@ -142,6 +142,7 @@ export default async function BlogPostPage({ params }: Props) {
     imageUrl: p.imageUrl,
     stockQuantity: p.stockQuantity,
     isUnique: p.isUnique,
+    isPreOrderEnabled: p.isPreOrderEnabled,
     price: p.pricingTiers[0]?.price || 0,
     artistName: p.artist.user.name || 'هنرمند اصیل',
     specialtyName: p.specialties[0]?.name

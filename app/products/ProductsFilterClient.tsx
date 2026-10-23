@@ -11,7 +11,7 @@ interface ProductsFilterClientProps {
   initialSort: string;
   initialMax: number;
   maxPossiblePrice: number;
-  specialties: { id: string, name: string, children?: { id: string, name: string }[] }[];
+  specialties: { id: string, name: string, children?: { id: string, name: string, _count?: { products: number } }[] }[];
   artists: any[];
 }
 
@@ -196,6 +196,9 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
                                 <span className="flex items-center gap-1.5">
                                   <span className="text-slate-300">↳</span>
                                   <span>{child.name}</span>
+                                  {child._count?.products !== undefined && (
+                                    <span className="text-[10px] text-slate-400 font-normal">({child._count.products} اثر)</span>
+                                  )}
                                 </span>
                                 {isChildSelected && <span className="text-emerald-700">✓</span>}
                               </button>
