@@ -11,6 +11,7 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
           prompt: "select_account",
@@ -19,12 +20,15 @@ export const authOptions: NextAuthOptions = {
         }
       },
       profile(profile) {
+        const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+        const userEmail = profile.email?.trim().toLowerCase();
+        const isAdmin = Boolean(adminEmail && userEmail === adminEmail);
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: profile.email === process.env.ADMIN_EMAIL ? 'ADMIN' : 'ARTIST'
+          role: isAdmin ? 'ADMIN' : 'ARTIST'
         }
       }
     }),
@@ -150,19 +154,32 @@ export const authOptions: NextAuthOptions = {
           return null as any; // Invalidate session if user no longer exists
         }
         
-        // Auto-create artist profile for new ARTIST users (like new Google sign-ins)
-        if (dbUser.role === 'ARTIST' && !dbUser.artistProfile) {
-          await prisma.artistProfile.create({
-            data: {
-              userId: dbUser.id,
-              isApproved: false,
-              isActive: false,
-            }
-          });
-        }
+        const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+        const userEmail = dbUser.email?.trim().toLowerCase();
         
-        // Keep role in sync with database
-        token.role = dbUser.role;
+        if (adminEmail && userEmail === adminEmail) {
+          if (dbUser.role !== 'ADMIN') {
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { role: 'ADMIN' }
+            });
+          }
+          token.role = 'ADMIN';
+        } else {
+          // Auto-create artist profile for new ARTIST users (like new Google sign-ins)
+          if (dbUser.role === 'ARTIST' && !dbUser.artistProfile) {
+            await prisma.artistProfile.create({
+              data: {
+                userId: dbUser.id,
+                isApproved: false,
+                isActive: false,
+              }
+            });
+          }
+          
+          // Keep role in sync with database
+          token.role = dbUser.role;
+        }
       }
       return token;
     },

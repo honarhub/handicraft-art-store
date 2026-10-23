@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
+import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 
 export default function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const [submitLoading, setSubmitLoading] = useState(false);
   const [product, setProduct] = useState<any>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [price, setPrice] = useState('');
   const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
   const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
@@ -97,6 +99,9 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           loadedImages.push(data.imageUrl);
         }
         setImages(loadedImages);
+        if (data.specialties) {
+          setSpecialties(data.specialties);
+        }
 
         fetch(`/api/products/${id}/pricing`)
           .then(res => res.json())
@@ -135,7 +140,8 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           isPreOrderEnabled,
           preOrderTiers,
           price,
-          images
+          images,
+          specialties: specialties.map(s => s.id)
         })
       });
 
@@ -246,21 +252,19 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           </div>
 
           <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌های مرتبط</label>
+            <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
+          </div>
+
+          <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان)</label>
             <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-purple-500 outline-none" placeholder="مثلا: 5,000,000" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">موجودی انبار (تعداد)</label>
               <input type="number" min="0" value={product.stockQuantity || 0} onChange={e => setProduct({...product, stockQuantity: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-purple-500 outline-none" />
-            </div>
-            
-            <div className="flex flex-col justify-center pt-6">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={product.isUnique || false} onChange={e => setProduct({...product, isUnique: e.target.checked})} className="w-5 h-5 rounded text-purple-600 focus:ring-purple-500 border-slate-300" />
-                <span className="text-sm font-bold text-slate-700">این محصول کاملاً منحصر‌به‌فرد است (تک‌نسخه)</span>
-              </label>
             </div>
           </div>
 

@@ -51,14 +51,37 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   }
 
   if (specialtyId) {
-    whereClause.specialties = {
-      some: {
+    const matchedSpecialty = await prisma.specialty.findFirst({
+      where: {
         OR: [
           { id: specialtyId },
           { name: specialtyId }
         ]
+      },
+      include: {
+        children: {
+          select: { id: true }
+        }
       }
-    };
+    });
+
+    if (matchedSpecialty) {
+      const targetSpecialtyIds = [matchedSpecialty.id, ...matchedSpecialty.children.map(c => c.id)];
+      whereClause.specialties = {
+        some: {
+          id: { in: targetSpecialtyIds }
+        }
+      };
+    } else {
+      whereClause.specialties = {
+        some: {
+          OR: [
+            { id: specialtyId },
+            { name: specialtyId }
+          ]
+        }
+      };
+    }
   }
 
   let products = await prisma.product.findMany({
@@ -73,8 +96,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     products.sort((a, b) => (b.pricingTiers[0]?.price || 0) - (a.pricingTiers[0]?.price || 0));
   }
 
-  const allSpecialties = await prisma.specialty.findMany({
-    where: { isApproved: true },
+  const masterSpecialties = await prisma.specialty.findMany({
+    where: { parentId: null, isApproved: true },
+    include: {
+      children: {
+        where: { isApproved: true },
+        orderBy: { name: 'asc' }
+      }
+    },
     orderBy: { name: 'asc' }
   });
 
@@ -104,7 +133,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               initialSort={sort}
               initialMax={maxPrice}
               maxPossiblePrice={maxPossiblePrice}
-              specialties={allSpecialties} 
+              specialties={masterSpecialties} 
               artists={allArtists}
             />
           </aside>

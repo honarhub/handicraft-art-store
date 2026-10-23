@@ -228,15 +228,21 @@ enum OrderStatus {
 }
 
 model Specialty {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  isApproved  Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id          String      @id @default(cuid())
+  name        String      @unique
+  isApproved  Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+
+  parentId    String?
+  parent      Specialty?  @relation("SpecialtyHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Specialty[] @relation("SpecialtyHierarchy")
 
   artists     ArtistProfile[]
   products    Product[]
   siteSettings SiteSettings[] // One to many for featured category
   blogPosts   BlogPost[]
+
+  @@index([parentId])
 }
 
 model SupportMessage {

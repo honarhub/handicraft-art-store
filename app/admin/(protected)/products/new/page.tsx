@@ -71,15 +71,8 @@ export default function AddProductPage() {
       setSeoMetaDesc(data.seoMetaDesc || '');
       setSeoKeywords(data.seoKeywords || '');
       
-      // Parse specialties to array of objects mimicking existing tags
-      if (data.specialties) {
-        const specsList = data.specialties.split(',').map((s: string) => s.trim()).filter((s: string) => s);
-        // We will create temporary IDs for AI tags, the backend connect will fail for non-existent ones, 
-        // wait, the backend POST expects IDs for connect!
-        // The SpecialtyTagInput manages this. We should let the user select tags. 
-        // For AI, we can just alert them what tags were suggested or add them if we do a lookup.
-        // Since we don't have a lookup here, let's just show them as string in description for now, or just ignore for safety.
-        // Actually, we can fetch all tags and map them. For simplicity, we just leave specialties empty for AI right now.
+      if (data.matchedSpecialties && Array.isArray(data.matchedSpecialties) && data.matchedSpecialties.length > 0) {
+        setSpecialties(data.matchedSpecialties);
       }
       
     } catch (error) {
@@ -209,7 +202,7 @@ export default function AddProductPage() {
 
             {/* تخصص‌ها */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">دسته‌بندی / تخصص اثر</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌های مرتبط</label>
               <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
             </div>
 

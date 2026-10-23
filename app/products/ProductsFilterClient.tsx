@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from 'use-debounce';
 
@@ -11,7 +11,7 @@ interface ProductsFilterClientProps {
   initialSort: string;
   initialMax: number;
   maxPossiblePrice: number;
-  specialties: { id: string, name: string }[];
+  specialties: { id: string, name: string, children?: { id: string, name: string }[] }[];
   artists: any[];
 }
 
@@ -23,6 +23,8 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
   const [artistId, setArtistId] = useState(initialArtist);
   const [sort, setSort] = useState(initialSort);
   const [maxPrice, setMaxPrice] = useState(initialMax);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [debouncedQ] = useDebounce(q, 500);
   const [debouncedMax] = useDebounce(maxPrice, 500);
@@ -31,6 +33,17 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // بستن منوی کشویی با کلیک در خارج از آن
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -53,6 +66,17 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
     setSort('newest');
     setMaxPrice(maxPossiblePrice);
   };
+
+  // تعیین نام دسته‌بندی انتخاب شده برای نمایش در دکمه
+  const selectedName = useMemo(() => {
+    if (!specialty) return 'همه دسته‌بندی‌ها';
+    for (const group of specialties) {
+      if (group.id === specialty) return group.name;
+      const child = group.children?.find(c => c.id === specialty);
+      if (child) return `${child.name} (${group.name})`;
+    }
+    return 'همه دسته‌بندی‌ها';
+  }, [specialty, specialties]);
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
@@ -82,18 +106,109 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
           </div>
         </div>
 
-        <div>
+        {/* Hierarchical Specialty Filter */}
+        <div className="relative" ref={dropdownRef}>
           <label className="block text-sm font-bold text-slate-700 mb-2">دسته‌بندی (تخصص)</label>
-          <select 
-            value={specialty} 
-            onChange={e => setSpecialty(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-sm bg-white"
+          
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 bg-white text-right flex items-center justify-between text-sm transition-all cursor-pointer"
           >
-            <option value="">همه دسته‌بندی‌ها</option>
-            {specialties.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+            <span className={`truncate ${specialty ? 'font-bold text-slate-900' : 'text-slate-500'}`}>
+              {selectedName}
+            </span>
+            <svg 
+              className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {isDropdownOpen && (
+            <div className="absolute z-30 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-80 overflow-y-auto p-1.5 divide-y divide-slate-100">
+              {/* گزینه بازنشانی به همه دسته‌ها */}
+              <div className="pb-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSpecialty('');
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-right px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                    !specialty ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>همه دسته‌بندی‌ها</span>
+                  {!specialty && <span className="text-emerald-600 font-bold">✓</span>}
+                </button>
+              </div>
+
+              {/* گروه‌های والد و زیرمجموعه‌ها */}
+              <div className="pt-1 space-y-1">
+                {specialties.map(group => {
+                  const isParentSelected = specialty === group.id;
+                  return (
+                    <div key={group.id} className="py-1">
+                      {/* سرشاخه والد به صورت بولد و کاملاً قابل کلیک */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSpecialty(group.id);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full text-right px-3 py-2 rounded-xl text-xs font-black transition flex items-center justify-between cursor-pointer ${
+                          isParentSelected
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'text-slate-900 bg-slate-50 hover:bg-purple-50 hover:text-purple-700'
+                        }`}
+                        title={`انتخاب دسته‌بندی ${group.name} (شامل تمام زیرمجموعه‌ها)`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className={isParentSelected ? 'text-white' : 'text-purple-600'}>📁</span>
+                          <span>{group.name}</span>
+                        </div>
+                        {isParentSelected && <span>✓</span>}
+                      </button>
+
+                      {/* زیرمجموعه‌ها و فرزندان */}
+                      {group.children && group.children.length > 0 && (
+                        <div className="pr-3 pl-1 pt-1 space-y-0.5">
+                          {group.children.map(child => {
+                            const isChildSelected = specialty === child.id;
+                            return (
+                              <button
+                                key={child.id}
+                                type="button"
+                                onClick={() => {
+                                  setSpecialty(child.id);
+                                  setIsDropdownOpen(false);
+                                }}
+                                className={`w-full text-right px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                                  isChildSelected
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
+                                }`}
+                              >
+                                <span className="flex items-center gap-1.5">
+                                  <span className="text-slate-300">↳</span>
+                                  <span>{child.name}</span>
+                                </span>
+                                {isChildSelected && <span className="text-emerald-700">✓</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Artist Filter */}
