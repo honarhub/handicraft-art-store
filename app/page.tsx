@@ -12,6 +12,21 @@ import HonarHubHero from './components/HonarHubHero';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  // 0. واکشی ۱۰ محصول اخیر تایید شده برای منظومه چرخان قهرمان سایت
+  const heroProducts = await prisma.product.findMany({
+    where: { 
+      status: 'APPROVED', 
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      title: true,
+      imageUrl: true,
+    },
+    take: 10,
+    orderBy: { createdAt: 'desc' }
+  });
+
   // 1. واکشی آثار برگزیده اخیر
   const featuredProducts = await prisma.product.findMany({
     where: { 
@@ -105,7 +120,7 @@ export default async function Home() {
           </p>
 
           <div className="w-full max-w-5xl mx-auto mb-16 animate-fade-in-up relative" style={{ animationDelay: '0.35s', opacity: 0 }}>
-             <HonarHubHero />
+             <HonarHubHero products={heroProducts} />
           </div>
 
           {/* Global Search Component */}
