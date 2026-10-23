@@ -83,7 +83,7 @@ export default function HonarHubHero({ products = [] }: HonarHubHeroProps) {
       <div className="act-two">
         <div className="era-label era-new">اما امروز</div>
 
-        <div className="cosmos" title="برای توقف چرخش، ماوس را روی منظومه نگه دارید">
+        <div className="cosmos">
           <div className="glow" />
 
           {/* مدارهای هندسی */}
