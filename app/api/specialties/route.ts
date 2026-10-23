@@ -12,12 +12,25 @@ export async function GET(request: Request) {
     
     let specialties = [];
     if (hierarchy) {
-      // دریافت درخت کامل دسته‌بندی‌های اصلی به همراه زیرمجموعه‌های تایید شده
+      // دریافت درخت کامل دسته‌بندی‌های اصلی به همراه زیرمجموعه‌های تایید شده و تعداد محصولات
       specialties = await prisma.specialty.findMany({
         where: { parentId: null, isApproved: true },
         include: {
           children: {
             where: { isApproved: true },
+            include: {
+              _count: {
+                select: {
+                  products: {
+                    where: {
+                      status: 'APPROVED',
+                      deletedAt: null,
+                      artist: { isActive: true, isDeleted: false }
+                    }
+                  }
+                }
+              }
+            },
             orderBy: { name: 'asc' }
           }
         },

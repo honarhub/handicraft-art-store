@@ -101,6 +101,19 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     include: {
       children: {
         where: { isApproved: true },
+        include: {
+          _count: {
+            select: {
+              products: {
+                where: {
+                  status: 'APPROVED',
+                  deletedAt: null,
+                  artist: { isActive: true, isDeleted: false }
+                }
+              }
+            }
+          }
+        },
         orderBy: { name: 'asc' }
       }
     },
@@ -152,9 +165,17 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                   <a key={product.id} href={`/product/${product.id}`} className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
                     <div className="aspect-square w-full relative overflow-hidden bg-slate-100">
                       <img src={product.imageUrl} alt={product.title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
-                      {product.stockQuantity === 0 && (
-                        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center">
-                          <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-sm">ناموجود</span>
+                      {product.stockQuantity <= 0 && (
+                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center">
+                          {product.isPreOrderEnabled ? (
+                            <span className="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md">
+                              ناموجود (امکان ثبت پیش‌سفارش)
+                            </span>
+                          ) : (
+                            <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-md">
+                              ناموجود
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>

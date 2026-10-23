@@ -12,6 +12,21 @@ import HonarHubHero from './components/HonarHubHero';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  // 0. واکشی ۱۰ محصول اخیر تایید شده برای منظومه چرخان قهرمان سایت
+  const heroProducts = await prisma.product.findMany({
+    where: { 
+      status: 'APPROVED', 
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      title: true,
+      imageUrl: true,
+    },
+    take: 10,
+    orderBy: { createdAt: 'desc' }
+  });
+
   // 1. واکشی آثار برگزیده اخیر
   const featuredProducts = await prisma.product.findMany({
     where: { 
@@ -105,7 +120,7 @@ export default async function Home() {
           </p>
 
           <div className="w-full max-w-5xl mx-auto mb-16 animate-fade-in-up relative" style={{ animationDelay: '0.35s', opacity: 0 }}>
-             <HonarHubHero />
+             <HonarHubHero products={heroProducts} />
           </div>
 
           {/* Global Search Component */}
@@ -166,6 +181,19 @@ export default async function Home() {
                         alt={product.title} 
                         className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
                       />
+                      {product.stockQuantity <= 0 && (
+                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center">
+                          {product.isPreOrderEnabled ? (
+                            <span className="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
+                              ناموجود (امکان ثبت پیش‌سفارش)
+                            </span>
+                          ) : (
+                            <span className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
+                              ناموجود
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="p-8">
                       <h3 className="text-xl font-black text-slate-800 mb-3 group-hover:text-emerald-600 transition-colors">{product.title}</h3>

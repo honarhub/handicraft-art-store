@@ -84,6 +84,19 @@ export default function DynamicProductRow({ title, subtitle, type, value, produc
                     alt={product.title} 
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
                   />
+                  {product.stockQuantity <= 0 && (
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center">
+                      {product.isPreOrderEnabled ? (
+                        <span className="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
+                          ناموجود (امکان ثبت پیش‌سفارش)
+                        </span>
+                      ) : (
+                        <span className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
+                          ناموجود
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="text-lg font-black text-slate-800 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-1">{product.title}</h3>
