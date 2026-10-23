@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import CategoryHierarchySelector, { SpecialtyItem } from '@/app/components/CategoryHierarchySelector';
+import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 
 export default function AddProductPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
@@ -11,7 +11,7 @@ export default function AddProductPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [artistId, setArtistId] = useState('');
-  const [specialties, setSpecialties] = useState<SpecialtyItem[]>([]);
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [seoMetaTitle, setSeoMetaTitle] = useState('');
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
@@ -202,12 +202,8 @@ export default function AddProductPage() {
 
             {/* تخصص‌ها */}
             <div className="md:col-span-2">
-              <CategoryHierarchySelector
-                selectedSpecialties={specialties}
-                onChange={setSpecialties}
-                label="دسته‌بندی و سبک‌های هنری اثر"
-                helperText="دسته‌بندی والد و تخصص‌های مرتبط با این اثر را انتخاب فرمایید."
-              />
+              <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌های مرتبط</label>
+              <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
             </div>
 
             {/* توضیحات */}
