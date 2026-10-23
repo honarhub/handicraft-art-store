@@ -161,7 +161,7 @@ export default function CategoryHierarchySelector({
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="جستجوی سریع بین تمام تخصص‌ها (مثلاً: خاتم‌کاری، رنگ‌روغن)..."
+            placeholder="جستجوی سریع بین تمام تخصص‌ها (مثلاً: خاتم کاری، رنگ روغن)..."
             className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition"
           />
           {searchQuery && (
