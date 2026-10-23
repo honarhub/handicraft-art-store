@@ -246,9 +246,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         }
       }
 
+      if (body.specialties && Array.isArray(body.specialties)) {
+        updateData.specialties = {
+          set: body.specialties.map((s: any) => ({ id: typeof s === 'string' ? s : s.id }))
+        };
+      }
+
       const updated = await prisma.product.update({
         where: { id },
-        data: updateData
+        data: updateData,
+        include: { specialties: true, pricingTiers: true }
       });
       return NextResponse.json(updated);
     }

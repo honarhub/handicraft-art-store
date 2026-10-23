@@ -78,6 +78,9 @@ export default function ArtistAddProductPage() {
       setSeoMetaDesc(data.seoMetaDesc || '');
       setSeoKeywords(data.seoKeywords || '');
       if (data.stockQuantity !== undefined) setStockQuantity(data.stockQuantity);
+      if (data.matchedSpecialties && Array.isArray(data.matchedSpecialties) && data.matchedSpecialties.length > 0) {
+        setSpecialties(data.matchedSpecialties);
+      }
       
       setAiCompleted(true);
     } catch (error) {

@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import AdminPromptModal from '@/app/components/AdminPromptModal';
 
 type Specialty = {
@@ -7,15 +8,35 @@ type Specialty = {
   name: string;
   isApproved: boolean;
   createdAt: string;
+  parentId?: string | null;
+  parent?: { id: string; name: string } | null;
+  children?: { id: string; name: string }[];
   artists?: { user: { name: string } }[];
 };
 
 export default function AdminSpecialtiesPage() {
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterMode, setFilterMode] = useState<'ALL' | 'PENDING' | 'MASTERS' | 'CHILDREN'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Modal for editing specialty name
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, id: string, name: string}>({isOpen: false, id: '', name: ''});
+  
+  // Modal for changing parent category
+  const [parentModalConfig, setParentModalConfig] = useState<{isOpen: boolean, id: string, currentParentId: string | null, name: string}>({
+    isOpen: false,
+    id: '',
+    currentParentId: null,
+    name: ''
+  });
 
-  useEffect(() => {
+  // New specialty creation form states
+  const [newSpecName, setNewSpecName] = useState('');
+  const [newSpecParentId, setNewSpecParentId] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  const fetchSpecialties = () => {
     fetch('/api/specialties?admin=true')
       .then(res => res.json())
       .then(data => {
@@ -26,7 +47,16 @@ export default function AdminSpecialtiesPage() {
         console.error(err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchSpecialties();
   }, []);
+
+  // List of master categories (parentId is null)
+  const masterCategories = useMemo(() => {
+    return specialties.filter(s => !s.parentId);
+  }, [specialties]);
 
   const toggleApproval = async (id: string, currentStatus: boolean) => {
     try {
@@ -70,8 +100,63 @@ export default function AdminSpecialtiesPage() {
     }
   };
 
+  const handleChangeParent = async (id: string, newParentId: string) => {
+    try {
+      const res = await fetch(`/api/specialties/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: newParentId ? newParentId : null })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSpecialties(prev => prev.map(s => s.id === id ? { ...s, parentId: updated.parentId, parent: updated.parent } : s));
+        setParentModalConfig({ ...parentModalConfig, isOpen: false });
+      } else {
+        alert('خطا در تغییر دسته‌بندی والد');
+      }
+    } catch (error) {
+      alert('خطا در ارتباط با سرور');
+    }
+  };
+
+  const handleCreateNewSpecialty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSpecName.trim()) return;
+
+    setIsCreating(true);
+    try {
+      const res = await fetch('/api/specialties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newSpecName.trim(),
+          parentId: newSpecParentId ? newSpecParentId : undefined
+        })
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        // Since admin created it, auto-approve it
+        await fetch(`/api/specialties/${created.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isApproved: true })
+        });
+        setNewSpecName('');
+        setNewSpecParentId('');
+        fetchSpecialties();
+      } else {
+        alert('خطا در ثبت تخصص');
+      }
+    } catch (error) {
+      alert('خطا در ارتباط با سرور');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const deleteSpecialty = async (id: string) => {
-    if (!confirm('آیا از حذف این تخصص اطمینان دارید؟')) return;
+    if (!confirm('آیا از حذف این تخصص اطمینان دارید؟ اگر این دسته والد باشد، اتصال زیرمجموعه‌ها قطع می‌شود.')) return;
     try {
       const res = await fetch(`/api/specialties/${id}`, {
         method: 'DELETE'
@@ -84,12 +169,26 @@ export default function AdminSpecialtiesPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center" dir="rtl">در حال دریافت...</div>;
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold" dir="rtl">در حال دریافت تخصص‌ها...</div>;
 
   const pendingCount = specialties.filter(s => !s.isApproved).length;
 
+  const filteredSpecialties = specialties.filter(item => {
+    if (filterMode === 'PENDING' && item.isApproved) return false;
+    if (filterMode === 'MASTERS' && item.parentId !== null) return false;
+    if (filterMode === 'CHILDREN' && item.parentId === null) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchName = item.name.toLowerCase().includes(q);
+      const matchParent = item.parent?.name.toLowerCase().includes(q);
+      return matchName || matchParent;
+    }
+    return true;
+  });
+
   return (
-    <div className="p-8 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-8 max-w-6xl mx-auto font-sans" dir="rtl">
+      {/* Edit Name Modal */}
       <AdminPromptModal 
         isOpen={modalConfig.isOpen}
         title="ویرایش نام تخصص"
@@ -97,58 +196,302 @@ export default function AdminSpecialtiesPage() {
         onConfirm={submitEditSpecialty}
         onCancel={() => setModalConfig({ ...modalConfig, isOpen: false })}
       />
+
+      {/* Change Parent Category Modal */}
+      {parentModalConfig.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100">
+            <h3 className="text-lg font-black text-slate-800 mb-2">تغییر دسته‌بندی والد</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              انتخاب دسته‌بندی والد جدید برای تخصص «<strong className="text-purple-600">{parentModalConfig.name}</strong>»:
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">دسته‌بندی والد:</label>
+                <select
+                  defaultValue={parentModalConfig.currentParentId || ''}
+                  id="parentSelectInput"
+                  className="w-full p-3 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 outline-none focus:border-purple-500"
+                >
+                  <option value="">بدون والد (تبدیل به دسته اصلی)</option>
+                  {masterCategories
+                    .filter(m => m.id !== parentModalConfig.id)
+                    .map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setParentModalConfig({ ...parentModalConfig, isOpen: false })}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  انصراف
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const select = document.getElementById('parentSelectInput') as HTMLSelectElement;
+                    handleChangeParent(parentModalConfig.id, select.value);
+                  }}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-md transition cursor-pointer"
+                >
+                  ذخیره تغییرات
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
-      <div className="mb-8 flex justify-between items-center">
+      {/* Page Header */}
+      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">مدیریت تخصص‌ها (Taxonomy)</h2>
-          <p className="text-slate-500 mt-1 text-sm">بررسی و تایید تخصص‌های جدید پیشنهاد شده توسط هنرمندان</p>
+          <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+            <span>مدیریت درختواره تخصص‌ها و دسته‌بندی‌های هنری</span>
+          </h2>
+          <p className="text-slate-500 mt-1 text-sm">
+            تنظیم ساختار ۲ سطحی دسته‌ها (دسته‌بندی‌های اصلی و زیرمجموعه‌ها)، بررسی و تایید تخصص‌های پیشنهادی هنرمندان
+          </p>
         </div>
         {pendingCount > 0 && (
-          <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-xl font-bold text-sm">
-            {pendingCount} تخصص جدید نیاز به بررسی دارد
+          <div className="bg-amber-100 text-amber-900 border border-amber-300 px-4 py-2.5 rounded-2xl font-black text-sm flex items-center gap-2 shadow-xs">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>{pendingCount} هنر جدید نیازمند بررسی و تایید است</span>
           </div>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-right text-sm text-slate-600">
-          <thead className="text-xs text-slate-500 bg-slate-50 border-b border-slate-100 uppercase">
+      {/* Add New Specialty Bar */}
+      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 mb-8">
+        <h4 className="text-sm font-black text-slate-800 mb-3 flex items-center gap-2">
+          <span>➕ افزودن دسته‌بندی یا تخصص جدید</span>
+        </h4>
+        <form onSubmit={handleCreateNewSpecialty} className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={newSpecName}
+            onChange={e => setNewSpecName(e.target.value)}
+            placeholder="نام تخصص یا هنر (مثلاً: نگارگری روی چوب)..."
+            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:border-purple-500 outline-none"
+            required
+          />
+          <select
+            value={newSpecParentId}
+            onChange={e => setNewSpecParentId(e.target.value)}
+            className="px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-purple-500 outline-none"
+          >
+            <option value="">دسته اصلی (سطح ۱ - والد)</option>
+            {masterCategories.map(m => (
+              <option key={m.id} value={m.id}>
+                زیرمجموعه «{m.name}»
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={isCreating || !newSpecName.trim()}
+            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 cursor-pointer"
+          >
+            {isCreating ? 'در حال ثبت...' : 'افزودن به لیست'}
+          </button>
+        </form>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-4">
+        {/* Tabs */}
+        <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+          <button
+            onClick={() => setFilterMode('ALL')}
+            className={`px-3 py-1.5 rounded-lg transition ${filterMode === 'ALL' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
+          >
+            همه تخصص‌ها ({specialties.length})
+          </button>
+          <button
+            onClick={() => setFilterMode('PENDING')}
+            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
+              filterMode === 'PENDING' ? 'bg-white text-amber-700 shadow-xs' : 'hover:text-slate-900'
+            }`}
+          >
+            در انتظار تایید ({pendingCount})
+          </button>
+          <button
+            onClick={() => setFilterMode('MASTERS')}
+            className={`px-3 py-1.5 rounded-lg transition ${filterMode === 'MASTERS' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
+          >
+            دسته‌های اصلی ({masterCategories.length})
+          </button>
+          <button
+            onClick={() => setFilterMode('CHILDREN')}
+            className={`px-3 py-1.5 rounded-lg transition ${filterMode === 'CHILDREN' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
+          >
+            زیرمجموعه‌ها ({specialties.length - masterCategories.length})
+          </button>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative min-w-[240px]">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="جستجوی نام یا دسته والد..."
+            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-purple-500"
+          />
+        </div>
+      </div>
+
+      {/* Specialties Table */}
+      <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+        <table className="w-full text-right text-xs text-slate-600">
+          <thead className="text-[11px] text-slate-500 bg-slate-50 border-b border-slate-100 uppercase">
             <tr>
-              <th className="px-6 py-4 font-bold">نام تخصص</th>
-              <th className="px-6 py-4 font-bold">درخواست دهنده</th>
-              <th className="px-6 py-4 font-bold">وضعیت</th>
-              <th className="px-6 py-4 font-bold">عملیات</th>
+              <th className="px-6 py-4 font-black">نام تخصص / هنر</th>
+              <th className="px-6 py-4 font-black">دسته‌بندی والد (سطح ۱)</th>
+              <th className="px-6 py-4 font-black">درخواست‌دهنده</th>
+              <th className="px-6 py-4 font-black">وضعیت</th>
+              <th className="px-6 py-4 font-black text-center">عملیات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {specialties.map(specialty => (
-              <tr key={specialty.id} className={`hover:bg-slate-50 transition-colors ${!specialty.isApproved ? 'bg-yellow-50/30' : ''}`}>
-                <td className="px-6 py-4 font-bold text-slate-800">{specialty.name}</td>
-                <td className="px-6 py-4 text-slate-600">
-                  {specialty.artists && specialty.artists.length > 0
-                    ? specialty.artists.map(a => a.user.name).join('، ')
-                    : <span className="text-slate-400 italic">پیش‌فرض سیستم</span>}
-                </td>
-                <td className="px-6 py-4">
-                  {specialty.isApproved ? (
-                    <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-bold">تایید شده / پیش‌فرض</span>
-                  ) : (
-                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">در انتظار بررسی</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 flex gap-2">
-                  <button onClick={() => toggleApproval(specialty.id, specialty.isApproved)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${specialty.isApproved ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md'}`}>
-                    {specialty.isApproved ? 'لغو تایید' : 'تایید و انتشار'}
-                  </button>
-                  <button onClick={() => handleEditSpecialty(specialty.id, specialty.name)} className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors">
-                    ویرایش نام
-                  </button>
-                  <button onClick={() => deleteSpecialty(specialty.id)} className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold transition-colors">
-                    حذف
-                  </button>
+            {filteredSpecialties.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                  موردی با این مشخصات یافت نشد.
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredSpecialties.map(specialty => {
+                const isMaster = specialty.parentId === null;
+                return (
+                  <tr
+                    key={specialty.id}
+                    className={`hover:bg-slate-50 transition-colors ${
+                      !specialty.isApproved ? 'bg-amber-50/40' : ''
+                    }`}
+                  >
+                    {/* Name */}
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                      <div className="flex items-center gap-2">
+                        {isMaster && (
+                          <span className="text-purple-600 font-bold" title="دسته اصلی">📁</span>
+                        )}
+                        <span>{specialty.name}</span>
+                        {isMaster && specialty.children && (
+                          <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-bold">
+                            {specialty.children.length} زیرمجموعه
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Parent */}
+                    <td className="px-6 py-4">
+                      {isMaster ? (
+                        <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg text-[11px] font-black inline-flex items-center gap-1">
+                          ★ دسته اصلی (سطح ۱)
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-700">
+                            {specialty.parent ? specialty.parent.name : '—'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setParentModalConfig({
+                                isOpen: true,
+                                id: specialty.id,
+                                currentParentId: specialty.parentId || null,
+                                name: specialty.name
+                              })
+                            }
+                            className="text-[10px] text-purple-600 hover:text-purple-800 underline cursor-pointer"
+                          >
+                            تغییر
+                          </button>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Requester */}
+                    <td className="px-6 py-4 text-slate-600">
+                      {specialty.artists && specialty.artists.length > 0 ? (
+                        specialty.artists.map(a => a.user.name).join('، ')
+                      ) : (
+                        <span className="text-slate-400 italic">پیش‌فرض سیستم</span>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-6 py-4">
+                      {specialty.isApproved ? (
+                        <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md text-[11px] font-black">
+                          تایید شده
+                        </span>
+                      ) : (
+                        <span className="bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md text-[11px] font-black">
+                          در انتظار بررسی
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => toggleApproval(specialty.id, specialty.isApproved)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            specialty.isApproved
+                              ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                          }`}
+                        >
+                          {specialty.isApproved ? 'لغو تایید' : 'تایید و انتشار'}
+                        </button>
+                        
+                        <button
+                          onClick={() => handleEditSpecialty(specialty.id, specialty.name)}
+                          className="px-2.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition cursor-pointer"
+                          title="ویرایش نام"
+                        >
+                          ویرایش
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            setParentModalConfig({
+                              isOpen: true,
+                              id: specialty.id,
+                              currentParentId: specialty.parentId || null,
+                              name: specialty.name
+                            })
+                          }
+                          className="px-2.5 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 rounded-lg text-xs font-bold transition cursor-pointer"
+                          title="تغییر دسته والد"
+                        >
+                          تغییر والد
+                        </button>
+
+                        <button
+                          onClick={() => deleteSpecialty(specialty.id)}
+                          className="px-2.5 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg text-xs font-bold transition cursor-pointer"
+                          title="حذف"
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

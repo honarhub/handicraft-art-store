@@ -8,10 +8,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const dataToUpdate: any = {};
     if (body.isApproved !== undefined) dataToUpdate.isApproved = body.isApproved;
     if (body.name !== undefined && body.name.trim() !== '') dataToUpdate.name = body.name.trim();
+    if (body.parentId !== undefined) {
+      dataToUpdate.parentId = body.parentId ? body.parentId : null;
+    }
 
     const updated = await prisma.specialty.update({
       where: { id },
-      data: dataToUpdate
+      data: dataToUpdate,
+      include: {
+        parent: true,
+        children: true
+      }
     });
     return NextResponse.json(updated);
   } catch (error) {

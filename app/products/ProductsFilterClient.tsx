@@ -11,7 +11,7 @@ interface ProductsFilterClientProps {
   initialSort: string;
   initialMax: number;
   maxPossiblePrice: number;
-  specialties: { id: string, name: string }[];
+  specialties: { id: string, name: string, children?: { id: string, name: string }[] }[];
   artists: any[];
 }
 
@@ -90,9 +90,23 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
             className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-sm bg-white"
           >
             <option value="">همه دسته‌بندی‌ها</option>
-            {specialties.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
+            {specialties.map(group => {
+              if (group.children && group.children.length > 0) {
+                return (
+                  <optgroup key={group.id} label={group.name}>
+                    <option value={group.id}>همه موارد {group.name}</option>
+                    {group.children.map(child => (
+                      <option key={child.id} value={child.id}>
+                        {child.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              }
+              return (
+                <option key={group.id} value={group.id}>{group.name}</option>
+              );
+            })}
           </select>
         </div>
 

@@ -6,6 +6,8 @@ export type Specialty = {
   id: string;
   name: string;
   isApproved: boolean;
+  parentId?: string | null;
+  parent?: { id: string; name: string } | null;
 };
 
 interface SpecialtyTagInputProps {
@@ -152,11 +154,16 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
               {suggestions.map(specialty => (
                 <li 
                   key={specialty.id} 
-                  className="px-4 py-3 cursor-pointer hover:bg-emerald-50 text-slate-700 transition-colors"
+                  className="px-4 py-3 cursor-pointer hover:bg-emerald-50 text-slate-700 transition-colors flex items-center justify-between"
                   onClick={() => addSpecialty(specialty)}
                 >
-                  {specialty.name}
-                  {!specialty.isApproved && <span className="mr-2 text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded">در انتظار تایید</span>}
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{specialty.name}</span>
+                    {specialty.parent && (
+                      <span className="text-xs text-slate-400">({specialty.parent.name})</span>
+                    )}
+                  </div>
+                  {!specialty.isApproved && <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded font-bold">در انتظار تایید</span>}
                 </li>
               ))}
             </ul>

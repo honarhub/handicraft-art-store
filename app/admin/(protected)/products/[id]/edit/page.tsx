@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
+import CategoryHierarchySelector, { SpecialtyItem } from '@/app/components/CategoryHierarchySelector';
 
 export default function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const [submitLoading, setSubmitLoading] = useState(false);
   const [product, setProduct] = useState<any>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [specialties, setSpecialties] = useState<SpecialtyItem[]>([]);
   const [price, setPrice] = useState('');
   const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
   const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
@@ -97,6 +99,9 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           loadedImages.push(data.imageUrl);
         }
         setImages(loadedImages);
+        if (data.specialties) {
+          setSpecialties(data.specialties);
+        }
 
         fetch(`/api/products/${id}/pricing`)
           .then(res => res.json())
@@ -135,7 +140,8 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           isPreOrderEnabled,
           preOrderTiers,
           price,
-          images
+          images,
+          specialties: specialties.map(s => s.id)
         })
       });
 
@@ -244,6 +250,14 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
             <label className="block text-sm font-bold text-slate-700 mb-2">توضیحات</label>
             <textarea value={product.description || ''} onChange={e => setProduct({...product, description: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-purple-500 outline-none" rows={4} required />
           </div>
+
+          {/* Art Categories and Specialties Hierarchy Selector */}
+          <CategoryHierarchySelector
+            selectedSpecialties={specialties}
+            onChange={setSpecialties}
+            label="دسته‌بندی و سبک‌های هنری اثر"
+            helperText="دسته‌بندی والد و تخصص‌های مرتبط با این اثر را انتخاب فرمایید."
+          />
 
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان)</label>
