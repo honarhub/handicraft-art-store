@@ -33,18 +33,25 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blog');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
+    let publicUrl = '';
     const ext = file.name.split('.').pop() || 'jpg';
     const cleanFileName = `blog_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const filePath = path.join(uploadsDir, cleanFileName);
 
-    await fsPromises.writeFile(filePath, buffer);
-
-    const publicUrl = `/uploads/blog/${cleanFileName}`;
+    try {
+      if (!process.env.VERCEL) {
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'blog');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filePath = path.join(uploadsDir, cleanFileName);
+        await fsPromises.writeFile(filePath, buffer);
+        publicUrl = `/uploads/blog/${cleanFileName}`;
+      } else {
+        publicUrl = `data:${file.type || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+      }
+    } catch (fsErr) {
+      publicUrl = `data:${file.type || 'image/jpeg'};base64,${buffer.toString('base64')}`;
+    }
 
     return NextResponse.json({
       success: true,

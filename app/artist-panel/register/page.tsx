@@ -62,7 +62,7 @@ export default function ArtistRegisterPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <a href="/" className="inline-flex items-center text-3xl font-black tracking-tight group" dir="rtl">
-            <span className="text-slate-900 transition-colors group-hover:text-emerald-700">هنر</span>
+            <span className="text-black transition-colors group-hover:text-emerald-700">هنر</span>
             <span className="bg-[#FF9900] text-black px-2 py-0.5 rounded-md mr-1 text-2xl font-black shadow-sm transition-transform group-hover:scale-105">هاب</span>
           </a>
         </div>

@@ -504,7 +504,7 @@ export default function CategoriesMegaMenu() {
             <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-2">
                 <div className="text-xl font-black tracking-tight flex items-center select-none">
-                  <span className="text-slate-900">هنر</span>
+                  <span className="text-black">هنر</span>
                   <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded mr-1 text-base font-black">هاب</span>
                 </div>
                 <span className="text-xs font-bold text-slate-500 mr-2">دسته‌بندی‌های اصیل</span>

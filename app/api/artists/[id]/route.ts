@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
+import { saveUploadImageSync } from '@/lib/fileUpload';
 
 // دریافت اطلاعات یک هنرمند برای ویرایش
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -47,14 +48,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       let imageUrl: string | null | undefined = undefined;
       
       if (avatar && typeof avatar === 'string' && avatar.startsWith('data:image')) {
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'artists');
-        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-        
-        const fileName = `artist_${Date.now()}.png`;
-        const filePath = path.join(uploadsDir, fileName);
-        const base64Data = avatar.replace(/^data:image\/\w+;base64,/, "");
-        fs.writeFileSync(filePath, base64Data, 'base64');
-        imageUrl = `/uploads/artists/${fileName}`;
+        imageUrl = saveUploadImageSync(avatar, 'artists', 'artist');
       } else if (avatar === '') {
         imageUrl = null;
       }
@@ -88,14 +82,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         let imageUrl: string | null | undefined = edits.image;
         
         if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('data:image')) {
-          const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'artists');
-          if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-          
-          const fileName = `artist_${Date.now()}.png`;
-          const filePath = path.join(uploadsDir, fileName);
-          const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, "");
-          fs.writeFileSync(filePath, base64Data, 'base64');
-          imageUrl = `/uploads/artists/${fileName}`;
+          imageUrl = saveUploadImageSync(imageUrl, 'artists', 'artist');
         } else if (imageUrl === '') {
           imageUrl = null;
         }

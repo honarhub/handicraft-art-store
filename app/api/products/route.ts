@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import fs from 'fs';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
+import { saveUploadImage } from '@/lib/fileUpload';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,24 +82,9 @@ export async function GET() {
     const imagesToProcess = images && images.length > 0 ? images : (image ? [image] : []);
 
     if (imagesToProcess.length > 0) {
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'products');
-      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-      
       for (let i = 0; i < imagesToProcess.length; i++) {
-        const img = imagesToProcess[i];
-        const commaIndex = img.indexOf(',');
-        const header = commaIndex !== -1 ? img.substring(0, commaIndex) : '';
-        let ext = 'png';
-        if (header.includes('video/')) ext = 'mp4';
-        else if (header.includes('image/jpeg')) ext = 'jpg';
-        else if (header.includes('image/webp')) ext = 'webp';
-        
-        const base64Data = commaIndex !== -1 ? img.substring(commaIndex + 1) : img;
-        
-        const fileName = `product_${Date.now()}_${i}.${ext}`;
-        const filePath = path.join(uploadsDir, fileName);
-        await fsPromises.writeFile(filePath, Buffer.from(base64Data, 'base64'));
-        mediaUrls.push(`/uploads/products/${fileName}`);
+        const saved = await saveUploadImage(imagesToProcess[i], 'products', 'product', i);
+        mediaUrls.push(saved);
       }
       imageUrl = mediaUrls[0];
     }

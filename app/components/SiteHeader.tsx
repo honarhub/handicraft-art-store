@@ -18,7 +18,7 @@ export default function SiteHeader() {
             className="text-2xl md:text-3xl font-black tracking-tight flex items-center select-none"
             dir="rtl"
           >
-            <span className="text-slate-900">هنر</span>
+            <span className="text-black">هنر</span>
             <span className="bg-[#FF9900] text-black px-2 py-0.5 rounded-md mr-1 text-xl md:text-2xl font-black shadow-sm">
               هاب
             </span>

@@ -90,15 +90,23 @@ export async function POST(request: Request) {
       const ext = file.name.split('.').pop();
       const fileName = `support_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
       
-      // Store in private directory
-      const privateDir = path.join(process.cwd(), 'private', 'uploads', 'support');
-      await fsPromises.mkdir(privateDir, { recursive: true });
-      
-      const filePath = path.join(privateDir, fileName);
-      await fsPromises.writeFile(filePath, buffer);
-      
-      // Save internal path
-      attachmentUrl = `/api/admin/files?path=${fileName}`;
+      try {
+        if (!process.env.VERCEL) {
+          // Store in private directory
+          const privateDir = path.join(process.cwd(), 'private', 'uploads', 'support');
+          await fsPromises.mkdir(privateDir, { recursive: true });
+          
+          const filePath = path.join(privateDir, fileName);
+          await fsPromises.writeFile(filePath, buffer);
+          
+          // Save internal path
+          attachmentUrl = `/api/admin/files?path=${fileName}`;
+        } else {
+          attachmentUrl = `data:${file.type || 'application/octet-stream'};base64,${buffer.toString('base64')}`;
+        }
+      } catch (fsErr) {
+        attachmentUrl = `data:${file.type || 'application/octet-stream'};base64,${buffer.toString('base64')}`;
+      }
     }
 
     await prisma.supportMessage.create({

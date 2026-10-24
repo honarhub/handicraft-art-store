@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import fs from 'fs';
 import path from 'path';
+import { saveUploadImageSync } from '@/lib/fileUpload';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,20 +52,7 @@ export async function POST(request: Request) {
 
     let imageUrl = null;
     if (avatar) {
-      // ذخیره فایل در پوشه public/uploads
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'artists');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-      
-      const fileName = `artist_${Date.now()}.png`;
-      const filePath = path.join(uploadsDir, fileName);
-      
-      // دیتای base64 را دیکد کرده و ذخیره می‌کنیم
-      const base64Data = avatar.replace(/^data:image\/\w+;base64,/, "");
-      fs.writeFileSync(filePath, base64Data, 'base64');
-      
-      imageUrl = `/uploads/artists/${fileName}`;
+      imageUrl = saveUploadImageSync(avatar, 'artists', 'artist');
     }
 
     // ایجاد یک کاربر جدید به عنوان هنرمند
