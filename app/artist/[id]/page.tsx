@@ -11,8 +11,9 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
-  // دریافت اطلاعات واقعی از دیتابیس (پشتیبانی از cuid و displayId)
+  // Fetch artist profile by cuid or displayId
   const isNumericId = !isNaN(Number(id));
+  const isAdmin = session?.user?.role === 'ADMIN';
   
   const dbArtist = await prisma.artistProfile.findFirst({
     where: { 
@@ -22,18 +23,19 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
       ],
       isDeleted: false, 
     },
-    include: { user: true, products: { include: { pricingTiers: true } }, specialties: true }
+    include: { 
+      user: true, 
+      products: { 
+        where: isAdmin ? { deletedAt: null } : { status: 'APPROVED', deletedAt: null },
+        include: { pricingTiers: true } 
+      }, 
+      specialties: true 
+    }
   });
   
   if (!dbArtist) notFound();
 
-  // بررسی دسترسی برای پروفایل‌های تایید نشده یا غیرفعال (فقط ادمین می‌تواند پیش‌نمایش را ببیند)
-  let isAdmin = false;
-  if (session && session.user) {
-    if (session.user.role === 'ADMIN') {
-      isAdmin = true;
-    }
-  }
+  // Access check for unapproved or inactive profiles (admin preview only)
 
   if (!dbArtist.isActive || !dbArtist.isApproved) {
     if (!isAdmin) {
@@ -150,32 +152,62 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
           </p>
         </section>
 
-        {/* گالری آثار */}
+        {/* Artist Artworks Gallery */}
         <section>
           <h2 className="text-2xl font-black text-gray-800 mb-8 px-2">گالری آثار هنرمند</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {artist.products.map(product => (
-              <a href={`/product/${product.id}`} key={product.id} className="block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
-                <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
-                  <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <div className="p-5">
-                  <h3 className="font-bold text-gray-800 text-lg mb-2">{product.title}</h3>
-                  <div className="flex justify-between items-center mt-4">
-                    {product.status !== 'APPROVED' ? (
-                      <span className="text-emerald-700 font-bold">بزودی...</span>
-                    ) : product.stockQuantity === 0 ? (
-                      <span className="text-red-500 font-bold">عدم موجودی</span>
-                    ) : (
-                      <span className="text-emerald-700 font-bold">
-                        {product.pricingTiers?.[0]?.price ? Number(product.pricingTiers[0].price).toLocaleString('fa-IR') + ' تومان' : 'نامشخص'}
-                      </span>
+            {artist.products.map(product => {
+              const isAvailable = product.stockQuantity > 0;
+              const isPreOrder = !isAvailable && Boolean(product.isPreOrderEnabled);
+              const isOutOfStock = !isAvailable && !product.isPreOrderEnabled;
+
+              return (
+                <a href={`/product/${product.id}`} key={product.id} className="block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
+                  <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
+                    <img src={product.imageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    
+                    {/* Out of stock without pre-order: dimmed blurred overlay */}
+                    {isOutOfStock && (
+                      <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
+                        <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-md">
+                          ناموجود
+                        </span>
+                      </div>
                     )}
-                    <button className="bg-gray-100 group-hover:bg-emerald-50 group-hover:text-emerald-700 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors">مشاهده</button>
+
+                    {/* Out of stock with pre-order enabled: crisp image with prominent badge */}
+                    {isPreOrder && (
+                      <div className="absolute top-3 right-3 z-10">
+                        <span className="bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md flex items-center gap-1.5">
+                          <span>✨</span>
+                          <span>امکان ثبت پیش‌سفارش</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </a>
-            ))}
+                  <div className="p-5">
+                    <h3 className="font-bold text-gray-800 text-lg mb-2">{product.title}</h3>
+                    <div className="flex justify-between items-center mt-4">
+                      {product.status !== 'APPROVED' ? (
+                        <span className="text-emerald-700 font-bold">بزودی...</span>
+                      ) : isOutOfStock ? (
+                        <span className="text-slate-500 font-bold text-sm">ناموجود</span>
+                      ) : (
+                        <div className="flex flex-col">
+                          <span className={isPreOrder ? "text-amber-700 font-bold text-base" : "text-emerald-700 font-bold"}>
+                            {product.pricingTiers?.[0]?.price ? Number(product.pricingTiers[0].price).toLocaleString('fa-IR') + ' تومان' : 'نامشخص'}
+                          </span>
+                          {isPreOrder && (
+                            <span className="text-[10px] text-amber-600 font-bold">پیش‌سفارش ساخت</span>
+                          )}
+                        </div>
+                      )}
+                      <button className="bg-gray-100 group-hover:bg-emerald-50 group-hover:text-emerald-700 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors">مشاهده</button>
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </section>
       </main>

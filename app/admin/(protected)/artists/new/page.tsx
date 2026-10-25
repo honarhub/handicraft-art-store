@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import SocialLinksInput from '@/app/components/SocialLinksInput';
+import AvatarCropModal from '@/app/components/AvatarCropModal';
 
 export default function AddArtistPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
@@ -10,6 +11,10 @@ export default function AddArtistPage() {
   const [aiPreview, setAiPreview] = useState<any>(null);
   const [aiCountdown, setAiCountdown] = useState(90);
   const [aiError, setAiError] = useState('');
+
+  // Crop modal states
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const isCancelledRef = useRef(false);
@@ -23,14 +28,14 @@ export default function AddArtistPage() {
   const [manualPortfolioUrl, setManualPortfolioUrl] = useState('');
   const [manualSocialLinks, setManualSocialLinks] = useState<any>({});
 
-  // تبدیل فایل به Base64 برای ارسال به سرور
+  // Convert file to Base64
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
         const result = reader.result as string;
-        resolve(result); // ارسال کامل base64 با هدر data:image/...
+        resolve(result); // Full data URL format
       };
       reader.onerror = (error) => reject(error);
     });
@@ -40,8 +45,16 @@ export default function AddArtistPage() {
     const file = e.target.files?.[0];
     if (file) {
       const base64 = await fileToBase64(file);
-      setAvatarBase64(base64);
+      setRawImageForCrop(base64);
+      setCropModalOpen(true);
+      e.target.value = '';
     }
+  };
+
+  const handleCropComplete = (croppedBase64: string) => {
+    setAvatarBase64(croppedBase64);
+    setCropModalOpen(false);
+    setRawImageForCrop(null);
   };
 
   const handleCancelAi = () => {
@@ -84,12 +97,12 @@ export default function AddArtistPage() {
       const base64Str = await fileToBase64(file);
       const mimeType = file.type || 'text/plain';
       
-      // اگر فایل عکس بود، به عنوان آواتار هم در نظر می‌گیریم
+      // If uploaded file is an image, set as avatar candidate
       if (mimeType.startsWith('image/')) {
         setAvatarBase64(base64Str);
       }
 
-      // ارسال به API هوش مصنوعی (نیاز به فرمت بدون هدر دارد)
+      // Send to AI extraction endpoint (requires headerless payload)
       const base64Data = base64Str.split(',')[1];
       
       const res = await fetch('/api/ai/extract-artist', {
@@ -279,9 +292,40 @@ export default function AddArtistPage() {
               
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">عکس پروفایل</label>
-                <div className="flex items-center gap-4">
-                  {avatarBase64 && <img src={avatarBase64} alt="Preview" className="w-12 h-12 rounded-full object-cover border" />}
-                  <input type="file" accept="image/*" onChange={handleAvatarChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 text-sm" />
+                <div className="flex flex-wrap items-center gap-4">
+                  {avatarBase64 ? (
+                    <div className="relative group">
+                      <img src={avatarBase64} alt="Preview" className="w-14 h-14 rounded-full object-cover border-2 border-slate-200 shadow-xs" />
+                      <button 
+                        type="button" 
+                        onClick={() => setAvatarBase64(null)}
+                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white w-5 h-5 rounded-full text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm"
+                        title="حذف عکس"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-14 h-14 rounded-full bg-slate-100 border-2 border-slate-200 flex items-center justify-center text-xl text-slate-400">
+                      👤
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-[220px] flex items-center gap-2">
+                    <input type="file" accept="image/*" onChange={handleAvatarChange} className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-sm" />
+                    {avatarBase64 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRawImageForCrop(avatarBase64);
+                          setCropModalOpen(true);
+                        }}
+                        className="shrink-0 px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="تنظیم کادربندی دایره"
+                      >
+                        تنظیم کادر
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -311,6 +355,17 @@ export default function AddArtistPage() {
           )}
         </div>
       </div>
+
+      {/* Avatar Circular Crop Modal */}
+      <AvatarCropModal
+        isOpen={cropModalOpen}
+        imageSrc={rawImageForCrop}
+        onClose={() => {
+          setCropModalOpen(false);
+          setRawImageForCrop(null);
+        }}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }

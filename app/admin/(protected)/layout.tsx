@@ -36,17 +36,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
-  // گرفتن تعداد تخصص‌های در انتظار تایید
+  // Get pending specialties count
   const pendingSpecialtiesCount = await prisma.specialty.count({
     where: { isApproved: false }
   });
 
-  // گرفتن تعداد هنرمندان جدید (ثبت‌نام شده ولی هنوز تایید نشده)
+  // Get new artist registrations count (pending approval)
   const newRegistrationsCount = await prisma.artistProfile.count({
     where: { isApproved: false, isDeleted: false }
   });
 
-  // گرفتن تعداد درخواست‌های ویرایش پروفایل هنرمندان
+  // Get count of pending profile edit requests
   const allArtistsForCount = await prisma.artistProfile.findMany({
     where: { isDeleted: false },
     select: { pendingEdits: true }
@@ -61,7 +61,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     }
   }).length;
 
-  // گرفتن تعداد محصولات: جدید و در انتظار تایید تغییرات
+  // Get products count: new and pending edits
   const allProductsForCount = await prisma.product.findMany({
     where: { deletedAt: null },
     select: { pendingEdits: true, status: true }
@@ -78,12 +78,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const pendingProductEditsCount = allProductsForCount.filter((p) => hasProductEdits(p)).length;
   const newProductsCount = allProductsForCount.filter((p) => p.status === 'PENDING' && !hasProductEdits(p)).length;
 
-  // پیام‌های پشتیبانی
+  // Support messages count
   const pendingSupportCount = await prisma.supportMessage.count({
     where: { status: 'PENDING' }
   });
 
-  // درخواست‌های موجودی
+  // Stock notification requests count
   const pendingStockRequestsCount = await prisma.stockNotification.count({
     where: { isNotified: false }
   });

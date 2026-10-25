@@ -30,9 +30,7 @@ function ArtistLoginContent() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      if (session?.user?.role === 'ADMIN') {
-        router.push('/admin');
-      } else if (session?.user?.role === 'ARTIST') {
+      if (session?.user?.role === 'ARTIST' || session?.user?.role === 'ADMIN') {
         router.push('/artist-panel/dashboard');
       }
       // If role is 'USER', we do NOT redirect to avoid infinite loops.

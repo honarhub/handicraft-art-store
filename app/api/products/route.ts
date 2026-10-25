@@ -4,12 +4,26 @@ import fs from 'fs';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { saveUploadImage } from '@/lib/fileUpload';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const isAdmin = session?.user?.role === 'ADMIN';
+
+    const whereClause: any = isAdmin 
+      ? { deletedAt: null }
+      : { 
+          status: 'APPROVED', 
+          deletedAt: null,
+          artist: { isActive: true, isDeleted: false }
+        };
+
     const products = await prisma.product.findMany({
+      where: whereClause,
       include: {
         artist: {
           include: { user: true }

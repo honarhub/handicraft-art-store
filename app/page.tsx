@@ -12,7 +12,7 @@ import HonarHubHero from './components/HonarHubHero';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  // 0. واکشی ۱۰ محصول اخیر تایید شده برای منظومه چرخان قهرمان سایت
+  // 0. Fetch 10 recent approved products for hero cosmos carousel
   const heroProducts = await prisma.product.findMany({
     where: { 
       status: 'APPROVED', 
@@ -27,7 +27,7 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 1. واکشی آثار برگزیده اخیر
+  // 1. Fetch featured recent artworks
   const featuredProducts = await prisma.product.findMany({
     where: { 
       status: 'APPROVED', 
@@ -39,7 +39,7 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 2. واکشی هنرمندان ایران زمین (فعال)
+  // 2. Fetch active Iranian artists
   const topArtists = await prisma.artistProfile.findMany({
     where: { isActive: true, isDeleted: false },
     include: { user: true },
@@ -47,7 +47,7 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 3. واکشی تنظیمات و ردیف‌های داینامیک
+  // 3. Fetch settings and dynamic rows
   const siteSettings = await prisma.siteSettings.findUnique({
     where: { id: 'default' }
   });
@@ -55,7 +55,7 @@ export default async function Home() {
   const rawRows = siteSettings?.dynamicRows ? (typeof siteSettings.dynamicRows === 'string' ? JSON.parse(siteSettings.dynamicRows) : siteSettings.dynamicRows) : [];
   const activeRows = (rawRows as any[]).filter(r => r.isActive).sort((a, b) => a.order - b.order);
 
-  // واکشی محصولات برای هر ردیف پویا
+  // Fetch products for each dynamic row
   const populatedRows = await Promise.all(activeRows.map(async (row) => {
     let products: any[] = [];
     const baseQuery = { 
@@ -181,17 +181,22 @@ export default async function Home() {
                         alt={product.title} 
                         className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
                       />
-                      {product.stockQuantity <= 0 && (
-                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center">
-                          {product.isPreOrderEnabled ? (
-                            <span className="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
-                              ناموجود (امکان ثبت پیش‌سفارش)
-                            </span>
-                          ) : (
-                            <span className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
-                              ناموجود
-                            </span>
-                          )}
+                      {/* Out of stock without pre-order: dimmed blurred overlay */}
+                      {product.stockQuantity <= 0 && !product.isPreOrderEnabled && (
+                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
+                          <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm shadow-md">
+                            ناموجود
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Out of stock with pre-order enabled: crisp image with prominent badge */}
+                      {product.stockQuantity <= 0 && product.isPreOrderEnabled && (
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className="bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md flex items-center gap-1.5">
+                            <span>✨</span>
+                            <span>امکان ثبت پیش‌سفارش</span>
+                          </span>
                         </div>
                       )}
                     </div>

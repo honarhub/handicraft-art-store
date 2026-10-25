@@ -27,6 +27,29 @@ export default function AdminProductsPage() {
       });
   }, []);
 
+  const handleToggleStatus = async (product: any) => {
+    const isApproved = product.status === 'APPROVED';
+    const newStatus = isApproved ? 'REJECTED' : 'APPROVED';
+    
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'updateStatus', 
+          status: newStatus,
+          adminFeedback: isApproved ? 'غیرفعال شده توسط ادمین' : ''
+        })
+      });
+      if (!res.ok) throw new Error('خطا در تغییر وضعیت');
+      
+      setProducts(products.map(p => p.id === product.id ? { ...p, status: newStatus } : p));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
+    } catch (err) {
+      alert('خطا در تغییر وضعیت محصول');
+    }
+  };
+
   const handleUpdateStatus = async (id: string, status: string, feedback: string = '') => {
     if (status === 'REJECTED' && !feedback) {
       setModalConfig({ isOpen: true, id });
@@ -270,15 +293,31 @@ export default function AdminProductsPage() {
                     {product.stockQuantity || 0}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    {(product.hasPendingEdits || product.status === 'PENDING') ? (
-                      <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-bold">
-                        در انتظار تایید
-                      </span>
-                    ) : product.status === 'APPROVED' ? (
-                      <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">تایید شده</span>
-                    ) : (
-                      <span className="bg-red-100 text-red-800 px-2.5 py-1 rounded-full text-xs font-bold">رد شده</span>
-                    )}
+                    <div className="flex flex-col items-center justify-center gap-1.5">
+                      <button 
+                        type="button"
+                        dir="ltr"
+                        onClick={() => handleToggleStatus(product)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${product.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        title={product.status === 'APPROVED' ? 'غیرفعال کردن اثر در سایت' : 'فعال کردن و انتشار اثر در سایت'}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            product.status === 'APPROVED' ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+
+                      {product.status === 'APPROVED' ? (
+                        <span className="text-[11px] font-bold text-emerald-700">فعال (منتشر شده)</span>
+                      ) : (product.hasPendingEdits || product.status === 'PENDING') ? (
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          در انتظار تایید
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-slate-500">غیرفعال</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-left">
                     <div className="flex justify-end items-center gap-2">

@@ -10,7 +10,7 @@ export async function GET() {
 
   try {
     products = await prisma.product.findMany({
-      where: { status: 'APPROVED' },
+      where: { status: 'APPROVED', deletedAt: null },
       take: 10,
       orderBy: { createdAt: 'desc' },
       select: { id: true, title: true, description: true }

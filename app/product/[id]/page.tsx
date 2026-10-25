@@ -31,16 +31,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     notFound();
   }
 
-  // اگر محصول جدیدی است که هنوز تایید اولیه نگرفته است، فقط برای ادمین و هنرمند صاحب محصول نمایش داده شود و برای دیگران 404 باشد
-  const hasEdits = Boolean(
-    product.pendingEdits && (
-      typeof product.pendingEdits === 'string'
-        ? product.pendingEdits !== 'null' && product.pendingEdits !== '{}'
-        : Object.keys(product.pendingEdits as object).length > 0
-    )
-  );
-
-  if ((product.status === 'PENDING' || product.status === 'REJECTED') && !hasEdits) {
+  // If product is deactivated or pending, return 404 for public visitors (allow preview for admin & owner)
+  if (product.status !== 'APPROVED') {
     const session = await getServerSession(authOptions);
     const isOwner = session?.user?.id === product.artist.userId;
     const isAdmin = session?.user?.role === 'ADMIN';
@@ -61,6 +53,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
       <SiteHeader />
+      {product.status !== 'APPROVED' && (
+        <div className="bg-amber-500 text-white p-3 text-center text-sm font-bold shadow-md z-40">
+          ⚠️ حالت پیش‌نمایش ({product.status === 'REJECTED' ? 'غیرفعال شده توسط مدیریت' : 'در انتظار تایید مدیریت'}): این محصول برای عموم کاربران مخفی است و فقط برای شما قابل مشاهده می‌باشد.
+        </div>
+      )}
 
       <main className="flex-1 w-full max-w-7xl mx-auto py-10 px-4 sm:px-6 md:px-12">
         
