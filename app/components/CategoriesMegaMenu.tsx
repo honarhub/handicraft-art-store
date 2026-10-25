@@ -383,9 +383,9 @@ export default function CategoriesMegaMenu() {
                   <div
                     key={cat.id}
                     onMouseEnter={() => setActiveCategoryId(cat.id)}
-                    className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all text-xs font-bold ${
+                    className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors duration-150 text-xs font-bold ${
                       isActive
-                        ? 'bg-white text-emerald-800 shadow-sm border border-slate-200/90 font-black'
+                        ? 'bg-emerald-50 text-emerald-800 font-black'
                         : 'text-slate-700 hover:bg-white/80 hover:text-slate-900'
                     }`}
                   >
@@ -395,7 +395,7 @@ export default function CategoriesMegaMenu() {
                     >
                       <CraftCategoryIcon
                         name={cat.name}
-                        className={`w-4 h-4 transition-colors ${isActive ? 'text-emerald-600' : 'text-slate-400 group-hover:text-amber-600'}`}
+                        className={`w-4 h-4 transition-colors duration-150 ${isActive ? 'text-emerald-600' : 'text-slate-400 group-hover:text-amber-600'}`}
                       />
                       <span className="line-clamp-1">{cat.name}</span>
                     </a>
@@ -422,7 +422,7 @@ export default function CategoriesMegaMenu() {
                   </div>
                   <a
                     href={`/products?specialty=${encodeURIComponent(activeCategory.id)}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white text-xs font-bold transition-all shadow-xs"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white text-xs font-bold transition-colors duration-150 shadow-xs"
                   >
                     <span>مشاهده همه</span>
                     <svg className="w-3.5 h-3.5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,20 +440,20 @@ export default function CategoriesMegaMenu() {
                         <a
                           key={child.id}
                           href={`/products?specialty=${encodeURIComponent(child.id)}`}
-                          className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 hover:border-emerald-200 bg-slate-50/50 hover:bg-emerald-50/40 text-slate-700 hover:text-emerald-800 transition-all group"
+                          className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/70 hover:border-emerald-300 bg-slate-50/50 hover:bg-emerald-50/50 text-slate-700 hover:text-emerald-800 transition-colors duration-150 group"
                         >
                           <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-emerald-500 transition-colors"></span>
-                            <span className="text-xs font-bold group-hover:translate-x-0.5 transition-transform">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-emerald-500 transition-colors duration-150"></span>
+                            <span className="text-xs font-bold group-hover:translate-x-0.5 transition-transform duration-150">
                               {child.name}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-[11px] font-semibold text-slate-400 group-hover:text-emerald-700 transition-colors">
+                            <span className="text-[11px] font-semibold text-slate-400 group-hover:text-emerald-700 transition-colors duration-150">
                               {child.productCount !== undefined ? `(${child.productCount} اثر)` : ''}
                             </span>
                             <svg
-                              className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 rotate-180 transition-colors"
+                              className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 rotate-180 transition-colors duration-150"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
