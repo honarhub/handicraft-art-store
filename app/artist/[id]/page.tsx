@@ -13,6 +13,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
 
   // دریافت اطلاعات واقعی از دیتابیس (پشتیبانی از cuid و displayId)
   const isNumericId = !isNaN(Number(id));
+  const isAdmin = session?.user?.role === 'ADMIN';
   
   const dbArtist = await prisma.artistProfile.findFirst({
     where: { 
@@ -22,18 +23,19 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
       ],
       isDeleted: false, 
     },
-    include: { user: true, products: { include: { pricingTiers: true } }, specialties: true }
+    include: { 
+      user: true, 
+      products: { 
+        where: isAdmin ? { deletedAt: null } : { status: 'APPROVED', deletedAt: null },
+        include: { pricingTiers: true } 
+      }, 
+      specialties: true 
+    }
   });
   
   if (!dbArtist) notFound();
 
   // بررسی دسترسی برای پروفایل‌های تایید نشده یا غیرفعال (فقط ادمین می‌تواند پیش‌نمایش را ببیند)
-  let isAdmin = false;
-  if (session && session.user) {
-    if (session.user.role === 'ADMIN') {
-      isAdmin = true;
-    }
-  }
 
   if (!dbArtist.isActive || !dbArtist.isApproved) {
     if (!isAdmin) {

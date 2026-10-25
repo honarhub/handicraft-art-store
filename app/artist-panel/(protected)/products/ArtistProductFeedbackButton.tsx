@@ -17,6 +17,7 @@ interface ArtistProductFeedbackButtonProps {
   adminFeedbackHistory?: any;
   adminFeedbackRead?: boolean;
   status: string;
+  onRead?: () => void;
 }
 
 export default function ArtistProductFeedbackButton({
@@ -25,10 +26,16 @@ export default function ArtistProductFeedbackButton({
   adminFeedback,
   adminFeedbackHistory,
   adminFeedbackRead = false,
-  status
+  status,
+  onRead
 }: ArtistProductFeedbackButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isRead, setIsRead] = useState<boolean>(Boolean(adminFeedbackRead));
+
+  // همگام‌سازی استیت با پراپ در صورت آپدیت آنلاین
+  React.useEffect(() => {
+    setIsRead(Boolean(adminFeedbackRead));
+  }, [adminFeedbackRead]);
 
   // استخراج تاریخچه ۳ پیام آخر
   let historyItems: FeedbackHistoryItem[] = [];
@@ -64,6 +71,12 @@ export default function ArtistProductFeedbackButton({
     setIsOpen(true);
     if (!isRead) {
       setIsRead(true);
+      // اطلاعیه فوری به سایدبار و صفحات دیگر برای حذف بلادرنگ نوتیف بدون نیاز به رفرش
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('artist-counts-update'));
+      }
+      if (onRead) onRead();
+
       try {
         await fetch(`/api/products/${productId}`, {
           method: 'PATCH',

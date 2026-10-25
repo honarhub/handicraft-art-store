@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import LogoutButton from '@/app/components/LogoutButton';
+import ArtistSidebarNav from './ArtistSidebarNav';
 
 export default async function ArtistPanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -62,27 +63,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
             <p className="text-xs text-teal-400 mt-1">پنل اختصاصی هنرمند</p>
           </div>
         </div>
-        <nav className="p-4 flex flex-col gap-2">
-          <a href="/artist-panel/dashboard" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center gap-3">
-            📊 پیشخوان من
-          </a>
-          <a href="/artist-panel/products" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              📦 مدیریت آثار و محصولات
-            </span>
-            {unreadFeedbackCount > 0 && (
-              <span className="bg-amber-400 text-teal-950 font-black text-xs px-2 py-0.5 rounded-full animate-pulse shadow-sm">
-                {unreadFeedbackCount}
-              </span>
-            )}
-          </a>
-          <a href="/artist-panel/profile" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center gap-3">
-            👤 ویرایش پروفایل
-          </a>
-          <a href="/artist-panel/security" className="px-4 py-3 rounded-lg hover:bg-teal-800 transition-colors font-medium text-sm flex items-center gap-3">
-            🔒 تنظیمات امنیتی
-          </a>
-        </nav>
+        <ArtistSidebarNav initialUnreadFeedbackCount={unreadFeedbackCount} />
         <div className="p-4 mt-auto border-t border-teal-800 space-y-2">
           <a href={`/artist/${artist.id}`} target="_blank" className="px-4 py-2 w-full text-center rounded-lg border border-teal-700 hover:bg-teal-800 transition-colors text-xs text-teal-300 block">
             مشاهده صفحه عمومی من
