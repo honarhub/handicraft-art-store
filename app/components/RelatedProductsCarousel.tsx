@@ -29,10 +29,10 @@ export default function RelatedProductsCarousel({
     return null;
   }
 
-  // اولویت‌بندی مرتب‌سازی آثار:
-  // ۱. آثار موجود (stockQuantity > 0)
-  // ۲. آثار ناموجود دارای امکان پیش‌سفارش
-  // ۳. آثار ناموجود بدون پیش‌سفارش
+  // Sort priority for displayed products:
+  // 1. Available in stock (stockQuantity > 0)
+  // 2. Out of stock but pre-order enabled
+  // 3. Out of stock without pre-order
   const sortedProducts = [...products].sort((a, b) => {
     const getPriority = (p: RelatedProductItem) => {
       if (p.stockQuantity > 0) return 1;
@@ -113,7 +113,7 @@ export default function RelatedProductsCarousel({
                   rel="noopener noreferrer"
                   className="bg-white rounded-3xl overflow-hidden border border-slate-200/90 hover:border-emerald-500 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full relative"
                 >
-                  {/* ظرف تصویر محصول و برچسب‌های موجودی */}
+                  {/* Product image container and stock badges */}
                   <div className="aspect-square w-full relative overflow-hidden bg-slate-100">
                     <img
                       src={product.imageUrl}
@@ -121,7 +121,16 @@ export default function RelatedProductsCarousel({
                       className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
                     />
 
-                    {/* برچسب‌های وضعیت موجودی و پیش‌سفارش */}
+                    {/* Dimmed blurred overlay for out-of-stock items without pre-order */}
+                    {isOutOfStock && (
+                      <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
+                        <span className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md">
+                          ناموجود
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Status badges */}
                     <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-10">
                       {isAvailable && (
                         <span className="px-2.5 py-1 bg-emerald-600/90 backdrop-blur-md text-white text-[11px] font-bold rounded-lg shadow-sm">
@@ -130,19 +139,14 @@ export default function RelatedProductsCarousel({
                       )}
 
                       {isPreOrder && (
-                        <span className="px-2.5 py-1 bg-amber-600/95 backdrop-blur-md text-white text-[11px] font-bold rounded-lg shadow-sm">
-                          ناموجود (امکان ثبت پیش‌سفارش)
-                        </span>
-                      )}
-
-                      {isOutOfStock && (
-                        <span className="px-2.5 py-1 bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold rounded-lg shadow-sm">
-                          ناموجود
+                        <span className="px-2.5 py-1 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-[11px] font-bold rounded-lg shadow-sm flex items-center gap-1">
+                          <span>✨</span>
+                          <span>امکان ثبت پیش‌سفارش</span>
                         </span>
                       )}
                     </div>
 
-                    {/* نشان باز شدن در تب جدید */}
+                    {/* Open in new tab hint */}
                     <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-slate-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm text-xs">
                       ↗
                     </div>

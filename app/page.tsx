@@ -181,17 +181,22 @@ export default async function Home() {
                         alt={product.title} 
                         className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
                       />
-                      {product.stockQuantity <= 0 && (
-                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center">
-                          {product.isPreOrderEnabled ? (
-                            <span className="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
-                              ناموجود (امکان ثبت پیش‌سفارش)
-                            </span>
-                          ) : (
-                            <span className="bg-slate-900 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow-md">
-                              ناموجود
-                            </span>
-                          )}
+                      {/* Out of stock without pre-order: dimmed blurred overlay */}
+                      {product.stockQuantity <= 0 && !product.isPreOrderEnabled && (
+                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
+                          <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm shadow-md">
+                            ناموجود
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Out of stock with pre-order enabled: crisp image with prominent badge */}
+                      {product.stockQuantity <= 0 && product.isPreOrderEnabled && (
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className="bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md flex items-center gap-1.5">
+                            <span>✨</span>
+                            <span>امکان ثبت پیش‌سفارش</span>
+                          </span>
                         </div>
                       )}
                     </div>

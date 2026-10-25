@@ -13,6 +13,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const specialtyId = typeof params.specialty === 'string' ? params.specialty : '';
   const artistId = typeof params.artist === 'string' ? params.artist : '';
   const sort = typeof params.sort === 'string' ? params.sort : 'newest';
+  const preOrderOnly = params.preOrder === 'true';
   
   // Calculate dynamic max price from DB
   const maxPriceRecord = await prisma.pricingTier.findFirst({
@@ -41,6 +42,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       }
     }
   };
+
+  if (preOrderOnly) {
+    whereClause.isPreOrderEnabled = true;
+  }
 
   if (artistId) {
     whereClause.artistId = artistId;
@@ -145,6 +150,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               initialArtist={artistId}
               initialSort={sort}
               initialMax={maxPrice}
+              initialPreOrder={preOrderOnly}
               maxPossiblePrice={maxPossiblePrice}
               specialties={masterSpecialties} 
               artists={allArtists}
@@ -165,17 +171,23 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                   <a key={product.id} href={`/product/${product.id}`} className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
                     <div className="aspect-square w-full relative overflow-hidden bg-slate-100">
                       <img src={product.imageUrl} alt={product.title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
-                      {product.stockQuantity <= 0 && (
-                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center">
-                          {product.isPreOrderEnabled ? (
-                            <span className="bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md">
-                              ناموجود (امکان ثبت پیش‌سفارش)
-                            </span>
-                          ) : (
-                            <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-md">
-                              ناموجود
-                            </span>
-                          )}
+                      
+                      {/* Out of stock without pre-order: dimmed blurred overlay */}
+                      {product.stockQuantity <= 0 && !product.isPreOrderEnabled && (
+                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
+                          <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-md">
+                            ناموجود
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Out of stock with pre-order enabled: unblurred image with badge */}
+                      {product.stockQuantity <= 0 && product.isPreOrderEnabled && (
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className="bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md flex items-center gap-1.5">
+                            <span>✨</span>
+                            <span>امکان ثبت پیش‌سفارش</span>
+                          </span>
                         </div>
                       )}
                     </div>

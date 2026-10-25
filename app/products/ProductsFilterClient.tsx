@@ -10,12 +10,23 @@ interface ProductsFilterClientProps {
   initialArtist: string;
   initialSort: string;
   initialMax: number;
+  initialPreOrder?: boolean;
   maxPossiblePrice: number;
   specialties: { id: string, name: string, children?: { id: string, name: string, _count?: { products: number } }[] }[];
   artists: any[];
 }
 
-export default function ProductsFilterClient({ initialQ, initialSpecialty, initialArtist, initialSort, initialMax, maxPossiblePrice, specialties, artists }: ProductsFilterClientProps) {
+export default function ProductsFilterClient({ 
+  initialQ, 
+  initialSpecialty, 
+  initialArtist, 
+  initialSort, 
+  initialMax, 
+  initialPreOrder = false,
+  maxPossiblePrice, 
+  specialties, 
+  artists 
+}: ProductsFilterClientProps) {
   const router = useRouter();
   
   const [q, setQ] = useState(initialQ);
@@ -23,6 +34,7 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
   const [artistId, setArtistId] = useState(initialArtist);
   const [sort, setSort] = useState(initialSort);
   const [maxPrice, setMaxPrice] = useState(initialMax);
+  const [preOrderOnly, setPreOrderOnly] = useState(Boolean(initialPreOrder));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +47,7 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
     setMounted(true);
   }, []);
 
-  // بستن منوی کشویی با کلیک در خارج از آن
+  // Close dropdown menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -55,9 +67,10 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
     if (artistId) params.set('artist', artistId);
     if (sort !== 'newest') params.set('sort', sort);
     if (debouncedMax < maxPossiblePrice) params.set('maxPrice', debouncedMax.toString());
+    if (preOrderOnly) params.set('preOrder', 'true');
     
     router.push(`/products?${params.toString()}`, { scroll: false });
-  }, [debouncedQ, specialty, artistId, sort, debouncedMax, router, mounted, maxPossiblePrice]);
+  }, [debouncedQ, specialty, artistId, sort, debouncedMax, preOrderOnly, router, mounted, maxPossiblePrice]);
 
   const clearFilters = () => {
     setQ('');
@@ -65,9 +78,20 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
     setArtistId('');
     setSort('newest');
     setMaxPrice(maxPossiblePrice);
+    setPreOrderOnly(false);
   };
 
-  // تعیین نام دسته‌بندی انتخاب شده برای نمایش در دکمه
+  // Determine whether any filter is actively applied
+  const hasActiveFilters = Boolean(
+    q.trim() !== '' ||
+    specialty !== '' ||
+    artistId !== '' ||
+    sort !== 'newest' ||
+    maxPrice < maxPossiblePrice ||
+    preOrderOnly
+  );
+
+  // Get display name of selected specialty for button trigger
   const selectedName = useMemo(() => {
     if (!specialty) return 'همه دسته‌بندی‌ها';
     for (const group of specialties) {
@@ -85,9 +109,15 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
           فیلترها
         </h3>
-        <button onClick={clearFilters} className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-md transition-colors">
-          حذف همه
-        </button>
+        {hasActiveFilters && (
+          <button 
+            type="button"
+            onClick={clearFilters} 
+            className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+          >
+            حذف همه
+          </button>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -130,7 +160,7 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
 
           {isDropdownOpen && (
             <div className="absolute z-30 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-80 overflow-y-auto p-1.5 divide-y divide-slate-100">
-              {/* گزینه بازنشانی به همه دسته‌ها */}
+              {/* Reset to all categories option */}
               <div className="pb-1">
                 <button
                   type="button"
@@ -147,13 +177,13 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
                 </button>
               </div>
 
-              {/* گروه‌های والد و زیرمجموعه‌ها */}
+              {/* Parent categories and children */}
               <div className="pt-1 space-y-1">
                 {specialties.map(group => {
                   const isParentSelected = specialty === group.id;
                   return (
                     <div key={group.id} className="py-1">
-                      {/* سرشاخه والد به صورت بولد و کاملاً قابل کلیک */}
+                      {/* Parent category button */}
                       <button
                         type="button"
                         onClick={() => {
@@ -174,7 +204,7 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
                         {isParentSelected && <span>✓</span>}
                       </button>
 
-                      {/* زیرمجموعه‌ها و فرزندان */}
+                      {/* Subcategories */}
                       {group.children && group.children.length > 0 && (
                         <div className="pr-3 pl-1 pt-1 space-y-0.5">
                           {group.children.map(child => {
@@ -241,6 +271,29 @@ export default function ProductsFilterClient({ initialQ, initialSpecialty, initi
             <option value="price_asc">ارزان‌ترین</option>
             <option value="price_desc">گران‌ترین</option>
           </select>
+        </div>
+
+        {/* Pre-Order Only Filter Toggle */}
+        <div className="pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-slate-800">امکان پیش‌سفارش</span>
+              <span className="text-[11px] text-slate-400">نمایش آثار قابل سفارش ساخت</span>
+            </div>
+            <button 
+              type="button"
+              dir="ltr"
+              onClick={() => setPreOrderOnly(prev => !prev)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${preOrderOnly ? 'bg-amber-600' : 'bg-slate-300'}`}
+              title={preOrderOnly ? 'نمایش همه آثار' : 'فیلتر فقط آثار دارای امکان پیش‌سفارش'}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  preOrderOnly ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Price Range */}
