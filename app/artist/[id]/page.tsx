@@ -110,25 +110,25 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
             )}
             
             {Object.keys(artist.socialLinks).length > 0 && (
-              <div className="flex justify-center md:justify-start gap-3">
+              <div className="flex justify-center md:justify-start gap-3 items-center">
                 {artist.socialLinks.instagram && (
-                  <a href={artist.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors" title="اینستاگرام">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                  </a>
-                )}
-                {artist.socialLinks.twitter && (
-                  <a href={artist.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors" title="ایکس (توییتر سابق)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  <a href={artist.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] flex items-center justify-center text-white shadow-md hover:shadow-lg hover:scale-110 transition-all" title="اینستاگرام">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
                   </a>
                 )}
                 {artist.socialLinks.telegram && (
-                  <a href={artist.socialLinks.telegram} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors" title="تلگرام">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  <a href={artist.socialLinks.telegram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#24A1DE] hover:bg-[#1f8ec4] flex items-center justify-center text-white shadow-md hover:shadow-lg hover:scale-110 transition-all" title="تلگرام">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                   </a>
                 )}
                 {artist.socialLinks.bale && (
-                  <a href={artist.socialLinks.bale} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors flex items-center justify-center" title="پیام‌رسان بله">
-                    <img src="/icons/bale.png" alt="بله" className="w-5 h-5 rounded-full object-contain" />
+                  <a href={artist.socialLinks.bale} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#0aca9b] hover:bg-[#09b68b] flex items-center justify-center p-1.5 shadow-md hover:shadow-lg hover:scale-110 transition-all" title="پیام‌رسان بله">
+                    <img src="/icons/bale.png" alt="بله" className="w-7 h-7 rounded-full object-contain" />
+                  </a>
+                )}
+                {artist.socialLinks.twitter && (
+                  <a href={artist.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-black hover:bg-slate-900 border border-white/30 flex items-center justify-center text-white shadow-md hover:shadow-lg hover:scale-110 transition-all" title="ایکس (توییتر)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                   </a>
                 )}
               </div>

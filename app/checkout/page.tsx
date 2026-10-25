@@ -17,16 +17,20 @@ export default function CheckoutPage() {
     address: '',
     postalCode: ''
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Payment State
-  const [paymentMethod, setPaymentMethod] = useState<'bank' | 'crypto'>('bank');
+  const [paymentMethod, setPaymentMethod] = useState<'bank'>('bank');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cryptoAddress, setCryptoAddress] = useState('');
   
+  const toEnglishDigits = (str: string) => {
+    return str
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+  };
+
   useEffect(() => {
     setMounted(true);
-    // Generate a dummy crypto address for simulation
-    setCryptoAddress('0x' + Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join(''));
   }, []);
 
   if (!mounted) return null;
@@ -51,6 +55,41 @@ export default function CheckoutPage() {
 
   const handleShippingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'لطفاً نام و نام خانوادگی را وارد کنید.';
+    }
+
+    const cleanPhone = toEnglishDigits(formData.phone).replace(/\D/g, '');
+    if (!cleanPhone) {
+      newErrors.phone = 'لطفاً شماره موبایل را وارد کنید.';
+    } else if (!/^09\d{9}$/.test(cleanPhone)) {
+      newErrors.phone = 'شماره موبایل باید ۱۱ رقم بوده و با ۰۹ شروع شود.';
+    }
+
+    if (!formData.address.trim()) {
+      newErrors.address = 'لطفاً آدرس دقیق پستی را وارد کنید.';
+    }
+
+    const cleanPostal = toEnglishDigits(formData.postalCode).replace(/\D/g, '');
+    if (!cleanPostal) {
+      newErrors.postalCode = 'لطفاً کد پستی را وارد کنید.';
+    } else if (cleanPostal.length !== 10) {
+      newErrors.postalCode = 'کد پستی باید دقیقاً ۱۰ رقم باشد.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    setFormData(prev => ({
+      ...prev,
+      phone: cleanPhone,
+      postalCode: cleanPostal
+    }));
     setStep(2);
   };
 
@@ -98,27 +137,113 @@ export default function CheckoutPage() {
               
               {step === 1 ? (
                 // Step 1: Shipping Info
-                <form onSubmit={handleShippingSubmit} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <form onSubmit={handleShippingSubmit} noValidate className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                     اطلاعات گیرنده
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">نام و نام خانوادگی</label>
-                      <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none" placeholder="مثال: علی رضایی" />
+                      <label htmlFor="fullName" className="block text-sm font-bold text-slate-700 mb-2">
+                        نام و نام خانوادگی <span className="text-red-500 font-bold">*</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        id="fullName"
+                        name="name"
+                        autoComplete="name"
+                        value={formData.fullName} 
+                        onChange={e => {
+                          setFormData({...formData, fullName: e.target.value});
+                          if (errors.fullName) setErrors({...errors, fullName: ''});
+                        }} 
+                        className={`w-full px-4 py-3 rounded-xl border ${errors.fullName ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none transition-all`} 
+                        placeholder="مثال: علی رضایی" 
+                      />
+                      {errors.fullName && (
+                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.fullName}</p>
+                      )}
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">شماره موبایل</label>
-                      <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none" placeholder="0912..." dir="ltr" />
+                      <label htmlFor="phone" className="block text-sm font-bold text-slate-700 mb-2">
+                        شماره موبایل <span className="text-red-500 font-bold">*</span>
+                      </label>
+                      <input 
+                        type="tel" 
+                        id="phone"
+                        name="tel"
+                        autoComplete="tel"
+                        value={formData.phone} 
+                        onChange={e => {
+                          const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11);
+                          setFormData({...formData, phone: val});
+                          if (errors.phone) setErrors({...errors, phone: ''});
+                        }} 
+                        onKeyDown={e => {
+                          // Allow control keys like backspace, tab, enter, delete, arrows
+                          if (['Backspace', 'Tab', 'Enter', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+                          if (e.ctrlKey || e.metaKey) return;
+                          if (!/[\d۰-۹٠-٩]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={`w-full px-4 py-3 rounded-xl border ${errors.phone ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
+                        placeholder="09123456789" 
+                        dir="ltr" 
+                      />
+                      {errors.phone && (
+                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.phone}</p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-slate-700 mb-2">آدرس دقیق پستی</label>
-                      <textarea required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none resize-none h-24" placeholder="نام استان، شهر، خیابان، کوچه، پلاک، واحد"></textarea>
+                      <label htmlFor="address" className="block text-sm font-bold text-slate-700 mb-2">
+                        آدرس دقیق پستی <span className="text-red-500 font-bold">*</span>
+                      </label>
+                      <textarea 
+                        id="address"
+                        name="street-address"
+                        autoComplete="street-address"
+                        value={formData.address} 
+                        onChange={e => {
+                          setFormData({...formData, address: e.target.value});
+                          if (errors.address) setErrors({...errors, address: ''});
+                        }} 
+                        className={`w-full px-4 py-3 rounded-xl border ${errors.address ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none resize-none h-24 transition-all`} 
+                        placeholder="نام استان، شهر، خیابان، کوچه، پلاک، واحد"
+                      ></textarea>
+                      {errors.address && (
+                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.address}</p>
+                      )}
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-slate-700 mb-2">کد پستی (۱۰ رقمی)</label>
-                      <input type="text" required value={formData.postalCode} onChange={e => setFormData({...formData, postalCode: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none" placeholder="1234567890" dir="ltr" />
+                      <label htmlFor="postalCode" className="block text-sm font-bold text-slate-700 mb-2">
+                        کد پستی (۱۰ رقمی) <span className="text-red-500 font-bold">*</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        id="postalCode"
+                        name="postal-code"
+                        autoComplete="postal-code"
+                        value={formData.postalCode} 
+                        onChange={e => {
+                          const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 10);
+                          setFormData({...formData, postalCode: val});
+                          if (errors.postalCode) setErrors({...errors, postalCode: ''});
+                        }} 
+                        onKeyDown={e => {
+                          if (['Backspace', 'Tab', 'Enter', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+                          if (e.ctrlKey || e.metaKey) return;
+                          if (!/[\d۰-۹٠-٩]/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className={`w-full px-4 py-3 rounded-xl border ${errors.postalCode ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
+                        placeholder="1234567890" 
+                        dir="ltr" 
+                      />
+                      {errors.postalCode && (
+                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.postalCode}</p>
+                      )}
                     </div>
                   </div>
                   <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition-colors">
@@ -143,40 +268,27 @@ export default function CheckoutPage() {
                         <input type="radio" name="payment" value="bank" checked={paymentMethod === 'bank'} onChange={() => setPaymentMethod('bank')} className="w-5 h-5 text-emerald-600 focus:ring-emerald-500" />
                         <div className="flex-1">
                           <div className="font-bold text-slate-800">درگاه پرداخت بانکی (شتاب)</div>
-                          <div className="text-xs text-slate-500 mt-1">پرداخت امن با تمامی کارت‌های عضو شتاب</div>
+                          <div className="text-xs text-slate-500 mt-1">پرداخت امن آنلاین با تمامی کارت‌های عضو شتاب</div>
                         </div>
-                        <div className="text-2xl opacity-60">💳</div>
+                        <div className="text-2xl opacity-80">💳</div>
                       </div>
                     </label>
 
-                    {/* Crypto Gateway */}
-                    <label className={`block cursor-pointer border-2 rounded-2xl p-4 transition-all ${paymentMethod === 'crypto' ? 'border-indigo-500 bg-indigo-50/50' : 'border-slate-200 hover:border-slate-300'}`}>
+                    {/* Crypto Gateway (Disabled) */}
+                    <div className="border-2 border-slate-200 bg-slate-50/70 rounded-2xl p-4 opacity-50 cursor-not-allowed select-none">
                       <div className="flex items-center gap-4">
-                        <input type="radio" name="payment" value="crypto" checked={paymentMethod === 'crypto'} onChange={() => setPaymentMethod('crypto')} className="w-5 h-5 text-indigo-600 focus:ring-indigo-500" />
+                        <input type="radio" disabled name="payment" value="crypto" className="w-5 h-5 cursor-not-allowed" />
                         <div className="flex-1">
-                          <div className="font-bold text-slate-800">پرداخت رمزارزی (Crypto)</div>
-                          <div className="text-xs text-slate-500 mt-1">پشتیبانی از USDT (Tether) بر بستر TRC20</div>
+                          <div className="font-bold text-slate-500 flex items-center gap-2">
+                            <span>پرداخت رمزارزی (Crypto)</span>
+                            <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">به زودی - موقتاً غیرفعال</span>
+                          </div>
+                          <div className="text-xs text-slate-400 mt-1">پشتیبانی از USDT (Tether) بر بستر TRC20</div>
                         </div>
-                        <div className="text-2xl opacity-60">🪙</div>
-                      </div>
-                    </label>
-                  </div>
-
-                  {paymentMethod === 'crypto' && (
-                    <div className="bg-indigo-900 text-white p-6 rounded-2xl mb-8 animate-in fade-in">
-                      <div className="text-indigo-200 text-sm mb-2 font-medium">لطفا معادل دلاری مبلغ را به آدرس زیر واریز کنید:</div>
-                      <div className="font-mono text-sm sm:text-base break-all bg-indigo-950 p-3 rounded-xl border border-indigo-800 text-emerald-400 select-all mb-4">
-                        {cryptoAddress}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-indigo-300">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                        </span>
-                        در حال بررسی شبکه برای تایید واریز... (شبیه‌سازی)
+                        <div className="text-2xl opacity-40">🪙</div>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   <button 
                     onClick={handlePayment} 

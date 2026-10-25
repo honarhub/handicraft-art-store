@@ -73,7 +73,7 @@ export default async function AdminDashboardPage() {
           <div>
             <div className="flex items-center gap-3">
               <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3.5 py-1 rounded-full text-xs font-bold">
-                پیشخوان فرماندهی سامانه
+                پیشخوان سامانه
               </span>
               <span className="text-slate-400 text-xs font-medium">📅 {todayPersian}</span>
             </div>

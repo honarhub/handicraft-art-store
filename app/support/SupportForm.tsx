@@ -77,9 +77,12 @@ export default function SupportForm({ productId, initialMessage = '', initialNam
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">نام و نام خانوادگی <span className="text-red-500">*</span></label>
+          <label htmlFor="name" className="block text-sm font-bold text-slate-700 mb-2">نام و نام خانوادگی <span className="text-red-500">*</span></label>
           <input 
             type="text" 
+            id="name"
+            name="name"
+            autoComplete="name"
             required 
             value={name}
             onChange={e => setName(e.target.value)}
@@ -87,9 +90,12 @@ export default function SupportForm({ productId, initialMessage = '', initialNam
           />
         </div>
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">شماره تماس یا ایمیل <span className="text-red-500">*</span></label>
+          <label htmlFor="contact" className="block text-sm font-bold text-slate-700 mb-2">شماره تماس یا ایمیل <span className="text-red-500">*</span></label>
           <input 
             type="text" 
+            id="contact"
+            name="contact"
+            autoComplete="email tel"
             required 
             value={contact}
             onChange={e => setContact(e.target.value)}

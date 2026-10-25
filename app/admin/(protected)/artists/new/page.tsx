@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import SocialLinksInput from '@/app/components/SocialLinksInput';
 
@@ -8,8 +8,12 @@ export default function AddArtistPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiPreview, setAiPreview] = useState<any>(null);
-  const [aiCountdown, setAiCountdown] = useState(30);
+  const [aiCountdown, setAiCountdown] = useState(90);
   const [aiError, setAiError] = useState('');
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isCancelledRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // State for manual form
   const [manualName, setManualName] = useState('');
@@ -40,18 +44,31 @@ export default function AddArtistPage() {
     }
   };
 
+  const handleCancelAi = () => {
+    isCancelledRef.current = true;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsProcessing(false);
+    setAiError('فرآیند هوش مصنوعی لغو شد.');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleAiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     setAiError('');
     setIsProcessing(true);
-    setAiCountdown(30);
+    setAiCountdown(90);
+    isCancelledRef.current = false;
 
     const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 30000);
+    }, 90000);
 
     const timerInterval = setInterval(() => {
       setAiCountdown(prev => {
@@ -88,8 +105,10 @@ export default function AddArtistPage() {
 
       setAiPreview(data);
     } catch (err: any) {
-      if (err.name === 'AbortError' || controller.signal.aborted) {
-        setAiError('زمان پردازش هوش مصنوعی به پایان رسید (بیش از ۳۰ ثانیه). لطفاً مجدداً تلاش کرده یا اطلاعات را دستی وارد کنید.');
+      if (isCancelledRef.current) {
+        setAiError('فرآیند هوش مصنوعی با موفقیت لغو شد.');
+      } else if (err.name === 'AbortError' || controller.signal.aborted) {
+        setAiError('زمان پردازش هوش مصنوعی به پایان رسید (بیش از ۹۰ ثانیه). لطفاً مجدداً تلاش کرده یا اطلاعات را دستی وارد کنید.');
       } else {
         setAiError(err.message || 'خطایی رخ داد. لطفاً فایلی با فرمت مجاز (PDF, عکس, TXT) انتخاب کنید.');
       }
@@ -97,7 +116,8 @@ export default function AddArtistPage() {
       clearTimeout(timeoutId);
       clearInterval(timerInterval);
       setIsProcessing(false);
-      e.target.value = '';
+      abortControllerRef.current = null;
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -163,6 +183,7 @@ export default function AddArtistPage() {
                   
                   <div className="relative border-2 border-dashed border-indigo-200 bg-indigo-50/50 rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-50 transition-colors">
                     <input 
+                      ref={fileInputRef}
                       type="file" 
                       accept=".txt, .pdf, image/jpeg, image/png, image/webp" 
                       onChange={handleAiUpload}
@@ -171,17 +192,30 @@ export default function AddArtistPage() {
                     />
                     {isProcessing ? (
                       <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-                        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-indigo-900 font-bold text-sm">در حال پردازش هوش مصنوعی...</span>
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2 text-indigo-900 font-bold text-xs">
+                            <span className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+                            <span>در حال پردازش هوش مصنوعی...</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleCancelAi}
+                            className="p-1 hover:bg-indigo-200/80 rounded-lg text-indigo-800 transition-colors flex items-center gap-1 text-[11px] font-bold"
+                            title="انصراف و لغو پردازش"
+                          >
+                            <span>✕</span>
+                            <span>لغو</span>
+                          </button>
+                        </div>
                         <div className="flex items-center gap-2 w-full">
                           <div className="flex-1 bg-indigo-200 rounded-full h-2 overflow-hidden">
                             <div 
                               className="bg-indigo-600 h-2 rounded-full transition-all duration-1000 ease-linear"
-                              style={{ width: `${Math.min(100, Math.max(0, ((30 - aiCountdown) / 30) * 100))}%` }}
+                              style={{ width: `${Math.min(100, Math.max(0, ((90 - aiCountdown) / 90) * 100))}%` }}
                             />
                           </div>
-                          <span className="text-xs font-mono font-black text-indigo-900 bg-white/80 px-2 py-0.5 rounded-md shadow-xs">
-                            {aiCountdown}s
+                          <span className="text-xs font-bold text-indigo-900 bg-white/80 px-2 py-0.5 rounded-md shadow-xs">
+                            {aiCountdown.toLocaleString('fa-IR')} ثانیه
                           </span>
                         </div>
                       </div>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="100%" height="100%" fill="none">
+  <defs>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#022C22" />
+    </linearGradient>
+    <filter id="icon-shadow" x="-10%" y="-10%" width="120%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  <!-- پس‌زمینه با گوشه‌های گرد مدرن (Squircle) -->
+  <rect width="256" height="256" rx="56" fill="url(#bg-grad)" />
+  
+  <g font-family="'Vazirmatn', 'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif" font-weight="900">
+    <!-- متن هنر -->
+    <text x="128" y="96" font-size="70" fill="#FFFFFF" text-anchor="middle" direction="rtl">هنر</text>
+    
+    <!-- بج هاب -->
+    <rect x="53" y="124" width="150" height="82" rx="18" fill="#FF9900" filter="url(#icon-shadow)" />
+    <text x="128" y="184" font-size="62" fill="#000000" text-anchor="middle" direction="rtl">هاب</text>
+  </g>
+</svg>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 
 export default function AddProductPage() {
@@ -20,9 +20,12 @@ export default function AddProductPage() {
   // UI States
   const [artists, setArtists] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiCountdown, setAiCountdown] = useState(30);
+  const [aiCountdown, setAiCountdown] = useState(90);
   const [aiError, setAiError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isCancelledRef = useRef(false);
 
   useEffect(() => {
     // Fetch artists for the dropdown
@@ -44,18 +47,30 @@ export default function AddProductPage() {
     });
   };
 
+  const handleCancelAi = () => {
+    isCancelledRef.current = true;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setAiLoading(false);
+    setAiError('فرآیند هوش مصنوعی لغو شد.');
+  };
+
   const handleAiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setAiError('');
     setAiLoading(true);
-    setAiCountdown(30);
+    setAiCountdown(90);
+    isCancelledRef.current = false;
 
     const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     const timeoutId = setTimeout(() => {
       controller.abort();
-    }, 30000);
+    }, 90000);
 
     const timerInterval = setInterval(() => {
       setAiCountdown(prev => {
@@ -97,8 +112,10 @@ export default function AddProductPage() {
       }
       
     } catch (error: any) {
-      if (error.name === 'AbortError' || controller.signal.aborted) {
-        setAiError('زمان پردازش هوش مصنوعی به پایان رسید (بیش از ۳۰ ثانیه). لطفاً دوباره تلاش کرده یا فرم را دستی تکمیل نمایید.');
+      if (isCancelledRef.current) {
+        setAiError('فرآیند هوش مصنوعی با موفقیت لغو شد.');
+      } else if (error.name === 'AbortError' || controller.signal.aborted) {
+        setAiError('زمان پردازش هوش مصنوعی به پایان رسید (بیش از ۹۰ ثانیه). لطفاً دوباره تلاش کرده یا فرم را دستی تکمیل نمایید.');
       } else {
         setAiError('متاسفانه پردازش تصویر با مشکل مواجه شد. لطفا فرم را دستی پر کنید.');
       }
@@ -106,6 +123,7 @@ export default function AddProductPage() {
       clearTimeout(timeoutId);
       clearInterval(timerInterval);
       setAiLoading(false);
+      abortControllerRef.current = null;
       e.target.value = '';
     }
   };
@@ -197,20 +215,31 @@ export default function AddProductPage() {
                   disabled={aiLoading}
                 />
                 {aiLoading ? (
-                  <div className="bg-purple-100/80 border border-purple-300 rounded-2xl p-4 flex flex-col items-center gap-2 max-w-xs mx-auto">
-                    <div className="flex items-center gap-2 text-purple-900 font-bold text-sm">
-                      <span className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></span>
-                      <span>در حال پردازش هوش مصنوعی...</span>
+                  <div className="bg-purple-100/90 border border-purple-300 rounded-2xl p-4 flex flex-col items-center gap-2.5 max-w-xs mx-auto">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2 text-purple-900 font-bold text-xs">
+                        <span className="w-3.5 h-3.5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></span>
+                        <span>در حال پردازش هوش مصنوعی...</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancelAi}
+                        className="p-1 hover:bg-purple-200/80 rounded-lg text-purple-800 transition-colors flex items-center gap-1 text-[11px] font-bold"
+                        title="انصراف و لغو پردازش"
+                      >
+                        <span>✕</span>
+                        <span>لغو</span>
+                      </button>
                     </div>
                     <div className="flex items-center gap-2 w-full">
                       <div className="flex-1 bg-purple-200 rounded-full h-2 overflow-hidden">
                         <div 
                           className="bg-purple-600 h-2 rounded-full transition-all duration-1000 ease-linear"
-                          style={{ width: `${Math.min(100, Math.max(0, ((30 - aiCountdown) / 30) * 100))}%` }}
+                          style={{ width: `${Math.min(100, Math.max(0, ((90 - aiCountdown) / 90) * 100))}%` }}
                         />
                       </div>
-                      <span className="text-xs font-mono font-black text-purple-800 bg-white/70 px-2 py-0.5 rounded-md shadow-xs">
-                        {aiCountdown}s
+                      <span className="text-xs font-bold text-purple-900 bg-white/80 px-2 py-0.5 rounded-md shadow-xs">
+                        {aiCountdown.toLocaleString('fa-IR')} ثانیه
                       </span>
                     </div>
                   </div>
