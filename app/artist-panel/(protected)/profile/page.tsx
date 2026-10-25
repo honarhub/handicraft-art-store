@@ -11,6 +11,7 @@ export default function ArtistProfilePage() {
   const [artist, setArtist] = useState<any>(null);
   const [pendingMode, setPendingMode] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiCountdown, setAiCountdown] = useState(30);
   const [aiError, setAiError] = useState('');
 
   // Form states
@@ -84,6 +85,22 @@ export default function ArtistProfilePage() {
     
     setAiError('');
     setAiLoading(true);
+    setAiCountdown(30);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 30000);
+
+    const timerInterval = setInterval(() => {
+      setAiCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timerInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     try {
       const base64Str = await fileToBase64(file);
@@ -95,6 +112,7 @@ export default function ArtistProfilePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64Data, mimeType }),
+        signal: controller.signal,
       });
 
       const data = await res.json();
@@ -109,9 +127,17 @@ export default function ArtistProfilePage() {
       
       alert('اطلاعات با موفقیت از فایل استخراج شد. لطفاً فیلدها را بررسی کرده و ذخیره کنید.');
     } catch (err: any) {
-      setAiError(err.message || 'خطایی رخ داد. لطفاً فایلی با فرمت مجاز انتخاب کنید.');
+      if (err.name === 'AbortError' || controller.signal.aborted) {
+        setAiError('زمان پردازش هوش مصنوعی به پایان رسید (بیش از ۳۰ ثانیه). لطفاً مجدداً تلاش کرده یا فیلدها را به صورت دستی تکمیل نمایید.');
+      } else {
+        setAiError(err.message || 'خطایی رخ داد. لطفاً فایلی با فرمت مجاز انتخاب کنید.');
+      }
     } finally {
+      clearTimeout(timeoutId);
+      clearInterval(timerInterval);
       setAiLoading(false);
+      // Reset input value so user can re-select the same file if needed
+      e.target.value = '';
     }
   };
 
@@ -220,20 +246,38 @@ export default function ArtistProfilePage() {
               {aiError && <p className="text-red-500 text-sm mt-2 font-bold">{aiError}</p>}
             </div>
             <div className="relative">
-              <input 
-                type="file" 
-                accept=".txt, .pdf, image/jpeg, image/png, image/webp" 
-                onChange={handleAiUpload}
-                disabled={aiLoading || !artist?.isActive}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-              />
-              <button disabled={aiLoading || !artist?.isActive} className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-sm disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-2">
-                {aiLoading ? (
-                  <><span>⏳</span> در حال استخراج...</>
-                ) : (
-                  <><span>📄</span> انتخاب فایل رزومه</>
-                )}
-              </button>
+              {aiLoading ? (
+                <div className="bg-teal-100/80 border border-teal-300 rounded-2xl p-4 flex flex-col items-center gap-2 min-w-[220px]">
+                  <div className="flex items-center gap-2 text-teal-900 font-bold text-sm">
+                    <span className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></span>
+                    <span>در حال پردازش هوش مصنوعی...</span>
+                  </div>
+                  <div className="flex items-center gap-2 w-full">
+                    <div className="flex-1 bg-teal-200 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-teal-600 h-2 rounded-full transition-all duration-1000 ease-linear"
+                        style={{ width: `${Math.min(100, Math.max(0, ((30 - aiCountdown) / 30) * 100))}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono font-black text-teal-800 bg-white/70 px-2 py-0.5 rounded-md shadow-xs">
+                      {aiCountdown}s
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <input 
+                    type="file" 
+                    accept=".txt, .pdf, image/jpeg, image/png, image/webp" 
+                    onChange={handleAiUpload}
+                    disabled={!artist?.isActive}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  <button disabled={!artist?.isActive} className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-sm disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-2">
+                    <span>📄</span> انتخاب فایل رزومه
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -287,8 +331,8 @@ export default function ArtistProfilePage() {
             </div>
           </div>
 
-          <button type="submit" disabled={submitLoading || pendingMode || !artist?.isActive} className="w-full mt-8 bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            {submitLoading ? 'در حال ارسال...' : 'ثبت درخواست تغییرات'}
+          <button type="submit" disabled={submitLoading || !artist?.isActive} className="w-full mt-8 bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-teal-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {submitLoading ? 'در حال ارسال...' : (pendingMode ? 'بروزرسانی و ثبت مجدد درخواست' : 'ثبت درخواست تغییرات')}
           </button>
           </fieldset>
         </form>

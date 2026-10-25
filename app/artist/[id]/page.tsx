@@ -127,8 +127,8 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
                   </a>
                 )}
                 {artist.socialLinks.bale && (
-                  <a href={artist.socialLinks.bale} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors flex items-center justify-center font-black text-sm" title="بله">
-                    بله
+                  <a href={artist.socialLinks.bale} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-white/30 p-2.5 rounded-full transition-colors flex items-center justify-center" title="پیام‌رسان بله">
+                    <img src="/icons/bale.png" alt="بله" className="w-5 h-5 rounded-full object-contain" />
                   </a>
                 )}
               </div>

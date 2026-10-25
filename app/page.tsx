@@ -201,7 +201,7 @@ export default async function Home() {
                         {product.artist.user.image ? (
                           <img src={product.artist.user.image} alt={product.artist.user.name || ''} className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 shadow-sm" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs">🎭</div>
+                          <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm text-slate-400">👤</div>
                         )}
                         <span className="text-sm font-bold text-slate-600">{product.artist.user.name}</span>
                       </div>

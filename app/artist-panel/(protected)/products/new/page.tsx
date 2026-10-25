@@ -36,6 +36,8 @@ export default function ArtistAddProductPage() {
 
   // UI States
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiCountdown, setAiCountdown] = useState(30);
+  const [aiError, setAiError] = useState('');
   const [aiCompleted, setAiCompleted] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [seoLoading, setSeoLoading] = useState(false);
@@ -53,7 +55,25 @@ export default function ArtistAddProductPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setAiError('');
     setAiLoading(true);
+    setAiCountdown(30);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 30000);
+
+    const timerInterval = setInterval(() => {
+      setAiCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timerInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     try {
       const base64 = await fileToBase64(file);
       setImages([base64]);
@@ -64,7 +84,8 @@ export default function ArtistAddProductPage() {
         body: JSON.stringify({
           base64Data: base64.split(',')[1],
           mimeType: file.type
-        })
+        }),
+        signal: controller.signal
       });
 
       if (!response.ok) throw new Error('خطا در هوش مصنوعی');
@@ -83,10 +104,17 @@ export default function ArtistAddProductPage() {
       }
       
       setAiCompleted(true);
-    } catch (error) {
-      alert('متاسفانه پردازش تصویر با مشکل مواجه شد. لطفا فرم را دستی پر کنید.');
+    } catch (error: any) {
+      if (error.name === 'AbortError' || controller.signal.aborted) {
+        setAiError('زمان پردازش هوش مصنوعی به پایان رسید (بیش از ۳۰ ثانیه). لطفاً دوباره تلاش کرده یا فرم را دستی تکمیل نمایید.');
+      } else {
+        setAiError('متاسفانه پردازش تصویر با مشکل مواجه شد. لطفاً فرم را دستی تکمیل نمایید.');
+      }
     } finally {
+      clearTimeout(timeoutId);
+      clearInterval(timerInterval);
       setAiLoading(false);
+      e.target.value = '';
     }
   };
 
@@ -230,6 +258,11 @@ export default function ArtistAddProductPage() {
                 <div className="bg-orange-50 border border-orange-200 text-orange-800 text-xs rounded-lg p-3 mb-6 text-right">
                   <strong>توجه:</strong> تحلیل‌های هوش مصنوعی ممکن است غیردقیق باشد و صرفاً جهت راحتی در ثبت سریع است. هنرمند موظف به بازبینی و ویرایش اطلاعات پیش از ثبت نهایی می‌باشد. ضمناً در این روش فقط تصویر اصلی (۱ عکس) پردازش می‌شود.
                 </div>
+                {aiError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-4 mb-4 text-center font-bold">
+                    ⚠️ {aiError}
+                  </div>
+                )}
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -238,12 +271,32 @@ export default function ArtistAddProductPage() {
                   id="ai-upload"
                   disabled={aiLoading}
                 />
-                <label 
-                  htmlFor="ai-upload" 
-                  className={`inline-block px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${aiLoading ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 text-white shadow-md hover:shadow-lg'}`}
-                >
-                  {aiLoading ? 'در حال پردازش هوش مصنوعی...' : 'انتخاب تصویر و پردازش'}
-                </label>
+                {aiLoading ? (
+                  <div className="bg-teal-100/80 border border-teal-300 rounded-2xl p-4 flex flex-col items-center gap-2 max-w-xs mx-auto">
+                    <div className="flex items-center gap-2 text-teal-900 font-bold text-sm">
+                      <span className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></span>
+                      <span>در حال پردازش تصویر با هوش مصنوعی...</span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="flex-1 bg-teal-200 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="bg-teal-600 h-2 rounded-full transition-all duration-1000 ease-linear"
+                          style={{ width: `${Math.min(100, Math.max(0, ((30 - aiCountdown) / 30) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono font-black text-teal-800 bg-white/70 px-2 py-0.5 rounded-md shadow-xs">
+                        {aiCountdown}s
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <label 
+                    htmlFor="ai-upload" 
+                    className="inline-block px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer bg-teal-600 hover:bg-teal-700 text-white shadow-md hover:shadow-lg"
+                  >
+                    انتخاب تصویر و پردازش
+                  </label>
+                )}
               </div>
             </div>
           </div>

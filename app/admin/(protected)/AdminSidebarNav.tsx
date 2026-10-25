@@ -61,7 +61,7 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
     },
     { 
       href: '/admin/artists', 
-      label: '🎭 مدیریت هنرمندان', 
+      label: '👤 مدیریت هنرمندان', 
       count: counts.pendingArtistsCount, 
       countTitle: 'درخواست‌های ویرایش هنرمندان',
       newCount: counts.newRegistrationsCount,

@@ -88,7 +88,7 @@ export default function TopArtistsCarousel({ artists }: { artists: Artist[] }) {
                 {artist.user.image ? (
                   <img src={artist.user.image} alt={artist.user.name || ''} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-slate-100 flex items-center justify-center text-4xl text-slate-300">🎭</div>
+                  <div className="w-full h-full bg-slate-100 flex items-center justify-center text-4xl text-slate-400">👤</div>
                 )}
               </div>
               <div className="text-center">

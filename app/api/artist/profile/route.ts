@@ -32,6 +32,9 @@ export async function PATCH(request: Request) {
       where: { userId: session.user.id }
     });
     if (!artist) return NextResponse.json({ error: 'هنرمند یافت نشد' }, { status: 404 });
+    if (!artist.isActive) {
+      return NextResponse.json({ error: 'حساب کاربری شما توسط ادمین غیرفعال شده است و امکان ویرایش وجود ندارد.' }, { status: 403 });
+    }
     const artistId = artist.id;
 
     if (!artistId) {
