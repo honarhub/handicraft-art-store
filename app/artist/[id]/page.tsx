@@ -11,7 +11,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
-  // دریافت اطلاعات واقعی از دیتابیس (پشتیبانی از cuid و displayId)
+  // Fetch artist profile by cuid or displayId
   const isNumericId = !isNaN(Number(id));
   const isAdmin = session?.user?.role === 'ADMIN';
   
@@ -35,7 +35,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
   
   if (!dbArtist) notFound();
 
-  // بررسی دسترسی برای پروفایل‌های تایید نشده یا غیرفعال (فقط ادمین می‌تواند پیش‌نمایش را ببیند)
+  // Access check for unapproved or inactive profiles (admin preview only)
 
   if (!dbArtist.isActive || !dbArtist.isApproved) {
     if (!isAdmin) {

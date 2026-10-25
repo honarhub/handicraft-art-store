@@ -14,7 +14,7 @@ export type MasterCategory = {
   children: CategoryChild[];
 };
 
-// آیکون‌های وکتوری هنری و شکیل برای هر شاخه صنایع دستی
+// Vector icons for handicraft specialties
 export function CraftCategoryIcon({ name, className = 'w-5 h-5 text-amber-700' }: { name: string; className?: string }) {
   if (name.includes('نقاشی') || name.includes('خوشنویسی') || name.includes('نگارگری')) {
     return (
@@ -126,7 +126,7 @@ export function CraftCategoryIcon({ name, className = 'w-5 h-5 text-amber-700' }
   );
 }
 
-// دسته‌بندی‌های پیش‌فرض اولیه
+// Default categories fallback
 const DEFAULT_CATEGORIES: MasterCategory[] = [
   {
     id: 'cmvkylspy0001tpi87x2rs7c9',
@@ -257,7 +257,7 @@ export default function CategoriesMegaMenu() {
   const containerRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // واکشی درخت دسته‌بندی‌ها به همراه تعداد آثار تایید شده هر زیرمجموعه
+  // Fetch categories hierarchy with approved product counts
   useEffect(() => {
     fetch('/api/specialties?hierarchy=true')
       .then((res) => res.json())
@@ -279,11 +279,11 @@ export default function CategoriesMegaMenu() {
         }
       })
       .catch(() => {
-        // در صورت بروز خطا از مقادیر پیش‌فرض استفاده می‌شود
+        // Fallback to default categories on network error
       });
   }, []);
 
-  // بستن منو با کلیک بیرون
+  // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -296,7 +296,7 @@ export default function CategoriesMegaMenu() {
     };
   }, []);
 
-  // هندلرهای هاور برای دسکتاپ
+  // Desktop hover handlers
   const handleMouseEnter = () => {
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);

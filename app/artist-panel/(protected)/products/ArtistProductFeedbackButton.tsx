@@ -32,12 +32,12 @@ export default function ArtistProductFeedbackButton({
   const [isOpen, setIsOpen] = useState(false);
   const [isRead, setIsRead] = useState<boolean>(Boolean(adminFeedbackRead));
 
-  // همگام‌سازی استیت با پراپ در صورت آپدیت آنلاین
+  // Sync local state when prop updates
   React.useEffect(() => {
     setIsRead(Boolean(adminFeedbackRead));
   }, [adminFeedbackRead]);
 
-  // استخراج تاریخچه ۳ پیام آخر
+  // Extract up to 3 recent feedback history items
   let historyItems: FeedbackHistoryItem[] = [];
   if (Array.isArray(adminFeedbackHistory)) {
     historyItems = adminFeedbackHistory;
@@ -48,7 +48,7 @@ export default function ArtistProductFeedbackButton({
     } catch {}
   }
 
-  // اگر تاریخچه‌ای نبود اما پیام فعلی وجود داشت، به عنوان تک آیتم در نظر گرفته شود
+  // Fallback to single item if history array is not populated
   if (historyItems.length === 0 && adminFeedback && adminFeedback.trim()) {
     historyItems = [{
       message: adminFeedback,
@@ -57,12 +57,12 @@ export default function ArtistProductFeedbackButton({
     }];
   }
 
-  // اگر هیچ پیامی از ادمین وجود ندارد، خط تیره نمایش داده شود
+  // If no admin message exists, render dash
   if (historyItems.length === 0 && (!adminFeedback || !adminFeedback.trim())) {
     return <span className="text-slate-300 font-bold select-none">-</span>;
   }
 
-  // وضعیت خوانده‌نشده
+  // Unread status indicator
   const hasUnread = !isRead && (
     Boolean(adminFeedback?.trim()) || historyItems.some(item => !item.read)
   );
@@ -71,7 +71,7 @@ export default function ArtistProductFeedbackButton({
     setIsOpen(true);
     if (!isRead) {
       setIsRead(true);
-      // اطلاعیه فوری به سایدبار و صفحات دیگر برای حذف بلادرنگ نوتیف بدون نیاز به رفرش
+      // Dispatch real-time event to immediately clear badge across panels
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('artist-counts-update'));
       }

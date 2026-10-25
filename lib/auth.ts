@@ -66,9 +66,20 @@ export const authOptions: NextAuthOptions = {
           if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
             throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد");
           }
-          const artist = await prisma.artistProfile.findUnique({
+          let artist = await prisma.artistProfile.findUnique({
             where: { userId: user.id }
           });
+          // Auto-create artist profile for admin if testing artist panel
+          if (!artist && user.role === 'ADMIN') {
+            artist = await prisma.artistProfile.create({
+              data: {
+                userId: user.id,
+                isApproved: true,
+                isActive: true,
+                bio: 'مدیر کل سیستم (Master Admin)',
+              }
+            });
+          }
           if (!artist) {
             throw new Error("پروفایل هنرمند برای این حساب یافت نشد. لطفاً ابتدا ثبت‌نام کنید.");
           }
@@ -94,20 +105,34 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === 'google') {
         const adminEmail = process.env.ADMIN_EMAIL;
         
-        // اگر کاربر لاگین کننده ادمین است
+        // If signing-in user is system administrator
         if (adminEmail && user.email === adminEmail) {
           user.role = 'ADMIN';
           const dbUser = await prisma.user.findUnique({
-            where: { email: user.email as string }
+            where: { email: user.email as string },
+            include: { artistProfile: true }
           });
-          if (dbUser && dbUser.role !== 'ADMIN') {
-            await prisma.user.update({
-              where: { email: user.email },
-              data: { role: 'ADMIN' }
-            });
+          if (dbUser) {
+            if (dbUser.role !== 'ADMIN') {
+              await prisma.user.update({
+                where: { email: user.email },
+                data: { role: 'ADMIN' }
+              });
+            }
+            // Ensure admin also has an active artist profile for panel access
+            if (!dbUser.artistProfile) {
+              await prisma.artistProfile.create({
+                data: {
+                  userId: dbUser.id,
+                  isApproved: true,
+                  isActive: true,
+                  bio: 'مدیر کل سیستم (Master Admin)',
+                }
+              });
+            }
           }
         } else {
-          // برای سایر کاربران (ورود از پنل هنرمند)
+          // For regular artists and OAuth users
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email as string },
             include: { artistProfile: true }
@@ -144,14 +169,15 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
-      // Only verify user exists and auto-create profile if missing
+      // Verify user exists and keep role in sync with database
       if (token.id && trigger !== 'update') {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { id: true, role: true, email: true, artistProfile: { select: { id: true } } }
         });
         if (!dbUser) {
-          return null as any; // Invalidate session if user no longer exists
+          // Invalidate session cleanly if user is deleted
+          return {} as any;
         }
         
         const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
@@ -166,7 +192,7 @@ export const authOptions: NextAuthOptions = {
           }
           token.role = 'ADMIN';
         } else {
-          // Auto-create artist profile for new ARTIST users (like new Google sign-ins)
+          // Auto-create artist profile for new ARTIST users if missing
           if (dbUser.role === 'ARTIST' && !dbUser.artistProfile) {
             await prisma.artistProfile.create({
               data: {
@@ -184,11 +210,12 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
+      if (token && token.id && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        return session;
       }
-      return session;
+      return null as any;
     }
   },
   pages: {

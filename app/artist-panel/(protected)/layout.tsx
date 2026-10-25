@@ -13,22 +13,28 @@ export default async function ArtistPanelLayout({ children }: { children: React.
     redirect('/artist-panel/login');
   }
 
-  if (session.user.role === 'ADMIN') {
-    const artist = await prisma.artistProfile.findUnique({
-      where: { userId: session.user.id },
-      include: { user: true }
-    });
-    if (!artist) {
-      redirect('/admin');
-    }
-  } else if (session.user.role !== 'ARTIST') {
+  // Ensure user has artist or admin privileges
+  if (session.user.role !== 'ARTIST' && session.user.role !== 'ADMIN') {
     redirect('/artist-panel/login?error=not_artist');
   }
 
-  const artist = await prisma.artistProfile.findUnique({
+  let artist = await prisma.artistProfile.findUnique({
     where: { userId: session.user.id },
     include: { user: true }
   });
+
+  // Auto-create artist profile for admin users if testing or managing artist panel
+  if (!artist && session.user.role === 'ADMIN') {
+    artist = await prisma.artistProfile.create({
+      data: {
+        userId: session.user.id,
+        isApproved: true,
+        isActive: true,
+        bio: 'مدیر کل سیستم (Master Admin)',
+      },
+      include: { user: true }
+    });
+  }
 
   if (!artist) {
     redirect('/artist-panel/login?error=no_profile');
@@ -48,7 +54,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
-      {/* سایدبار هنرمند */}
+      {/* Artist Sidebar */}
       <aside className="w-full md:w-64 bg-teal-900 text-teal-100 flex-shrink-0 shadow-xl z-20">
         <div className="p-6 border-b border-teal-800 flex items-center gap-4">
           {artist.user.image ? (
@@ -65,6 +71,11 @@ export default async function ArtistPanelLayout({ children }: { children: React.
         </div>
         <ArtistSidebarNav initialUnreadFeedbackCount={unreadFeedbackCount} />
         <div className="p-4 mt-auto border-t border-teal-800 space-y-2">
+          {session.user.role === 'ADMIN' && (
+            <a href="/admin" className="px-4 py-2 w-full text-center rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors text-xs text-slate-900 font-bold block shadow-sm">
+              👑 ورود به کنترل پنل ارشد
+            </a>
+          )}
           <a href={`/artist/${artist.id}`} target="_blank" className="px-4 py-2 w-full text-center rounded-lg border border-teal-700 hover:bg-teal-800 transition-colors text-xs text-teal-300 block">
             مشاهده صفحه عمومی من
           </a>
@@ -74,7 +85,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
         </div>
       </aside>
 
-      {/* محتوای اصلی */}
+      {/* Main Content Area */}
       <main className="flex-1 w-full overflow-y-auto flex flex-col">
         {artist.user.mustChangePassword && (
           <div className="bg-red-500 text-white p-4 shadow-sm flex items-center justify-between">

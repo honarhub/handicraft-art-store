@@ -28,7 +28,7 @@ export default function ArtistProductsTable({ initialProducts }: ArtistProductsT
   useEffect(() => {
     window.addEventListener('focus', fetchProducts);
 
-    // پولینگ آنلاین هر ۸ ثانیه برای دریافت تغییر وضعیت توسط ادمین و فیدبک‌های جدید
+    // Poll every 8 seconds for real-time status updates and new admin feedback
     const interval = setInterval(fetchProducts, 8000);
 
     return () => {
@@ -38,7 +38,7 @@ export default function ArtistProductsTable({ initialProducts }: ArtistProductsT
   }, [fetchProducts]);
 
   const handleFeedbackRead = (productId: string) => {
-    // بروزرسانی آنی وضعیت خوانده‌شدن در جدول محصولات بدون نیاز به رفرش
+    // Optimistically update feedback read status locally without page reload
     setProducts(prev => prev.map(p => {
       if (p.id === productId) {
         return {

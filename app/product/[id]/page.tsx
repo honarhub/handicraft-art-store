@@ -31,7 +31,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     notFound();
   }
 
-  // اگر محصول غیرفعال یا در انتظار تایید است، برای عموم مخفی باشد و 404 برگرداند (فقط ادمین و هنرمند صاحب اثر می‌توانند پیش‌نمایش را ببینند)
+  // If product is deactivated or pending, return 404 for public visitors (allow preview for admin & owner)
   if (product.status !== 'APPROVED') {
     const session = await getServerSession(authOptions);
     const isOwner = session?.user?.id === product.artist.userId;

@@ -12,7 +12,7 @@ import HonarHubHero from './components/HonarHubHero';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  // 0. واکشی ۱۰ محصول اخیر تایید شده برای منظومه چرخان قهرمان سایت
+  // 0. Fetch 10 recent approved products for hero cosmos carousel
   const heroProducts = await prisma.product.findMany({
     where: { 
       status: 'APPROVED', 
@@ -27,7 +27,7 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 1. واکشی آثار برگزیده اخیر
+  // 1. Fetch featured recent artworks
   const featuredProducts = await prisma.product.findMany({
     where: { 
       status: 'APPROVED', 
@@ -39,7 +39,7 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 2. واکشی هنرمندان ایران زمین (فعال)
+  // 2. Fetch active Iranian artists
   const topArtists = await prisma.artistProfile.findMany({
     where: { isActive: true, isDeleted: false },
     include: { user: true },
@@ -47,7 +47,7 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 3. واکشی تنظیمات و ردیف‌های داینامیک
+  // 3. Fetch settings and dynamic rows
   const siteSettings = await prisma.siteSettings.findUnique({
     where: { id: 'default' }
   });
@@ -55,7 +55,7 @@ export default async function Home() {
   const rawRows = siteSettings?.dynamicRows ? (typeof siteSettings.dynamicRows === 'string' ? JSON.parse(siteSettings.dynamicRows) : siteSettings.dynamicRows) : [];
   const activeRows = (rawRows as any[]).filter(r => r.isActive).sort((a, b) => a.order - b.order);
 
-  // واکشی محصولات برای هر ردیف پویا
+  // Fetch products for each dynamic row
   const populatedRows = await Promise.all(activeRows.map(async (row) => {
     let products: any[] = [];
     const baseQuery = { 

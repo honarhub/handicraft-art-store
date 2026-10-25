@@ -27,18 +27,18 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount }: ArtistS
   }, []);
 
   useEffect(() => {
-    // 1. دریافت رویداد آنلاین هنگام خوانده شدن پیام ادمین توسط هنرمند
+    // 1. Listen for real-time update when an admin message is acknowledged
     const handleUpdate = () => {
-      // بلافاصله از تعداد کسر کن تا واکنش سریع باشد
+      // Optimistically decrement count for instant feedback
       setUnreadCount(prev => Math.max(0, prev - 1));
-      // سپس آخرین وضعیت را از سرور سینک کن
+      // Sync fresh count from server
       fetchCounts();
     };
 
     window.addEventListener('artist-counts-update', handleUpdate);
     window.addEventListener('focus', fetchCounts);
 
-    // 2. پولینگ آنلاین هر ۵ ثانیه برای دریافت پیام‌ها و تاییدهای جدید ادمین بدون رفرش
+    // 2. Poll every 5 seconds to catch new feedback and approvals without reloading
     const interval = setInterval(fetchCounts, 5000);
 
     return () => {

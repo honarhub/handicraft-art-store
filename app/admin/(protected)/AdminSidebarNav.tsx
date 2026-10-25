@@ -36,7 +36,7 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
   }, []);
 
   useEffect(() => {
-    // 1. برخط: گوش دادن به رویداد کاستوم برای آپدیت فوری هنگام تغییر توسط ادمین در صفحات
+    // 1. Real-time: listen for custom event on admin changes
     const handleUpdate = () => {
       fetchCounts();
     };
@@ -44,7 +44,7 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
     window.addEventListener('admin-counts-update', handleUpdate);
     window.addEventListener('focus', handleUpdate);
 
-    // 2. برخط: پولینگ دوره‌ای هر ۵ ثانیه برای دریافت تغییرات بدون رفرش
+    // 2. Real-time: poll every 5 seconds for updates without reload
     const interval = setInterval(fetchCounts, 5000);
 
     return () => {

@@ -23,7 +23,7 @@ export default async function ArtistProductsPage() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // تبدیل داده‌ها به فرمت قابل سریالایز برای کامپوننت کلاینت
+  // Serialize products data for client component consumption
   const serializedProducts = JSON.parse(JSON.stringify(products));
 
   return (
