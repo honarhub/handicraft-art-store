@@ -207,7 +207,7 @@ export default function AvatarCropModal({
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0">
-              ✂️
+              🖼️
             </span>
             <div>
               <h3 className="font-black text-slate-800 text-base">
@@ -376,7 +376,7 @@ export default function AvatarCropModal({
             className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-md shadow-teal-600/20 transition-all flex items-center gap-2 cursor-pointer"
           >
             <span>✓</span>
-            <span>تایید و اعمال برش</span>
+            <span>تایید و اعمال تغییرات</span>
           </button>
         </div>
       </div>

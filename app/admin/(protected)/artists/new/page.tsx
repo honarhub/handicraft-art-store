@@ -322,7 +322,7 @@ export default function AddArtistPage() {
                         className="shrink-0 px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                         title="تنظیم کادربندی دایره"
                       >
-                        ✂️ تنظیم کادر
+                        تنظیم کادر
                       </button>
                     )}
                   </div>
