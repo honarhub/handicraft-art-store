@@ -16,11 +16,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client (uncomment when Prisma is added)
-# RUN npx prisma generate
-
-# Next.js build
-RUN npm run build
+# Generate Prisma Client & Build Next.js standalone
+ENV NEXT_TELEMETRY_DISABLED 1
+RUN npx prisma generate && npx next build --webpack
 
 # Production image, copy all the files and run next
 FROM base AS runner
