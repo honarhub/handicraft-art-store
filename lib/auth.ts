@@ -210,12 +210,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token && token.id && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        return session;
+      if (token && session?.user) {
+        if (token.id) session.user.id = token.id as string;
+        if (token.role) session.user.role = token.role as string;
       }
-      return null as any;
+      return session;
     }
   },
   pages: {

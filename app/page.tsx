@@ -12,83 +12,118 @@ import HonarHubHero from './components/HonarHubHero';
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  let heroProducts: any[] = [];
+  let featuredProducts: any[] = [];
+  let topArtists: any[] = [];
+  let populatedRows: any[] = [];
+
   // 0. Fetch 10 recent approved products for hero cosmos carousel
-  const heroProducts = await prisma.product.findMany({
-    where: { 
-      status: 'APPROVED', 
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      title: true,
-      imageUrl: true,
-    },
-    take: 10,
-    orderBy: { createdAt: 'desc' }
-  });
+  try {
+    heroProducts = await prisma.product.findMany({
+      where: { 
+        status: 'APPROVED', 
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        title: true,
+        imageUrl: true,
+      },
+      take: 10,
+      orderBy: { createdAt: 'desc' }
+    });
+  } catch (err) {
+    console.error('Error fetching hero products in Home:', err);
+  }
 
   // 1. Fetch featured recent artworks
-  const featuredProducts = await prisma.product.findMany({
-    where: { 
-      status: 'APPROVED', 
-      deletedAt: null,
-      artist: { isActive: true, isDeleted: false, isApproved: true }
-    },
-    include: { artist: { include: { user: true } } },
-    take: 6,
-    orderBy: { createdAt: 'desc' }
-  });
+  try {
+    featuredProducts = await prisma.product.findMany({
+      where: { 
+        status: 'APPROVED', 
+        deletedAt: null,
+        artist: { isActive: true, isDeleted: false, isApproved: true }
+      },
+      include: { artist: { include: { user: true } } },
+      take: 6,
+      orderBy: { createdAt: 'desc' }
+    });
+  } catch (err) {
+    console.error('Error fetching featured products in Home:', err);
+  }
 
   // 2. Fetch active Iranian artists
-  const topArtists = await prisma.artistProfile.findMany({
-    where: { isActive: true, isDeleted: false },
-    include: { user: true },
-    take: 10,
-    orderBy: { createdAt: 'desc' }
-  });
+  try {
+    topArtists = await prisma.artistProfile.findMany({
+      where: { isActive: true, isDeleted: false },
+      include: { user: true },
+      take: 10,
+      orderBy: { createdAt: 'desc' }
+    });
+  } catch (err) {
+    console.error('Error fetching top artists in Home:', err);
+  }
 
   // 3. Fetch settings and dynamic rows
-  const siteSettings = await prisma.siteSettings.findUnique({
-    where: { id: 'default' }
-  });
+  try {
+    const siteSettings = await prisma.siteSettings.findUnique({
+      where: { id: 'default' }
+    });
 
-  const rawRows = siteSettings?.dynamicRows ? (typeof siteSettings.dynamicRows === 'string' ? JSON.parse(siteSettings.dynamicRows) : siteSettings.dynamicRows) : [];
-  const activeRows = (rawRows as any[]).filter(r => r.isActive).sort((a, b) => a.order - b.order);
-
-  // Fetch products for each dynamic row
-  const populatedRows = await Promise.all(activeRows.map(async (row) => {
-    let products: any[] = [];
-    const baseQuery = { 
-      status: 'APPROVED' as any, 
-      deletedAt: null,
-      artist: { isActive: true, isDeleted: false, isApproved: true }
-    };
-    const includeQuery = { artist: { include: { user: true } }, pricingTiers: true };
-
-    try {
-      if (row.type === 'NEWEST') {
-        products = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
-      } else if (row.type === 'SPECIALTY' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, specialties: { some: { id: row.value } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
-      } else if (row.type === 'ARTIST' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, artistId: row.value }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
-      } else if (row.type === 'PRICE_UNDER' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { lte: parseFloat(row.value) } } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
-      } else if (row.type === 'PRICE_OVER' && row.value) {
-        products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { gte: parseFloat(row.value) } } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
-      } else if (row.type === 'CHEAPEST') {
-        const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
-        products = all.sort((a,b) => (a.pricingTiers[0]?.price || 0) - (b.pricingTiers[0]?.price || 0)).slice(0, 13);
-      } else if (row.type === 'EXPENSIVE') {
-        const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
-        products = all.sort((a,b) => (b.pricingTiers[0]?.price || 0) - (a.pricingTiers[0]?.price || 0)).slice(0, 13);
+    let rawRows: any[] = [];
+    if (siteSettings?.dynamicRows) {
+      if (typeof siteSettings.dynamicRows === 'string') {
+        try {
+          rawRows = JSON.parse(siteSettings.dynamicRows);
+        } catch {
+          rawRows = [];
+        }
+      } else if (Array.isArray(siteSettings.dynamicRows)) {
+        rawRows = siteSettings.dynamicRows;
       }
-    } catch(e) {
-      console.error('Error fetching dynamic row', row.title, e);
     }
-    
-    return { ...row, products };
-  }));
+
+    const activeRows = Array.isArray(rawRows)
+      ? (rawRows as any[]).filter(r => r && r.isActive).sort((a, b) => (a.order || 0) - (b.order || 0))
+      : [];
+
+    // Fetch products for each dynamic row
+    populatedRows = await Promise.all(activeRows.map(async (row) => {
+      let products: any[] = [];
+      const baseQuery = { 
+        status: 'APPROVED' as any, 
+        deletedAt: null,
+        artist: { isActive: true, isDeleted: false, isApproved: true }
+      };
+      const includeQuery = { artist: { include: { user: true } }, pricingTiers: true };
+
+      try {
+        if (row.type === 'NEWEST') {
+          products = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
+        } else if (row.type === 'SPECIALTY' && row.value) {
+          products = await prisma.product.findMany({ where: { ...baseQuery, specialties: { some: { id: row.value } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
+        } else if (row.type === 'ARTIST' && row.value) {
+          products = await prisma.product.findMany({ where: { ...baseQuery, artistId: row.value }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
+        } else if (row.type === 'PRICE_UNDER' && row.value) {
+          products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { lte: parseFloat(row.value) } } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
+        } else if (row.type === 'PRICE_OVER' && row.value) {
+          products = await prisma.product.findMany({ where: { ...baseQuery, pricingTiers: { some: { price: { gte: parseFloat(row.value) } } } }, include: includeQuery, take: 13, orderBy: { createdAt: 'desc' } });
+        } else if (row.type === 'CHEAPEST') {
+          const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
+          products = all.sort((a,b) => (a.pricingTiers?.[0]?.price || 0) - (b.pricingTiers?.[0]?.price || 0)).slice(0, 13);
+        } else if (row.type === 'EXPENSIVE') {
+          const all = await prisma.product.findMany({ where: baseQuery, include: includeQuery, take: 50, orderBy: { createdAt: 'desc' } });
+          products = all.sort((a,b) => (b.pricingTiers?.[0]?.price || 0) - (a.pricingTiers?.[0]?.price || 0)).slice(0, 13);
+        }
+      } catch(e) {
+        console.error('Error fetching dynamic row', row.title, e);
+      }
+      
+      return { ...row, products };
+    }));
+  } catch (err) {
+    console.error('Error loading siteSettings or dynamic rows in Home:', err);
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800" dir="rtl">
@@ -203,12 +238,12 @@ export default async function Home() {
                     <div className="p-8">
                       <h3 className="text-xl font-black text-slate-800 mb-3 group-hover:text-emerald-600 transition-colors">{product.title}</h3>
                       <div className="flex items-center gap-3">
-                        {product.artist.user.image ? (
+                        {product.artist?.user?.image ? (
                           <img src={product.artist.user.image} alt={product.artist.user.name || ''} className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 shadow-sm" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm text-slate-400">👤</div>
                         )}
-                        <span className="text-sm font-bold text-slate-600">{product.artist.user.name}</span>
+                        <span className="text-sm font-bold text-slate-600">{product.artist?.user?.name || 'هنرمند'}</span>
                       </div>
                     </div>
                   </a>

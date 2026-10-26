@@ -83,16 +83,16 @@ export default function TopArtistsCarousel({ artists }: { artists: Artist[] }) {
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {artists.map(artist => (
-            <a key={artist.id} href={`/artist/${artist.displayId}`} className="flex flex-col items-center gap-4 min-w-[140px] md:min-w-[160px] snap-center group/item">
+            <a key={artist.id} href={`/artist/${artist.displayId || artist.id}`} className="flex flex-col items-center gap-4 min-w-[140px] md:min-w-[160px] snap-center group/item">
               <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-slate-200 border-4 border-white shadow-md overflow-hidden group-hover/item:border-emerald-500 group-hover/item:shadow-emerald-200 transition-all duration-300 group-hover/item:-translate-y-2">
-                {artist.user.image ? (
-                  <img src={artist.user.image} alt={artist.user.name || ''} className="w-full h-full object-cover" />
+                {artist.user?.image ? (
+                  <img src={artist.user.image} alt={artist.user?.name || ''} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-slate-100 flex items-center justify-center text-4xl text-slate-400">👤</div>
                 )}
               </div>
               <div className="text-center">
-                <h3 className="font-bold text-slate-800 group-hover/item:text-emerald-600 transition-colors text-base md:text-lg">{artist.user.name || 'هنرمند'}</h3>
+                <h3 className="font-bold text-slate-800 group-hover/item:text-emerald-600 transition-colors text-base md:text-lg">{artist.user?.name || 'هنرمند'}</h3>
                 <p className="text-xs md:text-sm text-slate-500 mt-1 font-medium bg-slate-100 px-3 py-1 rounded-full group-hover/item:bg-emerald-50 group-hover/item:text-emerald-700 transition-colors">مشاهده آثار</p>
               </div>
             </a>
