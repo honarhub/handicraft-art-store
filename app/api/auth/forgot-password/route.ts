@@ -1,57 +1,135 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sms';
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { email } = await request.json();
+    const body = await req.json();
+    const { action, target, code, newPassword } = body;
 
-    if (!email) {
-      return NextResponse.json({ error: 'ایمیل الزامی است' }, { status: 400 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (!user) {
-      // به دلایل امنیتی، نمی‌گوییم کاربر وجود ندارد
-      return NextResponse.json({ success: true, message: 'اگر ایمیل معتبر باشد، لینک بازیابی ارسال شد.' });
-    }
-
-    // تولید توکن تصادفی
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 3600000); // 1 ساعت اعتبار
-
-    // پاک کردن توکن‌های قبلی کاربر اگر وجود دارد (اختیاری)
-    await prisma.passwordResetToken.deleteMany({
-      where: { email }
-    });
-
-    await prisma.passwordResetToken.create({
-      data: {
-        email,
-        token,
-        expiresAt
+    // Action 1: Request Password Reset Code
+    if (action === 'request') {
+      if (!target) {
+        return NextResponse.json({ error: 'شماره موبایل یا ایمیل الزامی است.' }, { status: 400 });
       }
-    });
 
-    // در یک پروژه واقعی اینجا ایمیل ارسال می‌شود
-    const resetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
-    
-    // شبیه‌سازی ارسال ایمیل در محیط تست
-    console.log('=============================================');
-    console.log('🔔 EMAIL MOCK - PASSWORD RESET LINK');
-    console.log(`To: ${email}`);
-    console.log(`Link: ${resetLink}`);
-    console.log('=============================================');
+      const isMobile = isValidIranianMobile(target);
+      const normalizedTarget = isMobile ? normalizePhoneNumber(target) : target.trim().toLowerCase();
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'لینک بازیابی ایجاد شد. (در کنسول سرور چاپ شد)' 
-    });
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    return NextResponse.json({ error: 'خطای سرور' }, { status: 500 });
+      // Find user
+      const user = await prisma.user.findFirst({
+        where: isMobile ? { phoneNumber: normalizedTarget } : { email: normalizedTarget }
+      });
+
+      if (!user) {
+        // Return friendly message without leaking account existence
+        return NextResponse.json({ 
+          success: true, 
+          message: 'در صورت ثبت بودن حساب، کد بازیابی ارسال شد.' 
+        });
+      }
+
+      // Generate 5-digit OTP
+      const otpCode = Math.floor(10000 + Math.random() * 90000).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      // Invalidate existing unused codes
+      await prisma.verificationCode.updateMany({
+        where: {
+          target: normalizedTarget,
+          type: 'PASSWORD_RESET',
+          used: false
+        },
+        data: { used: true }
+      });
+
+      await prisma.verificationCode.create({
+        data: {
+          target: normalizedTarget,
+          code: otpCode,
+          type: 'PASSWORD_RESET',
+          expiresAt,
+          used: false
+        }
+      });
+
+      if (isMobile) {
+        await sendSmsOtp(normalizedTarget, otpCode);
+      } else {
+        // For email, log in dev or send email
+        console.log(`[EMAIL-RESET] Password reset code for ${normalizedTarget}: [ ${otpCode} ]`);
+      }
+
+      const isDev = process.env.NODE_ENV !== 'production';
+
+      return NextResponse.json({
+        success: true,
+        message: 'کد بازیابی ارسال شد.',
+        target: normalizedTarget,
+        ...(isDev ? { devCode: otpCode } : {})
+      });
+    }
+
+    // Action 2: Reset Password with Verified Code
+    if (action === 'reset') {
+      if (!target || !code || !newPassword) {
+        return NextResponse.json({ error: 'اطلاعات ارسالی ناقص است.' }, { status: 400 });
+      }
+
+      if (newPassword.length < 6) {
+        return NextResponse.json({ error: 'رمز عبور جدید باید حداقل ۶ کاراکتر باشد.' }, { status: 400 });
+      }
+
+      const isMobile = isValidIranianMobile(target);
+      const normalizedTarget = isMobile ? normalizePhoneNumber(target) : target.trim().toLowerCase();
+      const cleanedCode = code.toString().trim();
+
+      const record = await prisma.verificationCode.findFirst({
+        where: {
+          target: normalizedTarget,
+          code: cleanedCode,
+          type: 'PASSWORD_RESET',
+          used: false,
+          expiresAt: { gte: new Date() }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (!record) {
+        return NextResponse.json({ error: 'کد بازیابی نامعتبر یا منقضی شده است.' }, { status: 400 });
+      }
+
+      // Mark code as used
+      await prisma.verificationCode.update({
+        where: { id: record.id },
+        data: { used: true }
+      });
+
+      // Update user password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const user = await prisma.user.findFirst({
+        where: isMobile ? { phoneNumber: normalizedTarget } : { email: normalizedTarget }
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: 'کاربر یافت نشد.' }, { status: 404 });
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword, mustChangePassword: false }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'رمز عبور شما با موفقیت تغییر کرد. اکنون می‌توانید وارد شوید.'
+      });
+    }
+
+    return NextResponse.json({ error: 'اکشن نامعتبر است.' }, { status: 400 });
+  } catch (error: any) {
+    console.error('[API /api/auth/forgot-password] Error:', error);
+    return NextResponse.json({ error: 'خطای سرور در پردازش درخواست.' }, { status: 500 });
   }
 }

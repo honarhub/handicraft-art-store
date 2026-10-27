@@ -35,10 +35,11 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
   
   if (!dbArtist) notFound();
 
-  // Access check for unapproved or inactive profiles (admin preview only)
+  const isOwner = Boolean(session?.user?.id && session.user.id === dbArtist.userId);
 
+  // Access check for unapproved or inactive profiles (admin and owner preview only)
   if (!dbArtist.isActive || !dbArtist.isApproved) {
-    if (!isAdmin) {
+    if (!isAdmin && !isOwner) {
       return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans p-4" dir="rtl">
           <div className="text-center max-w-lg w-full">

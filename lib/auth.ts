@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { normalizePhoneNumber } from "@/lib/sms";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -37,9 +38,83 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "ایمیل", type: "email", placeholder: "you@example.com" },
         password: { label: "رمز عبور", type: "password" },
+        phone: { label: "شماره موبایل", type: "text" },
+        code: { label: "کد تایید", type: "text" },
         loginType: { type: "hidden" }
       },
       async authorize(credentials) {
+        // --- 1. Mobile Phone + SMS OTP Login ---
+        if (credentials?.loginType === 'otp' || (credentials?.phone && credentials?.code)) {
+          if (!credentials.phone || !credentials.code) {
+            throw new Error("شماره موبایل و کد تایید الزامی است");
+          }
+
+          const normalized = normalizePhoneNumber(credentials.phone);
+          const cleanedCode = credentials.code.trim();
+
+          const record = await prisma.verificationCode.findFirst({
+            where: {
+              target: normalized,
+              code: cleanedCode,
+              type: 'PHONE_OTP',
+              used: false,
+              expiresAt: { gte: new Date() }
+            },
+            orderBy: { createdAt: 'desc' }
+          });
+
+          if (!record) {
+            throw new Error("کد تایید اشتباه است یا منقضی شده است.");
+          }
+
+          // Invalidate used code
+          await prisma.verificationCode.update({
+            where: { id: record.id },
+            data: { used: true }
+          });
+
+          // Find or create User
+          let user = await prisma.user.findFirst({
+            where: { phoneNumber: normalized },
+            include: { artistProfile: true }
+          });
+
+          if (!user) {
+            user = await prisma.user.create({
+              data: {
+                phoneNumber: normalized,
+                name: `هنرمند ${normalized.slice(-4)}`,
+                role: 'ARTIST',
+                artistProfile: {
+                  create: {
+                    isApproved: false,
+                    isActive: true,
+                    verificationLevel: 0
+                  }
+                }
+              },
+              include: { artistProfile: true }
+            });
+          } else if (!user.artistProfile && user.role !== 'ADMIN') {
+            await prisma.artistProfile.create({
+              data: {
+                userId: user.id,
+                isApproved: false,
+                isActive: true,
+                verificationLevel: 0
+              }
+            });
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
+        }
+
+        // --- 2. Standard Email + Password Login ---
         if (!credentials?.email || !credentials?.password) {
           throw new Error("ایمیل و رمز عبور الزامی است");
         }

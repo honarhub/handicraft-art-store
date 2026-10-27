@@ -63,6 +63,10 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount }: ArtistS
       label: '👤 ویرایش پروفایل',
     },
     {
+      href: '/artist-panel/onboarding',
+      label: '🎖️ سطوح احراز هویت',
+    },
+    {
       href: '/artist-panel/security',
       label: '🔒 تنظیمات امنیتی',
     },

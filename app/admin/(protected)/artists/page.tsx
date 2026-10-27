@@ -232,7 +232,9 @@ export default function AdminArtistsPage() {
             <table className="w-full text-right text-sm">
               <thead className="bg-red-50/50 text-red-800 font-bold border-b border-red-100">
                 <tr>
-                  <th className="px-6 py-4">نام هنرمند و ایمیل</th>
+                  <th className="px-6 py-4">نام هنرمند و استودیو</th>
+                  <th className="px-6 py-4">سطح احراز هویت</th>
+                  <th className="px-6 py-4">شماره تماس و شهر</th>
                   <th className="px-6 py-4">تخصص‌ها</th>
                   <th className="px-6 py-4 text-left">عملیات</th>
                 </tr>
@@ -242,7 +244,32 @@ export default function AdminArtistsPage() {
                   <tr key={artist.id} className="hover:bg-red-50/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-800">{artist.name}</div>
-                      <div className="text-xs text-slate-500 mt-1" dir="ltr">{artist.email || 'ندارد'}</div>
+                      {artist.brandName && (
+                        <div className="text-xs text-emerald-800 font-medium mt-0.5">برند: {artist.brandName}</div>
+                      )}
+                      <div className="text-xs text-slate-500 mt-1" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ${
+                        artist.verificationLevel >= 3
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : artist.verificationLevel === 2
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                          : artist.verificationLevel === 1
+                          ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        <span>سطح {artist.verificationLevel || 0}</span>
+                        <span className="text-[10px] opacity-75">
+                          {artist.verificationLevel >= 3 ? '(کامل)' : artist.verificationLevel === 2 ? '(رزومه)' : artist.verificationLevel === 1 ? '(پایه)' : '(ثبت‌نام)'}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-mono text-xs text-slate-700" dir="ltr">{artist.phoneNumber || '—'}</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
@@ -257,7 +284,7 @@ export default function AdminArtistsPage() {
                       <div className="flex justify-end gap-2">
                         <button onClick={() => handleApprove(artist.id)} className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm shadow-emerald-200">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          تایید
+                          تایید هنرمند
                         </button>
                         <button onClick={() => handleRejectRegistration(artist.id)} className="inline-flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>

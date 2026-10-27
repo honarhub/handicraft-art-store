@@ -70,14 +70,43 @@ enum Role {
   ADMIN
 }
 
+model VerificationCode {
+  id        String   @id @default(cuid())
+  target    String   // شماره موبایل یا ایمیل
+  code      String   // کد ۵ رقمی
+  type      String   // "PHONE_OTP" | "PASSWORD_RESET"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([target, type])
+}
+
 model ArtistProfile {
   id          String   @id @default(cuid())
   displayId   Int      @default(autoincrement()) @unique
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // اطلاعات برند و هویت هنری (سطح ۱ و ۲)
+  brandName   String?  // نام برند یا استودیوی هنری
+  province    String?  // استان
+  city        String?  // شهر
   bio         String?
   portfolioUrl String?
+  bannerUrl   String?  // تصویر بنر بالای فروشگاه/گالری هنرمند
   socialLinks Json?    // { instagram: "url", twitter: "url", telegram: "url", bale: "url" }
+  
+  // سطح احراز هویت (۰: ثبت‌نام، ۱: اطلاعات پایه و تخصص، ۲: رزومه و گالری، ۳: کارت ملی و حقوقی)
+  verificationLevel Int @default(0)
+  
+  // مدارک هویتی و مالی (سطح ۳)
+  nationalId        String?  // کد ملی
+  nationalCardImage String?  // تصویر کارت ملی
+  address           String?  // آدرس کارگاه یا محل سکونت
+  postalCode        String?  // کد پستی
+  shebaNumber       String?  // شماره شبا بانکی (بدون IR)
+  
   isActive    Boolean  @default(true)
   isDeleted   Boolean  @default(false) // حذف نرم هنرمندان
   isApproved  Boolean  @default(false) // تایید ادمین برای ثبت‌نام جدید

@@ -31,7 +31,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     deletedAt: null,
     artist: {
       isActive: true,
-      isDeleted: false
+      isDeleted: false,
+      isApproved: true
     },
     pricingTiers: {
       some: {

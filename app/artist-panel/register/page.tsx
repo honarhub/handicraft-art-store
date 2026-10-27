@@ -47,10 +47,21 @@ export default function ArtistRegisterPage() {
         return;
       }
       
-      setSuccessMsg('ثبت‌نام با موفقیت انجام شد! در حال انتقال به صفحه ورود...');
-      setTimeout(() => {
+      setSuccessMsg('ثبت‌نام با موفقیت انجام شد! در حال انتقال به ویزارد راه‌اندازی...');
+      
+      // Auto login and navigate to onboarding wizard
+      const loginRes = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+        loginType: 'artist'
+      });
+
+      if (!loginRes?.error) {
+        router.push('/artist-panel/onboarding');
+      } else {
         router.push('/artist-panel/login');
-      }, 2000);
+      }
     } catch (err) {
       setErrorMsg('مشکلی پیش آمد.');
       setLoading(false);

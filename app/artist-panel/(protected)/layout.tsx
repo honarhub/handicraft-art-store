@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import LogoutButton from '@/app/components/LogoutButton';
 import ArtistSidebarNav from './ArtistSidebarNav';
+import ArtistVerificationBanner from './ArtistVerificationBanner';
 
 export default async function ArtistPanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -42,6 +43,11 @@ export default async function ArtistPanelLayout({ children }: { children: React.
 
   if (artist.isDeleted) {
     redirect('/artist-panel/login?error=deleted');
+  }
+
+  // If artist hasn't completed Level 1 (basic info & brand), redirect to onboarding
+  if ((artist.verificationLevel || 0) === 0 && !artist.brandName && session.user.role !== 'ADMIN') {
+    redirect('/artist-panel/onboarding');
   }
 
   const unreadFeedbackCount = await prisma.product.count({
@@ -86,7 +92,12 @@ export default async function ArtistPanelLayout({ children }: { children: React.
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full overflow-y-auto flex flex-col">
+      <main className="flex-1 w-full overflow-y-auto flex flex-col p-4 sm:p-8">
+        <ArtistVerificationBanner
+          verificationLevel={artist.verificationLevel || 0}
+          isApproved={artist.isApproved}
+          brandName={artist.brandName}
+        />
         {artist.user.mustChangePassword && (
           <div className="bg-red-500 text-white p-4 shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
