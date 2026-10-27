@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { IRAN_PROVINCES } from '@/lib/provinces';
 
@@ -175,7 +175,7 @@ export default function ArtistOnboardingPage() {
             onClick={() => router.push('/artist-panel/dashboard')}
             className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all text-sm flex items-center justify-center gap-2 group"
           >
-            <span>ورود به پیشخوان هنرمند</span>
+            <span>ورود به پیشخوان</span>
             <span className="transition-transform group-hover:-translate-x-1">←</span>
           </button>
         </div>
@@ -186,15 +186,15 @@ export default function ArtistOnboardingPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-8 select-none" dir="rtl">
       
-      {/* Top Bar: Brand Logo & Interactive Progress Dots */}
-      <div className="max-w-2xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <Link href="/" className="inline-flex items-center text-2xl font-black tracking-tight" dir="rtl">
+      {/* Top Bar: Brand Logo, Interactive Progress Dots & Logout Button */}
+      <div className="max-w-2xl w-full mx-auto flex items-center justify-between gap-3 pb-4 border-b border-slate-800">
+        <Link href="/" className="inline-flex items-center text-xl sm:text-2xl font-black tracking-tight shrink-0" dir="rtl">
           <span className="text-white">هنر</span>
-          <span className="bg-[#FF9900] text-black px-2 py-0.5 rounded-md mr-1 text-xl font-black">هاب</span>
+          <span className="bg-[#FF9900] text-black px-2 py-0.5 rounded-md mr-1 text-lg sm:text-xl font-black">هاب</span>
         </Link>
 
         {/* Step Indicator Circles */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {[1, 2, 3].map((stepNumber) => {
             const isActive = currentStep === stepNumber;
             const isCompleted = currentStep > stepNumber;
@@ -204,7 +204,7 @@ export default function ArtistOnboardingPage() {
                 <button
                   type="button"
                   onClick={() => goToStep(stepNumber)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300 ${
                     isActive
                       ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/30 scale-110 shadow-lg shadow-emerald-500/40'
                       : isCompleted
@@ -217,7 +217,7 @@ export default function ArtistOnboardingPage() {
                 </button>
 
                 {stepNumber < 3 && (
-                  <div className={`w-8 sm:w-12 h-0.5 transition-colors duration-300 ${
+                  <div className={`w-6 sm:w-12 h-0.5 transition-colors duration-300 ${
                     currentStep > stepNumber ? 'bg-emerald-500' : 'bg-slate-800'
                   }`} />
                 )}
@@ -225,6 +225,19 @@ export default function ArtistOnboardingPage() {
             );
           })}
         </div>
+
+        {/* Logout Button */}
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: '/artist-panel/login' })}
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-400 hover:text-red-400 bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 rounded-xl transition-all shrink-0 shadow-sm"
+          title="خروج از حساب"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>خروج</span>
+        </button>
       </div>
 
       {/* Main Slide Carousel Container */}
@@ -268,9 +281,9 @@ export default function ArtistOnboardingPage() {
               <div className="pt-2 flex justify-end">
                 <button
                   type="submit"
-                  className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 px-8 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm flex items-center justify-center gap-2 group"
+                  className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 px-7 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm flex items-center justify-center gap-2 group"
                 >
-                  <span>مرحله بعدی</span>
+                  <span>بعدی</span>
                   <span className="transition-transform group-hover:-translate-x-1">←</span>
                 </button>
               </div>
@@ -286,7 +299,7 @@ export default function ArtistOnboardingPage() {
                   نام برند هنری یا استودیو <span className="text-slate-400 font-normal text-sm sm:text-base">(اختیاری)</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                  اگر برای فروشگاه یا کارگاه خود اسم تجاری دارید وارد کنید (در غیر این صورت از نام خودتان استفاده می‌شود).
+                  اگر برای فروشگاه یا کارگاه خود اسم تجاری دارید وارد کنید.
                 </p>
               </div>
 
@@ -308,14 +321,14 @@ export default function ArtistOnboardingPage() {
                   className="px-5 py-3.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors text-xs sm:text-sm font-bold flex items-center gap-1.5"
                 >
                   <span>→</span>
-                  <span>مرحله قبلی</span>
+                  <span>قبلی</span>
                 </button>
 
                 <button
                   type="submit"
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 px-8 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm flex items-center justify-center gap-2 group"
+                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 px-7 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm flex items-center justify-center gap-2 group"
                 >
-                  <span>مرحله بعدی</span>
+                  <span>بعدی</span>
                   <span className="transition-transform group-hover:-translate-x-1">←</span>
                 </button>
               </div>
@@ -385,19 +398,19 @@ export default function ArtistOnboardingPage() {
                   className="px-5 py-3.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors text-xs sm:text-sm font-bold flex items-center gap-1.5"
                 >
                   <span>→</span>
-                  <span>مرحله قبلی</span>
+                  <span>قبلی</span>
                 </button>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 px-8 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm flex items-center justify-center gap-2 group disabled:opacity-50"
+                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 px-7 rounded-xl shadow-lg shadow-emerald-500/25 transition-all text-sm flex items-center justify-center gap-2 group disabled:opacity-50"
                 >
                   {submitting ? (
-                    <span>در حال ثبت اطلاعات...</span>
+                    <span>در حال ثبت...</span>
                   ) : (
                     <>
-                      <span>تکمیل و ثبت نهایی سطح ۱</span>
+                      <span>ثبت نهایی</span>
                       <span className="transition-transform group-hover:scale-110">✓</span>
                     </>
                   )}
