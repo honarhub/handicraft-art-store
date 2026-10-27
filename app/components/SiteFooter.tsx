@@ -37,7 +37,7 @@ export default function SiteFooter() {
       <div className="max-w-7xl mx-auto pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium">
         <p>© {new Date().getFullYear()} پلتفرم اختصاصی هنرهاب. تمامی حقوق محفوظ است.</p>
         <div className="flex gap-4">
-          <span className="opacity-50">توسعه یافته با ❤️ برای هنر ایران</span>
+          <span className="opacity-50">نسخه ۰.۱.۱ • توسعه یافته با ❤️ برای هنر ایران</span>
         </div>
       </div>
       </div>
