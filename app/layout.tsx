@@ -19,11 +19,11 @@ export const metadata: Metadata = {
   description: "پلتفرم اختصاصی دست‌سازه‌های هنری و ارتباط بی‌واسطه با هنرمندان",
   icons: {
     icon: [
-      { url: '/favicon.ico?v=6', sizes: 'any' },
-      { url: '/icon.png?v=6', type: 'image/png', sizes: '192x192' },
+      { url: '/favicon.ico?v=7', sizes: 'any' },
+      { url: '/icon.png?v=7', type: 'image/png', sizes: '192x192' },
     ],
     apple: [
-      { url: '/apple-icon.png?v=6' },
+      { url: '/apple-icon.png?v=7' },
     ],
   },
 };
