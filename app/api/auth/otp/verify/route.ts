@@ -5,20 +5,22 @@ import { normalizePhoneNumber } from '@/lib/sms';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { phone, code, type = 'PHONE_OTP' } = body;
+    const { phone, email, code, type } = body;
 
-    if (!phone || !code) {
-      return NextResponse.json({ error: 'شماره موبایل و کد تایید الزامی است.' }, { status: 400 });
+    if ((!phone && !email) || !code) {
+      return NextResponse.json({ error: 'شماره موبایل یا ایمیل و همچنین کد تایید الزامی است.' }, { status: 400 });
     }
 
-    const normalized = normalizePhoneNumber(phone);
+    const isEmail = Boolean(email && !phone);
+    const targetType = type || (isEmail ? 'EMAIL_OTP' : 'PHONE_OTP');
+    const normalizedTarget = isEmail ? email.trim().toLowerCase() : normalizePhoneNumber(phone);
     const cleanedCode = code.toString().trim();
 
     const record = await prisma.verificationCode.findFirst({
       where: {
-        target: normalized,
+        target: normalizedTarget,
         code: cleanedCode,
-        type,
+        type: targetType,
         used: false,
         expiresAt: { gte: new Date() }
       },
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: 'کد تایید با موفقیت اعتبارسنجی شد.',
-      phone: normalized
+      target: normalizedTarget
     });
   } catch (error: any) {
     console.error('[API /api/auth/otp/verify] Error:', error);

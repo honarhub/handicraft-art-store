@@ -73,9 +73,8 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
   const availablePlatforms = allPlatforms.filter(p => typeof socialLinks[p] === 'undefined');
 
   const handleAdd = (platform: SocialPlatform) => {
-    // Automatically set default prefix so user only types their username
-    const prefix = platformMeta[platform]?.prefix || '';
-    onChange({ ...socialLinks, [platform]: prefix });
+    // Add platform with empty username so YOUR_USERNAME hint is displayed
+    onChange({ ...socialLinks, [platform]: '' });
   };
 
   const handleRemove = (platform: SocialPlatform) => {
@@ -84,29 +83,12 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
     onChange(newLinks);
   };
 
-  const handleChange = (platform: SocialPlatform, value: string) => {
-    onChange({ ...socialLinks, [platform]: value });
-  };
-
-  const handleBlur = (platform: SocialPlatform, value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      onChange({ ...socialLinks, [platform]: '' });
-      return;
+  const getUsername = (url: string | undefined, prefix: string) => {
+    if (!url) return '';
+    if (url.startsWith(prefix)) {
+      return url.slice(prefix.length);
     }
-
-    const meta = platformMeta[platform];
-    if (!meta) return;
-
-    // If already starts with http:// or https://, preserve it
-    if (/^https?:\/\//i.test(trimmed)) {
-      onChange({ ...socialLinks, [platform]: trimmed });
-      return;
-    }
-
-    // If user just typed an ID (e.g. "@username" or "username")
-    const cleanId = trimmed.replace(/^@/, '');
-    onChange({ ...socialLinks, [platform]: `${meta.prefix}${cleanId}` });
+    return url.replace(/^@/, '');
   };
 
   return (
@@ -116,24 +98,37 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
         const meta = platformMeta[plat];
         if (!meta) return null;
 
+        const currentUsername = getUsername(url, meta.prefix);
+
         return (
-          <div key={platform} className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200 shadow-xs">
+          <div key={platform} className="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-2xl border border-slate-200 shadow-xs">
             {/* Logo and Name Badge */}
-            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 min-w-[130px] shrink-0">
+            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 min-w-[125px] shrink-0">
               <SocialIcon platform={plat} />
               <span className="text-xs font-bold text-slate-700">{meta.name}</span>
             </div>
 
-            {/* URL Input */}
-            <input 
-              type="text" 
-              value={url || ''} 
-              onChange={e => handleChange(plat, e.target.value)}
-              onBlur={e => handleBlur(plat, e.target.value)}
-              className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-left transition-all font-mono" 
-              dir="ltr" 
-              placeholder={meta.placeholder}
-            />
+            {/* URL Input with prefix and YOUR_USERNAME hint */}
+            <div className="flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono dir-ltr focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100 transition-all overflow-hidden" dir="ltr">
+              <span className="text-slate-400 select-none text-xs sm:text-sm shrink-0">{meta.prefix}</span>
+              <input 
+                type="text" 
+                value={currentUsername} 
+                onChange={e => {
+                  let raw = e.target.value;
+                  // If pasted full URL, extract handle
+                  if (raw.startsWith(meta.prefix)) {
+                    raw = raw.slice(meta.prefix.length);
+                  }
+                  raw = raw.replace(/^@/, '');
+                  const fullUrl = raw.trim() ? `${meta.prefix}${raw.trim()}` : '';
+                  onChange({ ...socialLinks, [plat]: fullUrl });
+                }}
+                className="flex-1 bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-mono placeholder:text-slate-400 placeholder:italic px-1 min-w-[100px]" 
+                dir="ltr" 
+                placeholder="YOUR_USERNAME"
+              />
+            </div>
 
             {/* Remove button */}
             <button 

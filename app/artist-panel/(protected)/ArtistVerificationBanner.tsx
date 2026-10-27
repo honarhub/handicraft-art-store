@@ -29,12 +29,14 @@ export default function ArtistVerificationBanner({ verificationLevel, isApproved
               احراز هویت: سطح {verificationLevel} از ۳
             </span>
 
-            {!isApproved ? (
+            {verificationLevel > 1 && !isApproved && (
               <span className="text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1 rounded-full flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                 <span>در انتظار بررسی و تایید ناظر پلتفرم</span>
               </span>
-            ) : (
+            )}
+
+            {isApproved && (
               <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5">
                 <span>✓</span>
                 <span>حساب شما تایید شده و فعال است</span>
@@ -47,8 +49,10 @@ export default function ArtistVerificationBanner({ verificationLevel, isApproved
           </h3>
 
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            {!isApproved ? (
-              'شما می‌توانید آثار خود را در پنل ثبت کنید. آثار در وضعیت پیش‌نویس قرار می‌گیرند و پس از تایید توسط ادمین، فروشگاه شما به صورت رسمی و عمومی در سایت اصلی هنرهاب فعال خواهد شد.'
+            {verificationLevel === 1 ? (
+              'در حال حاضر می‌توانید محصولات خود را ثبت نمایید ولی برای نمایش عمومی نیاز هست پروفایل خود را تکمیل نمایید'
+            ) : !isApproved ? (
+              'اطلاعات پروفایل شما ارسال شده و در انتظار تایید ناظر پلتفرم است. پس از تایید ادمین، فروشگاه شما به صورت عمومی در سایت نمایش داده خواهد شد.'
             ) : (
               'برای دریافت نشان اصالت و فعال‌سازی قابلیت واریز درآمدهای فروش، لطفاً مراحل احراز هویت را کامل کنید.'
             )}
@@ -72,10 +76,16 @@ export default function ArtistVerificationBanner({ verificationLevel, isApproved
         {/* Right Side: Action Button */}
         <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 justify-center flex-shrink-0">
           <Link
-            href="/artist-panel/onboarding"
+            href={verificationLevel === 1 ? '/artist-panel/profile' : '/artist-panel/onboarding'}
             className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-6 py-3 rounded-2xl transition-all shadow-lg shadow-emerald-500/25 text-xs sm:text-sm"
           >
-            <span>{verificationLevel >= 3 ? 'مشاهده مدارک ثبت‌شده' : 'تکمیل و ارتقای احراز هویت'}</span>
+            <span>
+              {verificationLevel === 1
+                ? 'تکمیل پروفایل و ارتقای احراز هویت'
+                : verificationLevel >= 3
+                ? 'مشاهده مدارک ثبت‌شده'
+                : 'تکمیل مدارک هویتی (سطح ۳)'}
+            </span>
             <span>←</span>
           </Link>
         </div>

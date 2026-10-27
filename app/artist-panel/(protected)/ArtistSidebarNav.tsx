@@ -60,7 +60,7 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount }: ArtistS
     },
     {
       href: '/artist-panel/profile',
-      label: '👤 ویرایش پروفایل',
+      label: '👤 پروفایل',
     },
     {
       href: '/artist-panel/onboarding',

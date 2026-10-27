@@ -5,26 +5,38 @@ import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sm
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { phone, type = 'PHONE_OTP' } = body;
+    const { phone, email, type } = body;
 
-    if (!phone) {
-      return NextResponse.json({ error: 'شماره موبایل الزامی است.' }, { status: 400 });
+    if (!phone && !email) {
+      return NextResponse.json({ error: 'شماره موبایل یا ایمیل الزامی است.' }, { status: 400 });
     }
 
-    const normalized = normalizePhoneNumber(phone);
+    const isEmail = Boolean(email && !phone);
+    const targetType = type || (isEmail ? 'EMAIL_OTP' : 'PHONE_OTP');
+    
+    let normalizedTarget = '';
 
-    if (!isValidIranianMobile(normalized)) {
-      return NextResponse.json({ 
-        error: 'شماره موبایل نامعتبر است. فرمت صحیح: ۰۹۱۲۳۴۵۶۷۸۹' 
-      }, { status: 400 });
+    if (isEmail) {
+      const emailTrimmed = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+        return NextResponse.json({ error: 'فرمت ایمیل نامعتبر است.' }, { status: 400 });
+      }
+      normalizedTarget = emailTrimmed;
+    } else {
+      normalizedTarget = normalizePhoneNumber(phone);
+      if (!isValidIranianMobile(normalizedTarget)) {
+        return NextResponse.json({ 
+          error: 'شماره موبایل نامعتبر است. فرمت صحیح: ۰۹۱۲۳۴۵۶۷۸۹' 
+        }, { status: 400 });
+      }
     }
 
-    // Rate Limiting: Check last created code for this phone within last 60 seconds
+    // Rate Limiting: Check last created code for this target within last 60 seconds
     const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
     const recentCode = await prisma.verificationCode.findFirst({
       where: {
-        target: normalized,
-        type,
+        target: normalizedTarget,
+        type: targetType,
         createdAt: { gte: sixtySecondsAgo },
         used: false
       },
@@ -38,44 +50,48 @@ export async function POST(req: Request) {
       }, { status: 429 });
     }
 
-    // Invalidate existing unused codes for this phone & type
+    // Invalidate existing unused codes for this target & type
     await prisma.verificationCode.updateMany({
       where: {
-        target: normalized,
-        type,
+        target: normalizedTarget,
+        type: targetType,
         used: false
       },
       data: { used: true }
     });
 
-    // Generate cryptographically secure-ish 5-digit OTP (10000 - 99999)
+    // Generate 5-digit OTP (10000 - 99999)
     const code = Math.floor(10000 + Math.random() * 90000).toString();
     const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
 
     await prisma.verificationCode.create({
       data: {
-        target: normalized,
+        target: normalizedTarget,
         code,
-        type,
+        type: targetType,
         expiresAt,
         used: false
       }
     });
 
-    // Send SMS
-    await sendSmsOtp(normalized, code);
+    // Send SMS if mobile
+    if (!isEmail) {
+      await sendSmsOtp(normalizedTarget, code);
+    } else {
+      console.log(`[EMAIL OTP] Code for ${normalizedTarget}: ${code}`);
+    }
 
     const isDev = process.env.NODE_ENV !== 'production';
 
     return NextResponse.json({
       success: true,
-      message: 'کد تایید با موفقیت ارسال شد.',
+      message: isEmail ? 'کد تایید به ایمیل شما ارسال شد.' : 'کد تایید با موفقیت پیامک شد.',
       expiresIn: 120,
-      phone: normalized,
+      target: normalizedTarget,
       ...(isDev ? { devCode: code } : {})
     });
   } catch (error: any) {
     console.error('[API /api/auth/otp/send] Error:', error);
-    return NextResponse.json({ error: 'خطای سرور در ارسال پیامک.' }, { status: 500 });
+    return NextResponse.json({ error: 'خطای سرور در ارسال کد تایید.' }, { status: 500 });
   }
 }
