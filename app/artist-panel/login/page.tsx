@@ -81,6 +81,11 @@ function ArtistLoginContent() {
       return;
     }
 
+    if (!phone.trim().startsWith('0')) {
+      setErrorMsg('شماره موبایل باید با ۰ شروع شود (مثال: ۰۹۱۲۳۴۵۶۷۸۹).');
+      return;
+    }
+
     setOtpLoading(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -114,11 +119,10 @@ function ArtistLoginContent() {
     }
   };
 
-  // --- Verify OTP & Login ---
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otpCode || otpCode.length < 4) {
-      setErrorMsg('لطفاً کد تایید دریافتی را به طور کامل وارد کنید.');
+  // --- Verify OTP & Login (Auto triggered on 5th digit) ---
+  const executeVerifyOtp = async (codeToVerify: string) => {
+    if (!codeToVerify || codeToVerify.length !== 5) {
+      setErrorMsg('لطفاً کد تایید ۵ رقمی را به طور کامل وارد کنید.');
       return;
     }
 
@@ -129,7 +133,7 @@ function ArtistLoginContent() {
       const res = await signIn('credentials', {
         redirect: false,
         phone,
-        code: otpCode,
+        code: codeToVerify,
         loginType: 'otp'
       });
 
@@ -141,7 +145,7 @@ function ArtistLoginContent() {
         const onboardingRes = await fetch('/api/artist/onboarding');
         const onboardingData = await onboardingRes.json();
         
-        if (onboardingData?.artist && (onboardingData.artist.verificationLevel === 0 || !onboardingData.artist.brandName)) {
+        if (onboardingData?.artist && (onboardingData.artist.verificationLevel === 0 || !onboardingData.artist.province)) {
           router.push('/artist-panel/onboarding');
         } else {
           router.push('/artist-panel/dashboard');
@@ -151,6 +155,11 @@ function ArtistLoginContent() {
       setErrorMsg('خطایی رخ داد. لطفاً مجدداً تلاش کنید.');
       setOtpLoading(false);
     }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    executeVerifyOtp(otpCode);
   };
 
   // --- Password Login ---
@@ -381,22 +390,19 @@ function ArtistLoginContent() {
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      شماره تلفن همراه
+                      شماره تلفن همراه (شروع با ۰)
                     </label>
-                    <div className="relative">
-                      <input
-                        type="tel"
-                        dir="ltr"
-                        placeholder="09123456789"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-widest text-slate-900 bg-slate-50/50"
-                      />
-                      <span className="absolute left-3 top-3.5 text-slate-400 text-xs font-mono">🇮🇷 +98</span>
-                    </div>
+                    <input
+                      type="tel"
+                      dir="ltr"
+                      placeholder="09123456789"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-widest text-slate-900 bg-slate-50/50"
+                    />
                     <p className="text-[11px] text-slate-400 mt-1.5 mr-1">
-                      کد تایید ۵ رقمی به صورت پیامک برای این شماره ارسال خواهد شد.
+                      شماره موبایل ۱۱ رقمی خود را حتماً با ۰ وارد کنید (مثال: ۰۹۱۲۳۴۵۶۷۸۹).
                     </p>
                   </div>
 
@@ -434,7 +440,13 @@ function ArtistLoginContent() {
                       maxLength={5}
                       placeholder="• • • • •"
                       value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 5);
+                        setOtpCode(val);
+                        if (val.length === 5) {
+                          executeVerifyOtp(val);
+                        }
+                      }}
                       autoFocus
                       required
                       className="w-full px-4 py-3.5 border-2 border-emerald-500/40 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-2xl font-black tracking-[0.5em] text-slate-900 bg-white"
@@ -513,9 +525,22 @@ function ArtistLoginContent() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-3.5 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    className="absolute left-3.5 top-3.5 text-slate-400 hover:text-slate-700 transition-colors p-0.5"
+                    title={showPassword ? 'مخفی کردن رمز عبور' : 'مشاهده رمز عبور'}
                   >
-                    {showPassword ? 'مخفی' : 'نمایش'}
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                        <line x1="2" x2="22" y1="2" y2="22"/>
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>

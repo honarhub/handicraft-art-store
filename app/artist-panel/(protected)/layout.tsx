@@ -45,8 +45,8 @@ export default async function ArtistPanelLayout({ children }: { children: React.
     redirect('/artist-panel/login?error=deleted');
   }
 
-  // If artist hasn't completed Level 1 (basic info & brand), redirect to onboarding
-  if ((artist.verificationLevel || 0) === 0 && !artist.brandName && session.user.role !== 'ADMIN') {
+  // If artist is at Level 0 (hasn't completed Level 1 onboarding), redirect to onboarding
+  if ((artist.verificationLevel || 0) === 0 && session.user.role !== 'ADMIN') {
     redirect('/artist-panel/onboarding');
   }
 

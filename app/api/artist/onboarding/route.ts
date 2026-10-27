@@ -80,19 +80,19 @@ export async function POST(req: Request) {
 
     const currentLevel = artist.verificationLevel || 0;
 
-    // --- STEP 1: Basic Info & Specialties ---
+    // --- STEP 1: Basic Info (Name, Brand, Province, City) ---
     if (step === 1) {
       const { name, brandName, province, city, phone, specialtyIds } = body;
 
-      if (!name || !brandName || !province || !city) {
-        return NextResponse.json({ error: 'لطفاً تمامی فیلدهای الزامی مرحله ۱ را تکمیل کنید.' }, { status: 400 });
+      if (!name?.trim() || !province || !city) {
+        return NextResponse.json({ error: 'نام و نام خانوادگی، استان و شهر الزامی هستند.' }, { status: 400 });
       }
 
       // Update User info
       await prisma.user.update({
         where: { id: session.user.id },
         data: {
-          name,
+          name: name.trim(),
           ...(phone ? { phoneNumber: normalizePhoneNumber(phone) } : {})
         }
       });
@@ -101,11 +101,11 @@ export async function POST(req: Request) {
       const updatedArtist = await prisma.artistProfile.update({
         where: { id: artist.id },
         data: {
-          brandName,
+          brandName: brandName?.trim() || null,
           province,
           city,
           verificationLevel: Math.max(currentLevel, 1),
-          ...(Array.isArray(specialtyIds) ? {
+          ...(Array.isArray(specialtyIds) && specialtyIds.length > 0 ? {
             specialties: {
               set: specialtyIds.map((id: string) => ({ id }))
             }
