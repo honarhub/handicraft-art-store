@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import SocialLinksInput from '@/app/components/SocialLinksInput';
 import AvatarCropModal from '@/app/components/AvatarCropModal';
+import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 
 export default function ArtistProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -11,7 +12,10 @@ export default function ArtistProfilePage() {
   const [artist, setArtist] = useState<any>(null);
   const [pendingMode, setPendingMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [successMsg, setSuccessMsg] = useState('');
+
+  const errorRef = useRef<HTMLDivElement>(null);
 
   // AI Resume Auto-Complete states
   const [aiLoading, setAiLoading] = useState(false);
@@ -41,7 +45,7 @@ export default function ArtistProfilePage() {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
-  // Phone OTP Modal States (Required for SSO users adding their phone)
+  // Phone OTP Modal States (Required for SSO users adding their mobile)
   const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
   const [phoneOtpCode, setPhoneOtpCode] = useState('');
   const [phoneOtpLoading, setPhoneOtpLoading] = useState(false);
@@ -140,6 +144,7 @@ export default function ArtistProfilePage() {
       setRawImageForCrop(base64);
       setCropModalOpen(true);
       setErrorMsg('');
+      setValidationErrors([]);
     } catch {
       setErrorMsg('خطا در بارگذاری تصویر');
     } finally {
@@ -338,29 +343,49 @@ export default function ArtistProfilePage() {
     }
   };
 
-  // --- Primary Form Submission ---
+  // --- Primary Form Submission with Comprehensive Validation ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
-    // Strict validation
-    if (!name.trim()) {
-      setErrorMsg('نام و نام خانوادگی الزامی است.');
-      return;
-    }
-    if (!bio.trim()) {
-      setErrorMsg('درباره شما (بیوگرافی) الزامی است.');
-      return;
-    }
+    const errors: string[] = [];
+
+    // 1. Avatar check
     if (!imagePreview && !artist?.user?.image) {
-      setErrorMsg('بارگذاری تصویر پروفایل الزامی است.');
-      return;
+      errors.push('بارگذاری تصویر پروفایل الزامی است.');
     }
+
+    // 2. Name check
+    if (!name.trim()) {
+      errors.push('نام و نام خانوادگی الزامی است.');
+    }
+
+    // 3. Phone check
     if (!phoneNumber || !phoneNumber.trim()) {
-      setErrorMsg('وارد کردن شماره موبایل الزامی است.');
+      errors.push('شماره موبایل الزامی است.');
+    } else {
+      const norm = normalizePhoneNumber(phoneNumber);
+      if (!isValidIranianMobile(norm)) {
+        errors.push('شماره موبایل اشتباه است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).');
+      }
+    }
+
+    // 4. Bio check
+    if (!bio.trim()) {
+      errors.push('درباره شما (بیوگرافی و معرفی هنرمند) الزامی است.');
+    }
+
+    // If there are validation errors, display all in red list and scroll smoothly
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
       return;
     }
+
+    setValidationErrors([]);
 
     // If SSO user and phone is not verified yet, require OTP verification first!
     if (isSsoUser && !isPhoneVerified) {
@@ -374,6 +399,7 @@ export default function ArtistProfilePage() {
   const executeSaveProfile = async (phoneVerifiedStatus: boolean) => {
     setSubmitLoading(true);
     setErrorMsg('');
+    setValidationErrors([]);
     setSuccessMsg('');
 
     const formattedUrl = formatUrl(portfolioUrl);
@@ -402,13 +428,68 @@ export default function ArtistProfilePage() {
 
       setPendingMode(true);
       setPortfolioUrl(formattedUrl);
-      setSuccessMsg('اطلاعات پروفایل شما با موفقیت ثبت شد و احراز هویت شما به سطح ۲ ارتقا یافت. درخواست به ناظر پلتفرم ارسال گردید.');
-      setArtist({ ...artist, adminFeedback: null, verificationLevel: Math.max(artist?.verificationLevel || 0, 2) });
+      setSuccessMsg('اطلاعات پروفایل شما با موفقیت ارسال شد و در انتظار تایید ادمین قرار گرفت.');
+      setArtist({ 
+        ...artist, 
+        pendingEdits: data.artist?.pendingEdits || true,
+        adminFeedback: null 
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setErrorMsg(err.message || 'مشکلی در ثبت اطلاعات پیش آمد.');
     } finally {
       setSubmitLoading(false);
     }
+  };
+
+  const renderAdminFeedback = () => {
+    if (!artist?.adminFeedback || pendingMode) return null;
+    
+    try {
+      const parsed = JSON.parse(artist.adminFeedback);
+      if (typeof parsed === 'object' && parsed !== null) {
+        const labels: Record<string, string> = {
+          name: 'نام و نام خانوادگی',
+          brandName: 'نام برند هنری یا استودیو',
+          image: 'تصویر پروفایل',
+          bio: 'درباره شما (بیوگرافی)',
+          specialties: 'تخصص‌ها',
+          portfolioUrl: 'لینک وب‌سایت شخصی',
+          socialLinks: 'شبکه‌های اجتماعی'
+        };
+        return (
+          <div className="mb-8 p-5 bg-red-50 border-2 border-red-200 rounded-3xl">
+            <h4 className="font-black text-red-900 text-sm mb-3 flex items-center gap-2">
+              <span className="text-xl">⚠️</span>
+              <span>بازخورد ادمین در خصوص موارد نیازمند اصلاح:</span>
+            </h4>
+            <div className="space-y-2">
+              {Object.entries(parsed).map(([key, reason]) => (
+                <div key={key} className="p-3 bg-white rounded-2xl border border-red-200 text-xs sm:text-sm">
+                  <span className="font-bold text-red-700">{labels[key] || key}: </span>
+                  <span className="text-slate-800 font-medium">{String(reason)}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-red-700 mt-3 font-medium">
+              موارد تایید شده اعمال شده‌اند. لطفاً موارد رد شده فوق را اصلاح نموده و مجدداً جهت بررسی ارسال فرمایید.
+            </p>
+          </div>
+        );
+      }
+    } catch {
+      // Plain text feedback
+    }
+
+    return (
+      <div className="mb-8 p-5 bg-red-50 border-2 border-red-200 rounded-3xl flex gap-4 items-start">
+        <span className="text-2xl">⚠️</span>
+        <div>
+          <h4 className="font-bold text-red-800 text-sm">درخواست ویرایش قبلی شما رد شد!</h4>
+          <p className="text-red-700 text-xs sm:text-sm mt-1">دلیل ادمین: {artist.adminFeedback}</p>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -435,7 +516,10 @@ export default function ArtistProfilePage() {
         </p>
       </div>
 
-      {/* Alerts */}
+      {/* Admin Itemized Feedback */}
+      {renderAdminFeedback()}
+
+      {/* General Alert */}
       {errorMsg && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-bold rounded-2xl flex items-center gap-2">
           <span>⚠️</span>
@@ -450,16 +534,7 @@ export default function ArtistProfilePage() {
         </div>
       )}
 
-      {artist?.adminFeedback && !pendingMode && artist?.isActive && (
-        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex gap-4 items-start">
-          <span className="text-2xl">⚠️</span>
-          <div>
-            <h4 className="font-bold text-red-800">درخواست ویرایش قبلی شما رد شد!</h4>
-            <p className="text-red-700 text-sm mt-1">دلیل ادمین: {artist.adminFeedback}</p>
-          </div>
-        </div>
-      )}
-
+      {/* Deactivated Notice */}
       {!artist?.isActive && artist?.isApproved && (
         <div className="mb-8 p-6 bg-red-50 border border-red-200 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex gap-4 items-start">
@@ -476,12 +551,15 @@ export default function ArtistProfilePage() {
         </div>
       )}
 
+      {/* Pending Mode Frozen Banner */}
       {pendingMode && (
-        <div className="mb-8 p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl flex gap-3 items-center">
-          <span className="text-2xl">⏳</span>
+        <div className="mb-8 p-5 bg-amber-50 border-2 border-amber-300 text-amber-900 rounded-3xl flex gap-3.5 items-center">
+          <span className="text-3xl">⏳</span>
           <div className="text-xs sm:text-sm leading-relaxed">
-            <h4 className="font-bold">درخواست تکمیل پروفایل در انتظار تایید ناظر پلتفرم است</h4>
-            <p className="text-amber-700 mt-0.5">شما می‌توانید تا زمان تایید نهایی، اطلاعات را ویرایش و مجدداً ثبت نمایید.</p>
+            <h4 className="font-black text-amber-900 text-sm sm:text-base">اطلاعات پروفایل در انتظار بررسی و تایید ادمین است</h4>
+            <p className="text-amber-800 mt-1">
+              اطلاعات ارسالی شما ثبت شده و در صف بررسی ناظر قرار دارد. تا زمان تعیین تکلیف ادمین، فرم به صورت موقت قفل (فریز) می‌باشد.
+            </p>
           </div>
         </div>
       )}
@@ -489,69 +567,86 @@ export default function ArtistProfilePage() {
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-10 relative">
         
         {/* AI Auto-Complete Section */}
-        <div className="mb-8 p-6 border-2 border-dashed border-teal-200 bg-teal-50/50 rounded-2xl">
-          <div className="flex flex-col md:flex-row items-center gap-6 justify-between">
-            <div>
-              <h3 className="font-bold text-teal-900 text-base sm:text-lg flex items-center gap-2">
-                <span className="text-2xl">✨</span> تکمیل خودکار رزومه با هوش مصنوعی
-              </h3>
-              <p className="text-teal-700 text-xs sm:text-sm mt-1.5 leading-relaxed">
-                رزومه یا معرفی‌نامه خود را (PDF، تصویر یا متن) آپلود کنید تا هوش مصنوعی فیلدهای پروفایل شما را پر کند.
-              </p>
-              {aiError && <p className="text-red-500 text-xs sm:text-sm mt-2 font-bold">{aiError}</p>}
-            </div>
-            <div className="relative shrink-0">
-              {aiLoading ? (
-                <div className="bg-teal-100/90 border border-teal-300 rounded-2xl p-4 flex flex-col items-center gap-2.5 min-w-[220px]">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2 text-teal-900 font-bold text-xs">
-                      <span className="w-3.5 h-3.5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></span>
-                      <span>در حال پردازش هوش مصنوعی...</span>
+        {!pendingMode && (
+          <div className="mb-8 p-6 border-2 border-dashed border-teal-200 bg-teal-50/50 rounded-2xl">
+            <div className="flex flex-col md:flex-row items-center gap-6 justify-between">
+              <div>
+                <h3 className="font-bold text-teal-900 text-base sm:text-lg flex items-center gap-2">
+                  <span className="text-2xl">✨</span> تکمیل خودکار رزومه با هوش مصنوعی
+                </h3>
+                <p className="text-teal-700 text-xs sm:text-sm mt-1.5 leading-relaxed">
+                  رزومه یا معرفی‌نامه خود را (PDF، تصویر یا متن) آپلود کنید تا هوش مصنوعی فیلدهای پروفایل شما را پر کند.
+                </p>
+                {aiError && <p className="text-red-500 text-xs sm:text-sm mt-2 font-bold">{aiError}</p>}
+              </div>
+              <div className="relative shrink-0">
+                {aiLoading ? (
+                  <div className="bg-teal-100/90 border border-teal-300 rounded-2xl p-4 flex flex-col items-center gap-2.5 min-w-[220px]">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2 text-teal-900 font-bold text-xs">
+                        <span className="w-3.5 h-3.5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></span>
+                        <span>در حال پردازش هوش مصنوعی...</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancelAi}
+                        className="p-1 hover:bg-teal-200/80 rounded-lg text-teal-800 transition-colors flex items-center gap-1 text-[11px] font-bold"
+                        title="انصراف و لغو"
+                      >
+                        <span>✕</span>
+                        <span>لغو</span>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCancelAi}
-                      className="p-1 hover:bg-teal-200/80 rounded-lg text-teal-800 transition-colors flex items-center gap-1 text-[11px] font-bold"
-                      title="انصراف و لغو"
-                    >
-                      <span>✕</span>
-                      <span>لغو</span>
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="flex-1 bg-teal-200 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="bg-teal-600 h-2 rounded-full transition-all duration-1000 ease-linear"
+                          style={{ width: `${Math.min(100, Math.max(0, ((90 - aiCountdown) / 90) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-teal-900 bg-white/80 px-2 py-0.5 rounded-md shadow-xs">
+                        {aiCountdown.toLocaleString('fa-IR')} ثانیه
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <input 
+                      ref={fileInputRef}
+                      type="file" 
+                      accept=".txt, .pdf, image/jpeg, image/png, image/webp" 
+                      onChange={handleAiUpload}
+                      disabled={!artist?.isActive}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <button disabled={!artist?.isActive} className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-sm disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-2 text-xs sm:text-sm">
+                      <span>📄</span> انتخاب فایل رزومه
                     </button>
-                  </div>
-                  <div className="flex items-center gap-2 w-full">
-                    <div className="flex-1 bg-teal-200 rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-teal-600 h-2 rounded-full transition-all duration-1000 ease-linear"
-                        style={{ width: `${Math.min(100, Math.max(0, ((90 - aiCountdown) / 90) * 100))}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-bold text-teal-900 bg-white/80 px-2 py-0.5 rounded-md shadow-xs">
-                      {aiCountdown.toLocaleString('fa-IR')} ثانیه
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <input 
-                    ref={fileInputRef}
-                    type="file" 
-                    accept=".txt, .pdf, image/jpeg, image/png, image/webp" 
-                    onChange={handleAiUpload}
-                    disabled={!artist?.isActive}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                  />
-                  <button disabled={!artist?.isActive} className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-sm disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-2 text-xs sm:text-sm">
-                    <span>📄</span> انتخاب فایل رزومه
-                  </button>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Form */}
+        {/* Validation Errors Box (Shown prominently above avatar with smooth scroll) */}
+        {validationErrors.length > 0 && (
+          <div ref={errorRef} className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in">
+            <div className="flex items-center gap-2 text-red-900 font-black text-sm mb-2.5">
+              <span className="text-lg">⚠️</span>
+              <span>لطفاً موارد الزامی زیر را بررسی و تکمیل نمایید:</span>
+            </div>
+            <ul className="space-y-1.5 text-xs sm:text-sm font-bold text-red-600 list-disc list-inside">
+              {validationErrors.map((err, idx) => (
+                <li key={idx} className="leading-relaxed">{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Profile Form (Frozen if pending review) */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <fieldset disabled={!artist?.isActive} className="space-y-6">
+          <fieldset disabled={pendingMode || !artist?.isActive} className="space-y-6">
             
             {/* 1. Avatar (Required *) */}
             <div className="flex flex-col sm:flex-row items-center gap-6 mb-8 border-b border-slate-100 pb-8">
@@ -563,10 +658,12 @@ export default function ArtistProfilePage() {
                     <span className="text-3xl text-slate-400">👤</span>
                   )}
                 </div>
-                <label className="absolute bottom-0 right-0 bg-white border border-slate-200 shadow-md p-2 rounded-full cursor-pointer hover:bg-slate-50 transition-colors" title="انتخاب تصویر جدید">
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                </label>
+                {!pendingMode && (
+                  <label className="absolute bottom-0 right-0 bg-white border border-slate-200 shadow-md p-2 rounded-full cursor-pointer hover:bg-slate-50 transition-colors" title="انتخاب تصویر جدید">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  </label>
+                )}
               </div>
 
               <div className="space-y-1.5 text-center sm:text-right">
@@ -574,7 +671,7 @@ export default function ArtistProfilePage() {
                   تصویر پروفایل <span className="text-red-500">*</span>
                 </h3>
                 <p className="text-xs text-slate-500">حجم کمتر از ۵ مگابایت (JPG, PNG, WEBP) - کادربندی دایره‌ای</p>
-                {imagePreview && (
+                {imagePreview && !pendingMode && (
                   <button
                     type="button"
                     onClick={() => {
@@ -601,7 +698,7 @@ export default function ArtistProfilePage() {
                   value={name} 
                   onChange={e => setName(e.target.value)} 
                   required 
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-sm text-slate-900" 
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-600" 
                   placeholder="مثال: مریم کریمی" 
                 />
               </div>
@@ -615,7 +712,7 @@ export default function ArtistProfilePage() {
                   type="text" 
                   value={brandName} 
                   onChange={e => setBrandName(e.target.value)} 
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-sm text-slate-900" 
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-600" 
                   placeholder="مثال: گالری سفال مینا" 
                 />
               </div>
@@ -640,18 +737,18 @@ export default function ArtistProfilePage() {
                     value={phoneNumber} 
                     onChange={e => setPhoneNumber(e.target.value)} 
                     readOnly={isPhoneVerified && !isSsoUser} 
-                    disabled={isPhoneVerified && !isSsoUser} 
+                    disabled={pendingMode || (isPhoneVerified && !isSsoUser)} 
                     required
                     maxLength={11}
                     className={`w-full px-4 py-3 rounded-xl border text-sm font-mono text-left outline-none transition-all ${
-                      isPhoneVerified && !isSsoUser
+                      (isPhoneVerified && !isSsoUser) || pendingMode
                         ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                         : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
                     }`} 
                     placeholder="09123456789" 
                   />
                 </div>
-                {isSsoUser && !isPhoneVerified && (
+                {isSsoUser && !isPhoneVerified && !pendingMode && (
                   <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
                     جهت تایید نهایی پروفایل، با کلیک بر روی ثبت تغییرات کد تایید پیامکی ارسال خواهد شد.
                   </p>
@@ -677,17 +774,17 @@ export default function ArtistProfilePage() {
                     dir="ltr"
                     value={email} 
                     onChange={e => setEmail(e.target.value)} 
-                    readOnly={isSsoUser} 
-                    disabled={isSsoUser} 
+                    readOnly={isSsoUser || pendingMode} 
+                    disabled={isSsoUser || pendingMode} 
                     className={`flex-1 px-4 py-3 rounded-xl border text-sm text-left outline-none transition-all ${
-                      isSsoUser
+                      isSsoUser || pendingMode
                         ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                         : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
                     }`} 
                     placeholder="you@example.com" 
                   />
 
-                  {!isSsoUser && !isEmailVerified && email && email.includes('@') && (
+                  {!isSsoUser && !isEmailVerified && !pendingMode && email && email.includes('@') && (
                     <button
                       type="button"
                       onClick={handleSendEmailOtp}
@@ -710,13 +807,13 @@ export default function ArtistProfilePage() {
                   value={portfolioUrl} 
                   onChange={e => setPortfolioUrl(e.target.value)} 
                   onBlur={() => setPortfolioUrl(formatUrl(portfolioUrl))} 
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-left text-sm text-slate-900 font-mono" 
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-left text-sm text-slate-900 font-mono disabled:bg-slate-100 disabled:text-slate-600" 
                   dir="ltr" 
                   placeholder="https://myartgallery.ir" 
                 />
               </div>
 
-              {/* 7. Social Links (Optional, with YOUR_USERNAME hint and cleanup) */}
+              {/* 7. Social Links (Optional, with YOUR_USERNAME hint and black prefix) */}
               <div className="md:col-span-2">
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
                   شبکه‌های اجتماعی <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
@@ -742,28 +839,32 @@ export default function ArtistProfilePage() {
                   onChange={e => setBio(e.target.value)} 
                   rows={4} 
                   required
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none leading-relaxed text-sm text-slate-900" 
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none leading-relaxed text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-600" 
                   placeholder="داستان هنر، انگیزه و پیشینه کارگاه هنری خود را شرح دهید..."
                 />
               </div>
 
             </div>
 
-            {/* Submit Button */}
-            <button 
-              type="submit" 
-              disabled={submitLoading || !artist?.isActive} 
-              className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-teal-500/20 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {submitLoading ? (
-                <span>در حال ثبت...</span>
-              ) : (
-                <>
-                  <span>{pendingMode ? 'بروزرسانی و ثبت مجدد درخواست' : 'ثبت و ارسال برای تایید'}</span>
-                  <span>✓</span>
-                </>
-              )}
-            </button>
+            {/* Submit Button or Frozen Indicator */}
+            {pendingMode ? (
+              <div className="w-full mt-6 py-4 px-6 bg-amber-500/10 border-2 border-amber-400/40 text-amber-800 font-black rounded-2xl text-center text-sm flex items-center justify-center gap-2 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                <span>در انتظار بررسی و تایید ادمین</span>
+              </div>
+            ) : (
+              <button 
+                type="submit" 
+                disabled={submitLoading || !artist?.isActive} 
+                className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-teal-500/20 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {submitLoading ? (
+                  <span>در حال ثبت...</span>
+                ) : (
+                  <span>ثبت و ارسال برای تایید</span>
+                )}
+              </button>
+            )}
 
           </fieldset>
         </form>
@@ -896,7 +997,6 @@ export default function ArtistProfilePage() {
                   const cleaned = e.target.value.replace(/\D/g, '');
                   setEmailOtpCode(cleaned);
                   if (cleaned.length === 5) {
-                    // Auto submit on 5 digits
                     setEmailOtpLoading(true);
                     fetch('/api/auth/otp/verify', {
                       method: 'POST',

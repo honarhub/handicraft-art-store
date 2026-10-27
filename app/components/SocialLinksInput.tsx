@@ -110,7 +110,7 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
 
             {/* URL Input with prefix and YOUR_USERNAME hint */}
             <div className="flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono dir-ltr focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100 transition-all overflow-hidden" dir="ltr">
-              <span className="text-slate-400 select-none text-xs sm:text-sm shrink-0">{meta.prefix}</span>
+              <span className="text-slate-900 font-bold select-none text-xs sm:text-sm shrink-0">{meta.prefix}</span>
               <input 
                 type="text" 
                 value={currentUsername} 

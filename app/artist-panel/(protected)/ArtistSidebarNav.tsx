@@ -6,9 +6,10 @@ import Link from 'next/link';
 
 interface ArtistSidebarNavProps {
   initialUnreadFeedbackCount: number;
+  verificationLevel?: number;
 }
 
-export default function ArtistSidebarNav({ initialUnreadFeedbackCount }: ArtistSidebarNavProps) {
+export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificationLevel = 0 }: ArtistSidebarNavProps) {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState<number>(initialUnreadFeedbackCount);
 
@@ -90,6 +91,15 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount }: ArtistS
             <span className="flex items-center gap-3">
               {item.label}
             </span>
+            {item.href === '/artist-panel/onboarding' && (
+              <span 
+                className="bg-amber-400 text-teal-950 font-black text-xs px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm"
+                title={`سطح احراز هویت: ${verificationLevel}`}
+              >
+                <span>⭐</span>
+                <span>{verificationLevel}</span>
+              </span>
+            )}
             {item.badge !== undefined && item.badge > 0 && (
               <span 
                 title={`${item.badge} پیام خوانده نشده از ادمین`} 

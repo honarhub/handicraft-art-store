@@ -75,7 +75,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
             <p className="text-xs text-teal-400 mt-1">پنل اختصاصی هنرمند</p>
           </div>
         </div>
-        <ArtistSidebarNav initialUnreadFeedbackCount={unreadFeedbackCount} />
+        <ArtistSidebarNav initialUnreadFeedbackCount={unreadFeedbackCount} verificationLevel={artist.verificationLevel || 0} />
         <div className="p-4 mt-auto border-t border-teal-800 space-y-2">
           {session.user.role === 'ADMIN' && (
             <a href="/admin" className="px-4 py-2 w-full text-center rounded-lg bg-amber-500 hover:bg-amber-600 transition-colors text-xs text-slate-900 font-bold block shadow-sm">
@@ -97,6 +97,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
           verificationLevel={artist.verificationLevel || 0}
           isApproved={artist.isApproved}
           brandName={artist.brandName}
+          hasPendingEdits={Boolean(artist.pendingEdits)}
         />
         {artist.user.mustChangePassword && (
           <div className="bg-red-500 text-white p-4 shadow-sm flex items-center justify-between">

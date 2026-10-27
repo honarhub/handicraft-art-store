@@ -73,6 +73,80 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json(updatedArtist);
     }
 
+    if (action === 'granularReview') {
+      try {
+        const { approvedFields = [], rejectedFields = {}, adminFeedback } = body;
+        const artist = await prisma.artistProfile.findUnique({
+          where: { id: artistId },
+          include: { user: true }
+        });
+        if (!artist || !artist.pendingEdits) {
+          return NextResponse.json({ error: 'درخواستی برای بررسی وجود ندارد.' }, { status: 400 });
+        }
+
+        const edits = typeof artist.pendingEdits === 'string'
+          ? JSON.parse(artist.pendingEdits)
+          : artist.pendingEdits as any;
+
+        const userUpdate: any = {};
+        const artistUpdate: any = {};
+
+        if (approvedFields.includes('name') && edits.name) userUpdate.name = edits.name;
+        if (approvedFields.includes('image') && edits.image) {
+          let imageUrl = edits.image;
+          if (imageUrl.startsWith('data:image')) {
+            imageUrl = saveUploadImageSync(imageUrl, 'artists', 'artist');
+          }
+          userUpdate.image = imageUrl;
+        }
+        if (approvedFields.includes('phoneNumber') && edits.phoneNumber) userUpdate.phoneNumber = edits.phoneNumber;
+        if (approvedFields.includes('email') && edits.email) userUpdate.email = edits.email;
+
+        if (approvedFields.includes('brandName')) artistUpdate.brandName = edits.brandName || null;
+        if (approvedFields.includes('bio') && edits.bio) artistUpdate.bio = edits.bio;
+        if (approvedFields.includes('portfolioUrl')) artistUpdate.portfolioUrl = edits.portfolioUrl || null;
+        if (approvedFields.includes('socialLinks')) artistUpdate.socialLinks = edits.socialLinks || {};
+        if (approvedFields.includes('specialties') && Array.isArray(edits.specialties)) {
+          artistUpdate.specialties = {
+            set: edits.specialties.map((s: any) => ({ id: s.id }))
+          };
+        }
+
+        const hasRejections = Object.keys(rejectedFields).length > 0;
+        let finalFeedback: string | null = null;
+        if (hasRejections) {
+          finalFeedback = JSON.stringify(rejectedFields);
+        }
+
+        // Full approval if no rejections and required bio/image are approved (or were already valid)
+        const isFullApproval = !hasRejections;
+        if (isFullApproval) {
+          artistUpdate.isApproved = true;
+          artistUpdate.isActive = true;
+          artistUpdate.verificationLevel = Math.max(artist.verificationLevel || 0, 2);
+          artistUpdate.adminFeedback = null;
+        } else {
+          artistUpdate.adminFeedback = finalFeedback || adminFeedback || 'برخی از موارد نیاز به بازبینی و اصلاح دارند.';
+        }
+
+        artistUpdate.pendingEdits = null;
+
+        if (Object.keys(userUpdate).length > 0) {
+          artistUpdate.user = { update: userUpdate };
+        }
+
+        const updatedArtist = await prisma.artistProfile.update({
+          where: { id: artistId },
+          data: artistUpdate
+        });
+
+        return NextResponse.json({ success: true, artist: updatedArtist });
+      } catch (err: any) {
+        console.error('Granular Review Error:', err);
+        return NextResponse.json({ error: 'خطا در ثبت بررسی: ' + err.message }, { status: 500 });
+      }
+    }
+
     if (action === 'approveEdits') {
       try {
         const artist = await prisma.artistProfile.findUnique({ where: { id: artistId } });
