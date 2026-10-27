@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { normalizePhoneNumber } from '@/lib/sms';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -46,6 +49,10 @@ export async function GET() {
       success: true,
       artist,
       allSpecialties
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      }
     });
   } catch (error: any) {
     console.error('[API /api/artist/onboarding GET] Error:', error);

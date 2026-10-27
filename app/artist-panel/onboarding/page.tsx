@@ -33,19 +33,23 @@ export default function ArtistOnboardingPage() {
     }
 
     if (status === 'authenticated') {
+      if (session?.user?.name) {
+        setName(session.user.name);
+      }
       fetchExistingData();
     }
-  }, [status]);
+  }, [status, session]);
 
   const fetchExistingData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/artist/onboarding');
+      const res = await fetch('/api/artist/onboarding', { cache: 'no-store' });
       const data = await res.json();
 
       if (data?.artist) {
         const a = data.artist;
         if (a.user?.name) setName(a.user.name);
+        else if (session?.user?.name) setName(session.user.name);
         if (a.user?.phoneNumber) setPhone(a.user.phoneNumber);
         if (a.brandName) setBrandName(a.brandName);
         if (a.province) setProvince(a.province);
@@ -230,7 +234,7 @@ export default function ArtistOnboardingPage() {
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: '/artist-panel/login' })}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-slate-400 hover:text-red-400 bg-slate-900 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 rounded-xl transition-all shrink-0 shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 rounded-xl transition-all shrink-0 shadow-sm"
           title="خروج از حساب"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

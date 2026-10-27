@@ -328,7 +328,7 @@ function ArtistLoginContent() {
         <p className="mt-2 text-center text-sm text-slate-600">
           هنوز عضو خانواده هنرهاب نشده‌اید؟{' '}
           <Link href="/artist-panel/register" className="font-bold text-teal-600 hover:text-teal-700 underline underline-offset-4">
-            ثبت‌نام و افتتاح فروشگاه
+            ثبت‌نام
           </Link>
         </p>
       </div>

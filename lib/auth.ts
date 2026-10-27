@@ -178,23 +178,46 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider === 'google') {
-        const adminEmail = process.env.ADMIN_EMAIL;
+        const googleEmail = (profile?.email || user.email)?.trim().toLowerCase();
+        const googleName = (profile as any)?.name || user.name;
+        const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+        const isAdmin = Boolean(adminEmail && googleEmail === adminEmail);
         
-        // If signing-in user is system administrator
-        if (adminEmail && user.email === adminEmail) {
-          user.role = 'ADMIN';
-          const dbUser = await prisma.user.findUnique({
-            where: { email: user.email as string },
-            include: { artistProfile: true }
-          });
-          if (dbUser) {
+        // Find existing user by exact email
+        let dbUser = await prisma.user.findUnique({
+          where: { email: googleEmail },
+          include: { artistProfile: true }
+        });
+
+        if (dbUser) {
+          // If the user has no name or a generic default name, sync from Google profile
+          if (googleName && (!dbUser.name || dbUser.name.startsWith('هنرمند'))) {
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { name: googleName }
+            });
+            user.name = googleName;
+          }
+
+          // Ensure the Google account is strictly linked to THIS user and not a previous user session
+          if (account.providerAccountId) {
+            await prisma.account.deleteMany({
+              where: {
+                provider: 'google',
+                providerAccountId: account.providerAccountId,
+                NOT: { userId: dbUser.id }
+              }
+            });
+          }
+
+          if (isAdmin) {
+            user.role = 'ADMIN';
             if (dbUser.role !== 'ADMIN') {
               await prisma.user.update({
-                where: { email: user.email },
+                where: { id: dbUser.id },
                 data: { role: 'ADMIN' }
               });
             }
-            // Ensure admin also has an active artist profile for panel access
             if (!dbUser.artistProfile) {
               await prisma.artistProfile.create({
                 data: {
@@ -205,33 +228,21 @@ export const authOptions: NextAuthOptions = {
                 }
               });
             }
-          }
-        } else {
-          // For regular artists and OAuth users
-          const dbUser = await prisma.user.findUnique({
-            where: { email: user.email as string },
-            include: { artistProfile: true }
-          });
-          if (dbUser) {
+          } else {
             if (!dbUser.artistProfile) {
               await prisma.artistProfile.create({
                 data: {
                   userId: dbUser.id,
                   isApproved: false,
-                  isActive: false,
+                  isActive: true,
+                  verificationLevel: 0
                 }
               });
-              await prisma.user.update({
-                where: { id: dbUser.id },
-                data: { role: 'ARTIST' }
-              });
-              user.role = 'ARTIST';
-            } else {
-              user.role = dbUser.role;
             }
-          } else {
-            user.role = 'ARTIST';
+            user.role = dbUser.role || 'ARTIST';
           }
+        } else {
+          user.role = isAdmin ? 'ADMIN' : 'ARTIST';
         }
       }
       return true;
@@ -240,20 +251,31 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        if (user.name) token.name = user.name;
+        if (user.email) token.email = user.email;
       }
       if (trigger === "update" && session?.role) {
         token.role = session.role;
       }
-      // Verify user exists and keep role in sync with database
-      if (token.id && trigger !== 'update') {
+      
+      // Look up user by id or by email to ensure token stays in sync with actual DB record
+      const lookupFilter = token.id
+        ? { id: token.id as string }
+        : (token.email ? { email: token.email as string } : null);
+
+      if (lookupFilter && trigger !== 'update') {
         const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { id: true, role: true, email: true, artistProfile: { select: { id: true } } }
+          where: lookupFilter,
+          select: { id: true, name: true, role: true, email: true, artistProfile: { select: { id: true } } }
         });
         if (!dbUser) {
           // Invalidate session cleanly if user is deleted
           return {} as any;
         }
+        
+        token.id = dbUser.id;
+        token.name = dbUser.name;
+        token.email = dbUser.email;
         
         const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
         const userEmail = dbUser.email?.trim().toLowerCase();
@@ -273,7 +295,8 @@ export const authOptions: NextAuthOptions = {
               data: {
                 userId: dbUser.id,
                 isApproved: false,
-                isActive: false,
+                isActive: true,
+                verificationLevel: 0
               }
             });
           }
@@ -288,6 +311,8 @@ export const authOptions: NextAuthOptions = {
       if (token && session?.user) {
         if (token.id) session.user.id = token.id as string;
         if (token.role) session.user.role = token.role as string;
+        if (token.name) session.user.name = token.name as string;
+        if (token.email) session.user.email = token.email as string;
       }
       return session;
     }
