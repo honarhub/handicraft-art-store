@@ -3,6 +3,136 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 
+// Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
+function ReviewLevelMedalIcon({ level }: { level: number }) {
+  const currentLvl = level || 0;
+  const persianNums: Record<number, string> = { 0: '۰', 1: '۱', 2: '۲', 3: '۳' };
+  const numText = persianNums[currentLvl] || String(currentLvl);
+
+  const configs: Record<number, {
+    ribbonPrimary: string;
+    ribbonSecondary: string;
+    gradientId: string;
+    stroke: string;
+    textFill: string;
+    stops: [string, string, string];
+  }> = {
+    0: {
+      ribbonPrimary: '#EF4444',
+      ribbonSecondary: '#B91C1C',
+      gradientId: 'reviewMedalRed',
+      stroke: '#991B1B',
+      textFill: '#FFFFFF',
+      stops: ['#FCA5A5', '#EF4444', '#B91C1C']
+    },
+    1: {
+      ribbonPrimary: '#F59E0B',
+      ribbonSecondary: '#D97706',
+      gradientId: 'reviewMedalYellow',
+      stroke: '#B45309',
+      textFill: '#78350F',
+      stops: ['#FDE047', '#FBBF24', '#D97706']
+    },
+    2: {
+      ribbonPrimary: '#3B82F6',
+      ribbonSecondary: '#1D4ED8',
+      gradientId: 'reviewMedalBlue',
+      stroke: '#1E40AF',
+      textFill: '#FFFFFF',
+      stops: ['#93C5FD', '#3B82F6', '#1D4ED8']
+    },
+    3: {
+      ribbonPrimary: '#10B981',
+      ribbonSecondary: '#047857',
+      gradientId: 'reviewMedalGreen',
+      stroke: '#065F46',
+      textFill: '#FFFFFF',
+      stops: ['#6EE7B7', '#10B981', '#047857']
+    }
+  };
+
+  const cfg = configs[currentLvl] || configs[0];
+
+  return (
+    <span className="inline-flex items-center justify-center shrink-0 drop-shadow-sm" title={`سطح احراز هویت: ${numText}`}>
+      <svg width="24" height="30" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2L14 10L20 2V12L14 16L8 12V2Z" fill={cfg.ribbonPrimary} />
+        <path d="M8 2L14 10V16L8 12V2Z" fill={cfg.ribbonSecondary} opacity="0.8" />
+        <circle cx="14" cy="21" r="11" fill={`url(#${cfg.gradientId})`} stroke={cfg.stroke} strokeWidth="1.5" />
+        <circle cx="14" cy="21" r="8.5" stroke="#FFFFFF" strokeWidth="0.8" fill="none" opacity="0.5" />
+        <text
+          x="14"
+          y="25"
+          textAnchor="middle"
+          fill={cfg.textFill}
+          fontSize="13"
+          fontWeight="900"
+          className="select-none font-bold"
+          style={{ fontFamily: 'inherit' }}
+        >
+          {numText}
+        </text>
+        <defs>
+          <linearGradient id={cfg.gradientId} x1="5" y1="12" x2="23" y2="30" gradientUnits="userSpaceOnUse">
+            <stop stopColor={cfg.stops[0]} />
+            <stop offset="0.5" stopColor={cfg.stops[1]} />
+            <stop offset="1" stopColor={cfg.stops[2]} />
+          </linearGradient>
+        </defs>
+      </svg>
+    </span>
+  );
+}
+
+// Split Rectangle 2-State Review Toggle
+function SplitReviewToggle({
+  status,
+  onToggle
+}: {
+  status: 'approve' | 'reject';
+  onToggle: (newStatus: 'approve' | 'reject') => void;
+}) {
+  const isApproved = status === 'approve';
+
+  return (
+    <div 
+      className="inline-flex rounded-xl border border-slate-300 overflow-hidden shadow-xs text-xs font-black select-none h-9 shrink-0"
+      dir="rtl"
+    >
+      {/* Right half: تایید (سبز) */}
+      <button
+        type="button"
+        onClick={() => onToggle('approve')}
+        className={`px-3.5 sm:px-4 flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer ${
+          isApproved
+            ? 'bg-emerald-600 text-white font-black shadow-inner'
+            : 'bg-white text-emerald-700 hover:bg-emerald-50'
+        }`}
+      >
+        <span>✓</span>
+        <span>تایید</span>
+      </button>
+
+      {/* Center Divider line */}
+      <div className={`w-[1px] ${isApproved ? 'bg-emerald-700' : 'bg-red-700'}`} />
+
+      {/* Left half: عدم تایید (قرمز) */}
+      <button
+        type="button"
+        onClick={() => onToggle('reject')}
+        className={`px-3.5 sm:px-4 flex items-center justify-center gap-1.5 transition-all duration-150 cursor-pointer ${
+          !isApproved
+            ? 'bg-red-600 text-white font-black shadow-inner'
+            : 'bg-white text-red-600 hover:bg-red-50'
+        }`}
+      >
+        <span>✕</span>
+        <span>عدم تایید</span>
+      </button>
+    </div>
+  );
+}
+
 export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
@@ -24,23 +154,41 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
       .join('\n');
   };
 
+  const formatPersianDate = (dateStr: string) => {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      return new Intl.DateTimeFormat('fa-IR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(d);
+    } catch {
+      return '—';
+    }
+  };
+
   const getFieldLabel = (field: string) => {
     const map: Record<string, string> = {
       image: 'تصویر پروفایل',
       name: 'نام و نام خانوادگی',
       brandName: 'نام برند هنری یا استودیو',
+      phoneNumber: 'شماره تماس همراه',
+      email: 'آدرس ایمیل',
       province: 'استان کارگاه',
       city: 'شهرستان کارگاه',
-      bio: 'درباره شما (بیوگرافی)',
-      specialties: 'تخصص‌ها و رشته‌ها',
-      portfolioUrl: 'لینک وب‌سایت شخصی',
+      bio: 'درباره شما (بیوگرافی و معرفی هنرمند)',
+      specialties: 'تخصص‌ها و رشته‌های هنری',
+      portfolioUrl: 'لینک وب‌سایت شخصی یا نمونه‌کار',
       socialLinks: 'شبکه‌های اجتماعی'
     };
     return map[field] || field;
   };
 
   useEffect(() => {
-    fetch(`/api/artists/${id}`)
+    fetch(`/api/artists/${id}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setArtist(data);
@@ -48,32 +196,36 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
           const edits = typeof data.pendingEdits === 'string' ? JSON.parse(data.pendingEdits) : data.pendingEdits;
           
           const currentVals = {
+            image: data.user?.image || null,
             name: data.user?.name || '',
             brandName: data.brandName || '',
+            phoneNumber: data.user?.phoneNumber || '',
+            email: data.user?.email || '',
             province: data.province || '',
             city: data.city || '',
             bio: data.bio || '',
-            portfolioUrl: data.portfolioUrl || '',
-            image: data.user?.image || null,
             specialties: data.specialties?.map((s: any) => s.name).sort().join('، ') || '',
+            portfolioUrl: data.portfolioUrl || '',
             socialLinks: formatSocials(data.socialLinks)
           };
 
           const pendingVals = {
-            name: edits.name ?? currentVals.name,
-            brandName: edits.brandName ?? currentVals.brandName,
-            province: edits.province ?? currentVals.province,
-            city: edits.city ?? currentVals.city,
-            bio: edits.bio ?? currentVals.bio,
-            portfolioUrl: edits.portfolioUrl ?? currentVals.portfolioUrl,
-            image: edits.image ?? currentVals.image,
+            image: edits.image !== undefined ? edits.image : currentVals.image,
+            name: edits.name !== undefined ? edits.name : currentVals.name,
+            brandName: edits.brandName !== undefined ? edits.brandName : currentVals.brandName,
+            phoneNumber: edits.phoneNumber !== undefined ? edits.phoneNumber : currentVals.phoneNumber,
+            email: edits.email !== undefined ? edits.email : currentVals.email,
+            province: edits.province !== undefined ? edits.province : currentVals.province,
+            city: edits.city !== undefined ? edits.city : currentVals.city,
+            bio: edits.bio !== undefined ? edits.bio : currentVals.bio,
             specialties: edits.specialties ? edits.specialties.map((s: any) => s.name).sort().join('، ') : currentVals.specialties,
+            portfolioUrl: edits.portfolioUrl !== undefined ? edits.portfolioUrl : currentVals.portfolioUrl,
             socialLinks: edits.socialLinks ? formatSocials(edits.socialLinks) : currentVals.socialLinks
           };
 
-          // Requirement: Default state of changed fields is RED ('reject') with reason box
+          // Default state of changed fields is RED ('reject' / عدم تایید)
           const initialDecisions: Record<string, { status: 'approve' | 'reject', reason: string }> = {};
-          const keys = ['image', 'name', 'brandName', 'province', 'city', 'bio', 'specialties', 'portfolioUrl', 'socialLinks'];
+          const keys = ['image', 'name', 'brandName', 'phoneNumber', 'email', 'province', 'city', 'bio', 'specialties', 'portfolioUrl', 'socialLinks'];
           
           keys.forEach(k => {
             const oldV = (currentVals as any)[k];
@@ -94,18 +246,14 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
       });
   }, [id]);
 
-  const toggleDecision = (field: string) => {
-    setDecisions(prev => {
-      const currentStatus = prev[field]?.status || 'reject';
-      const nextStatus = currentStatus === 'reject' ? 'approve' : 'reject';
-      return {
-        ...prev,
-        [field]: {
-          status: nextStatus,
-          reason: nextStatus === 'approve' ? '' : prev[field]?.reason || ''
-        }
-      };
-    });
+  const setDecisionStatus = (field: string, newStatus: 'approve' | 'reject') => {
+    setDecisions(prev => ({
+      ...prev,
+      [field]: {
+        status: newStatus,
+        reason: newStatus === 'approve' ? '' : prev[field]?.reason || ''
+      }
+    }));
   };
 
   const handleReasonChange = (field: string, reason: string) => {
@@ -157,6 +305,7 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
 
       if (!res.ok) throw new Error('خطا در ثبت بررسی');
 
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
       alert('تصمیمات شما با موفقیت ثبت شد و به هنرمند منعکس گردید.');
       router.push('/admin/artists');
     } catch (err: any) {
@@ -185,33 +334,40 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
   const edits = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits;
 
   const current = {
+    image: artist.user?.image || null,
     name: artist.user?.name || '',
     brandName: artist.brandName || '',
+    phoneNumber: artist.user?.phoneNumber || '',
+    email: artist.user?.email || '',
     province: artist.province || '',
     city: artist.city || '',
     bio: artist.bio || '',
     portfolioUrl: artist.portfolioUrl || '',
-    image: artist.user?.image || null,
     specialties: artist.specialties?.map((s: any) => s.name).sort().join('، ') || '',
     socialLinks: formatSocials(artist.socialLinks)
   };
 
   const pending = {
-    name: edits.name ?? current.name,
-    brandName: edits.brandName ?? current.brandName,
-    province: edits.province ?? current.province,
-    city: edits.city ?? current.city,
-    bio: edits.bio ?? current.bio,
-    portfolioUrl: edits.portfolioUrl ?? current.portfolioUrl,
-    image: edits.image ?? current.image,
+    image: edits.image !== undefined ? edits.image : current.image,
+    name: edits.name !== undefined ? edits.name : current.name,
+    brandName: edits.brandName !== undefined ? edits.brandName : current.brandName,
+    phoneNumber: edits.phoneNumber !== undefined ? edits.phoneNumber : current.phoneNumber,
+    email: edits.email !== undefined ? edits.email : current.email,
+    province: edits.province !== undefined ? edits.province : current.province,
+    city: edits.city !== undefined ? edits.city : current.city,
+    bio: edits.bio !== undefined ? edits.bio : current.bio,
+    portfolioUrl: edits.portfolioUrl !== undefined ? edits.portfolioUrl : current.portfolioUrl,
     specialties: edits.specialties ? edits.specialties.map((s: any) => s.name).sort().join('، ') : current.specialties,
     socialLinks: edits.socialLinks ? formatSocials(edits.socialLinks) : current.socialLinks
   };
 
+  // All 11 Artist Profile Fields
   const fieldsToCheck = [
     { key: 'image', isImage: true },
     { key: 'name' },
     { key: 'brandName' },
+    { key: 'phoneNumber' },
+    { key: 'email' },
     { key: 'province' },
     { key: 'city' },
     { key: 'bio' },
@@ -225,32 +381,87 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto font-sans" dir="rtl">
       
-      {/* Top Bar */}
-      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800 tracking-tight">بررسی درخواست پروفایل هنرمند</h2>
-          <p className="text-slate-500 mt-1 text-sm">
-            هنرمند: <span className="font-bold text-slate-900">{artist.user?.name}</span> ({artist.brandName || 'بدون برند'})
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {changedCount > 0 && (
+      {/* Top Header Card with All Artist Details */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm mb-8 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-100 mb-5">
+          <div className="flex items-center gap-3.5">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+              {artist.user?.image ? (
+                <img src={artist.user.image} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl text-slate-400">👤</span>
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  بررسی پروفایل: {artist.user?.name || 'هنرمند بدون نام'}
+                </h2>
+                {artist.brandName && (
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                    {artist.brandName}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                آیدی هنرمند: <span className="font-mono font-bold text-slate-700">{artist.displayId}</span> | شناسه سیستمی: <span className="font-mono text-[11px] text-slate-400">{artist.id}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {changedCount > 0 && (
+              <button 
+                type="button" 
+                onClick={handleApproveAll} 
+                className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-4 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+              >
+                <span>✓</span>
+                <span>تایید همه فیلدها</span>
+              </button>
+            )}
             <button 
               type="button" 
-              onClick={handleApproveAll} 
-              className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5"
+              onClick={() => router.push('/admin/artists')} 
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs transition-colors"
             >
-              <span>✓</span>
-              <span>تایید همه فیلدها</span>
+              بازگشت به لیست
             </button>
-          )}
-          <button 
-            type="button" 
-            onClick={() => router.push('/admin/artists')} 
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-xs transition-colors"
-          >
-            بازگشت به لیست
-          </button>
+          </div>
+        </div>
+
+        {/* Profile Meta Info Grid (Verification Level & Registration Date required) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs bg-slate-50/80 p-4 rounded-2xl border border-slate-100">
+          <div>
+            <span className="text-slate-400 block mb-1">سطح احراز هویت فعلی:</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <ReviewLevelMedalIcon level={artist.verificationLevel || 0} />
+              <span className="font-bold text-slate-800">
+                سطح {artist.verificationLevel || 0}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <span className="text-slate-400 block mb-1">تاریخ عضویت در هنرهاب:</span>
+            <span className="font-bold text-slate-800 block mt-1">
+              {formatPersianDate(artist.createdAt || artist.user?.createdAt)}
+            </span>
+          </div>
+
+          <div>
+            <span className="text-slate-400 block mb-1">شماره تماس تاییدشده:</span>
+            <span className="font-mono font-bold text-slate-800 block mt-1" dir="ltr">
+              {artist.user?.phoneNumber || '—'}
+            </span>
+          </div>
+
+          <div>
+            <span className="text-slate-400 block mb-1">محل کارگاه فعلی:</span>
+            <span className="font-bold text-slate-800 block mt-1">
+              {artist.province ? `${artist.province} - ${artist.city || ''}` : 'ثبت نشده'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -260,7 +471,7 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Review Cards */}
+      {/* Review Cards for All Fields */}
       <div className="space-y-6">
         {fieldsToCheck.map(({ key, isImage }) => {
           const oldVal = (current as any)[key];
@@ -272,7 +483,7 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
           return (
             <div key={key} className={`bg-white rounded-3xl p-6 border shadow-xs transition-all ${
               !isChanged
-                ? 'border-slate-200 bg-slate-50/50'
+                ? 'border-slate-200 bg-slate-50/40'
                 : decision?.status === 'approve'
                 ? 'border-emerald-300 ring-2 ring-emerald-500/10'
                 : 'border-red-300 ring-2 ring-red-500/10'
@@ -283,37 +494,17 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
                   <span>{getFieldLabel(key)}</span>
                 </h4>
 
-                {/* Unchanged badge vs 2-state toggle */}
+                {/* If Unchanged: Show Green Badge; If Changed: Show Split Rectangle Switch */}
                 {!isChanged ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black shadow-xs">
                     <span>✓</span>
                     <span>بدون تغییر</span>
                   </span>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleDecision(key)}
-                      className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer ${
-                        decision?.status === 'approve'
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
-                          : 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/20'
-                      }`}
-                      title="کلیک کنید تا بین تایید و رد سوئیچ شود"
-                    >
-                      {decision?.status === 'approve' ? (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-white"></span>
-                          <span>✓ تایید شد</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                          <span>✕ رد با دلیل</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <SplitReviewToggle
+                    status={decision?.status || 'reject'}
+                    onToggle={(newStatus) => setDecisionStatus(key, newStatus)}
+                  />
                 )}
               </div>
 
@@ -322,7 +513,11 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
                 <div className="p-3.5 bg-slate-50 text-slate-700 rounded-2xl border border-slate-200 text-xs">
                   <span className="font-bold text-slate-500 block mb-1.5">مقدار قبلی:</span>
                   {isImage ? (
-                    oldVal ? <img src={oldVal} alt="Old" className="w-20 h-20 rounded-xl object-cover border" /> : <span className="text-slate-400">بدون تصویر</span>
+                    oldVal ? (
+                      <img src={oldVal} alt="Old" className="w-20 h-20 rounded-xl object-cover border border-slate-200" />
+                    ) : (
+                      <span className="text-slate-400 font-medium">بدون تصویر / قبلاً ثبت نشده</span>
+                    )
                   ) : (
                     <p className="whitespace-pre-wrap leading-relaxed">{oldVal || <span className="text-slate-400">خالی</span>}</p>
                   )}
@@ -335,7 +530,11 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
                     {isChanged ? 'مقدار جدید ارسالی هنرمند:' : 'مقدار فعلی:'}
                   </span>
                   {isImage ? (
-                    newVal ? <img src={newVal} alt="New" className="w-20 h-20 rounded-xl object-cover border border-emerald-300 shadow-sm" /> : <span className="text-slate-400">بدون تصویر</span>
+                    newVal ? (
+                      <img src={newVal} alt="New" className="w-20 h-20 rounded-xl object-cover border border-emerald-300 shadow-sm" />
+                    ) : (
+                      <span className="text-slate-400">بدون تصویر</span>
+                    )
                   ) : (
                     <p className="whitespace-pre-wrap leading-relaxed font-medium">{newVal || <span className="text-slate-400">خالی</span>}</p>
                   )}
@@ -346,7 +545,7 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
               {isChanged && decision?.status === 'reject' && (
                 <div className="mt-4 pt-4 border-t border-red-100 animate-in fade-in">
                   <label className="block text-xs font-bold text-red-700 mb-1.5">
-                    دلیل رد این مورد (الزامی جهت نمایش به هنرمند) *:
+                    دلیل عدم تایید این مورد (الزامی جهت نمایش به هنرمند) *:
                   </label>
                   <input
                     type="text"

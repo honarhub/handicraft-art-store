@@ -125,11 +125,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (isFullApproval) {
           artistUpdate.isApproved = true;
           artistUpdate.isActive = true;
-          artistUpdate.verificationLevel = 2; // Promoted to Level 2
+          artistUpdate.verificationLevel = Math.max(artist.verificationLevel || 0, 2);
           artistUpdate.adminFeedback = null;
         } else {
-          // Revert to level 1 if any field was rejected until re-submitted and fully approved
-          artistUpdate.verificationLevel = 1;
+          // If artist was already Level 2 or 3, do not downgrade their level on edit rejection.
+          // If artist was Level 0/1 requesting Level 2, they stay at Level 1.
+          artistUpdate.verificationLevel = (artist.verificationLevel || 0) >= 2 ? artist.verificationLevel : 1;
           artistUpdate.adminFeedback = finalFeedback || adminFeedback || 'برخی از موارد نیاز به بازبینی و اصلاح دارند.';
         }
 

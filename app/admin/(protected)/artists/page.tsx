@@ -1,8 +1,109 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminPromptModal from '@/app/components/AdminPromptModal';
+
+// Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
+function AdminLevelMedalIcon({ level }: { level: number }) {
+  const currentLvl = level || 0;
+  const persianNums: Record<number, string> = { 0: '۰', 1: '۱', 2: '۲', 3: '۳' };
+  const numText = persianNums[currentLvl] || String(currentLvl);
+
+  const configs: Record<number, {
+    ribbonPrimary: string;
+    ribbonSecondary: string;
+    gradientId: string;
+    stroke: string;
+    textFill: string;
+    stops: [string, string, string];
+    badgeBg: string;
+    badgeText: string;
+    badgeBorder: string;
+  }> = {
+    0: {
+      ribbonPrimary: '#EF4444',
+      ribbonSecondary: '#B91C1C',
+      gradientId: 'tableMedalRed',
+      stroke: '#991B1B',
+      textFill: '#FFFFFF',
+      stops: ['#FCA5A5', '#EF4444', '#B91C1C'],
+      badgeBg: 'bg-red-50',
+      badgeText: 'text-red-700',
+      badgeBorder: 'border-red-200'
+    },
+    1: {
+      ribbonPrimary: '#F59E0B',
+      ribbonSecondary: '#D97706',
+      gradientId: 'tableMedalYellow',
+      stroke: '#B45309',
+      textFill: '#78350F',
+      stops: ['#FDE047', '#FBBF24', '#D97706'],
+      badgeBg: 'bg-amber-50',
+      badgeText: 'text-amber-800',
+      badgeBorder: 'border-amber-300'
+    },
+    2: {
+      ribbonPrimary: '#3B82F6',
+      ribbonSecondary: '#1D4ED8',
+      gradientId: 'tableMedalBlue',
+      stroke: '#1E40AF',
+      textFill: '#FFFFFF',
+      stops: ['#93C5FD', '#3B82F6', '#1D4ED8'],
+      badgeBg: 'bg-blue-50',
+      badgeText: 'text-blue-700',
+      badgeBorder: 'border-blue-200'
+    },
+    3: {
+      ribbonPrimary: '#10B981',
+      ribbonSecondary: '#047857',
+      gradientId: 'tableMedalGreen',
+      stroke: '#065F46',
+      textFill: '#FFFFFF',
+      stops: ['#6EE7B7', '#10B981', '#047857'],
+      badgeBg: 'bg-emerald-50',
+      badgeText: 'text-emerald-700',
+      badgeBorder: 'border-emerald-200'
+    }
+  };
+
+  const cfg = configs[currentLvl] || configs[0];
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-2xl border ${cfg.badgeBg} ${cfg.badgeBorder} shadow-2xs`} title={`سطح احراز هویت: ${numText}`}>
+      <span className="inline-flex items-center justify-center shrink-0 drop-shadow-sm">
+        <svg width="20" height="25" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 2L14 10L20 2V12L14 16L8 12V2Z" fill={cfg.ribbonPrimary} />
+          <path d="M8 2L14 10V16L8 12V2Z" fill={cfg.ribbonSecondary} opacity="0.8" />
+          <circle cx="14" cy="21" r="11" fill={`url(#${cfg.gradientId})`} stroke={cfg.stroke} strokeWidth="1.5" />
+          <circle cx="14" cy="21" r="8.5" stroke="#FFFFFF" strokeWidth="0.8" fill="none" opacity="0.5" />
+          <text
+            x="14"
+            y="25"
+            textAnchor="middle"
+            fill={cfg.textFill}
+            fontSize="13"
+            fontWeight="900"
+            className="select-none font-bold"
+            style={{ fontFamily: 'inherit' }}
+          >
+            {numText}
+          </text>
+          <defs>
+            <linearGradient id={cfg.gradientId} x1="5" y1="12" x2="23" y2="30" gradientUnits="userSpaceOnUse">
+              <stop stopColor={cfg.stops[0]} />
+              <stop offset="0.5" stopColor={cfg.stops[1]} />
+              <stop offset="1" stopColor={cfg.stops[2]} />
+            </linearGradient>
+          </defs>
+        </svg>
+      </span>
+      <span className={`text-xs font-black ${cfg.badgeText}`}>
+        {currentLvl === 0 ? 'سطح ۰ (ثبت‌نام)' : currentLvl === 1 ? 'سطح ۱ (پایه)' : currentLvl === 2 ? 'سطح ۲ (عمومی)' : 'سطح ۳ (کامل)'}
+      </span>
+    </div>
+  );
+}
 
 export default function AdminArtistsPage() {
   const router = useRouter();
@@ -28,23 +129,44 @@ export default function AdminArtistsPage() {
   // Modal for National Card image preview
   const [previewCardImage, setPreviewCardImage] = useState<string | null>(null);
 
-  // Fetch artists
-  const fetchArtists = () => {
+  // Fetch artists (silent = true prevents full-screen loader flickers on background auto-updates)
+  const fetchArtists = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     fetch('/api/artists', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
-        setArtists(data);
+        if (Array.isArray(data)) {
+          setArtists(data);
+        }
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
-    fetchArtists();
-  }, []);
+    fetchArtists(false);
+
+    // Auto-update when admin actions trigger 'admin-counts-update'
+    const handleAdminUpdate = () => {
+      fetchArtists(true);
+    };
+    window.addEventListener('admin-counts-update', handleAdminUpdate);
+
+    // Lightweight visibility-aware auto-update every 8 seconds (only when tab is active)
+    const intervalId = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchArtists(true);
+      }
+    }, 8000);
+
+    return () => {
+      window.removeEventListener('admin-counts-update', handleAdminUpdate);
+      clearInterval(intervalId);
+    };
+  }, [fetchArtists]);
 
   const handleSoftDelete = async (id: string, name?: string) => {
     const confirm = window.confirm(`آیا از حذف / بایگانی هنرمند «${name || ''}» اطمینان دارید؟`);
@@ -559,9 +681,7 @@ export default function AdminArtistsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900">{artist.name}</span>
-                        <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full">
-                          ⭐ سطح {artist.verificationLevel}
-                        </span>
+                        <AdminLevelMedalIcon level={artist.verificationLevel || 0} />
                       </div>
                       {artist.brandName && (
                         <div className="text-xs text-emerald-800 font-medium mt-0.5">برند: {artist.brandName}</div>
@@ -684,20 +804,7 @@ export default function AdminArtistsPage() {
                   </td>
 
                   <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-full ${
-                      artist.verificationLevel >= 3
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : artist.verificationLevel === 2
-                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                        : artist.verificationLevel === 1
-                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      <span>⭐ سطح {artist.verificationLevel || 0}</span>
-                      <span className="text-[10px] opacity-75 font-normal">
-                        {artist.verificationLevel >= 3 ? '(کامل)' : artist.verificationLevel === 2 ? '(عمومی)' : artist.verificationLevel === 1 ? '(پایه)' : '(صفر)'}
-                      </span>
-                    </span>
+                    <AdminLevelMedalIcon level={artist.verificationLevel || 0} />
                   </td>
 
                   <td className="px-6 py-4">
@@ -731,36 +838,36 @@ export default function AdminArtistsPage() {
                   </td>
 
                   <td className="px-6 py-4 text-left">
-                    <div className="flex justify-end items-center gap-2">
-                      {/* Preview Profile */}
+                    <div className="flex justify-end items-center gap-1.5 sm:gap-2">
+                      {/* Preview / View Site */}
                       <a 
                         href={`/artist/${artist.id}`} 
                         target="_blank" 
-                        className="text-teal-700 hover:bg-teal-50 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-bold border border-teal-200 flex items-center gap-1"
-                        title="پیش‌نمایش صفحه عمومی هنرمند"
+                        className="text-blue-600 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors text-xs font-bold flex items-center gap-1 border border-transparent hover:border-blue-100"
+                        title="مشاهده پروفایل"
                       >
-                        <span>👁️</span>
-                        <span>پیش‌نمایش</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        <span>مشاهده</span>
                       </a>
                       
                       {/* Edit Review if pending */}
                       {artist.hasPendingEdits && (
                         <a 
                           href={`/admin/artists/${artist.id}/review-edits`} 
-                          title="بررسی درخواست ارتقا / ویرایش" 
-                          className="bg-amber-400 text-slate-950 px-2.5 py-1.5 rounded-lg text-xs font-black transition-colors shadow-xs"
+                          title="بررسی درخواست ویرایش" 
+                          className="text-amber-600 hover:bg-amber-50 p-2 rounded-lg transition-colors border border-transparent hover:border-amber-100 animate-pulse"
                         >
-                          بررسی
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
                         </a>
                       )}
 
                       {/* Admin Edit */}
                       <a 
                         href={`/admin/artists/${artist.id}/edit`} 
-                        title="ویرایش مستقیم هنرمند" 
-                        className="text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors"
+                        title="ویرایش هنرمند" 
+                        className="text-emerald-500 hover:bg-emerald-50 p-2 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
                       >
-                        ✏️
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </a>
 
                       {/* Reset Credentials */}
@@ -770,10 +877,10 @@ export default function AdminArtistsPage() {
                           setNewEmail(artist.email || '');
                           setNewPassword('');
                         }} 
-                        title="تنظیمات رمز عبور و ورود" 
-                        className="text-purple-600 hover:bg-purple-50 p-1.5 rounded-lg transition-colors"
+                        title="تنظیمات ورود هنرمند" 
+                        className="text-purple-500 hover:bg-purple-50 p-2 rounded-lg transition-colors border border-transparent hover:border-purple-100"
                       >
-                        🔑
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                       </button>
 
                       {/* Delete Button (Red X as requested) */}
@@ -781,7 +888,7 @@ export default function AdminArtistsPage() {
                         <button 
                           onClick={() => handleSoftDelete(artist.id, artist.name)} 
                           title="حذف هنرمند" 
-                          className="text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors font-black text-sm"
+                          className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors font-black text-sm flex items-center justify-center border border-transparent hover:border-red-100"
                         >
                           ✕
                         </button>

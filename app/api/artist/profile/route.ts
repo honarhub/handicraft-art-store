@@ -140,26 +140,15 @@ export async function PATCH(request: Request) {
       specialties: Array.isArray(specialties) ? specialties : [],
       phoneNumber: normalizedPhone,
       email: email?.trim() || artist.user.email || null,
+      phoneOtpVerified: Boolean(phoneOtpVerified),
+      emailOtpVerified: Boolean(emailOtpVerified),
       submittedAt: new Date().toISOString()
     };
 
-    // Update user info
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        name: name.trim(),
-        ...(finalImageUrl ? { image: finalImageUrl } : {}),
-        ...(phoneOtpVerified || !isSsoUser ? { phoneNumber: normalizedPhone } : {}),
-        ...(emailOtpVerified && email ? { email: email.trim().toLowerCase(), emailVerified: new Date() } : {})
-      }
-    });
-
-    // Update artist profile (keep verification level at Level 1 until admin explicitly approves)
+    // Keep user and artist data untouched until admin approves the submitted edits
     const updatedArtist = await prisma.artistProfile.update({
       where: { id: artist.id },
       data: {
-        brandName: brandName?.trim() || null,
-        verificationLevel: artist.verificationLevel || 1,
         pendingEdits: pendingEdits as any,
         adminFeedback: null
       }
