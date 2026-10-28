@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { saveUploadImageSync } from '@/lib/fileUpload';
+import { sendSmsNotification } from '@/lib/sms';
 
 // دریافت اطلاعات یک هنرمند برای ویرایش
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -142,8 +143,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
         const updatedArtist = await prisma.artistProfile.update({
           where: { id: artistId },
-          data: artistUpdate
+          data: artistUpdate,
+          include: { user: true }
         });
+
+        // Notify artist via SMS if newly promoted to Level 2
+        if (isFullApproval && (artist.verificationLevel || 0) < 2) {
+          const recipientPhone = updatedArtist.user?.phoneNumber;
+          if (recipientPhone) {
+            const displayName = updatedArtist.brandName || updatedArtist.user?.name || 'هنرمند گرامی';
+            const smsText = `هنرمند گرامی ${displayName}،\nشناسنامه هنری شما در هنرهاب تایید شد و به سطح ۲ (ویترین عمومی) ارتقا یافتید.\nHonarHub.ir`;
+            sendSmsNotification(recipientPhone, smsText).catch(e => console.error('Error sending Level 2 SMS:', e));
+          }
+        }
 
         return NextResponse.json({ success: true, artist: updatedArtist });
       } catch (err: any) {
@@ -179,6 +191,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             } : {}),
             isActive: true, // خودکار فعال شود اگر غیرفعال بوده
             isApproved: true, // خودکار تایید ثبت‌نام هم بخورد
+            verificationLevel: Math.max(artist.verificationLevel || 0, 2),
             pendingEdits: null,
             adminFeedback: null,
             user: {
@@ -187,8 +200,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
                 ...(imageUrl !== undefined ? { image: imageUrl } : {})
               }
             }
-          }
+          },
+          include: { user: true }
         });
+
+        if ((artist.verificationLevel || 0) < 2) {
+          const recipientPhone = updatedArtist.user?.phoneNumber;
+          if (recipientPhone) {
+            const displayName = updatedArtist.brandName || updatedArtist.user?.name || 'هنرمند گرامی';
+            const smsText = `هنرمند گرامی ${displayName}،\nشناسنامه هنری شما در هنرهاب تایید شد و به سطح ۲ (ویترین عمومی) ارتقا یافتید.\nHonarHub.ir`;
+            sendSmsNotification(recipientPhone, smsText).catch(e => console.error('Error sending Level 2 SMS:', e));
+          }
+        }
+
         return NextResponse.json(updatedArtist);
       } catch (err: any) {
         console.error('Approve Edits Error:', err);

@@ -64,3 +64,32 @@ export async function sendSmsOtp(phone: string, code: string): Promise<{ success
 
   return { success: true };
 }
+
+export async function sendSmsNotification(phone: string, text: string): Promise<{ success: boolean; message?: string }> {
+  const normalized = normalizePhoneNumber(phone);
+  if (!normalized) return { success: false, message: 'Invalid phone' };
+
+  const kavenegarKey = process.env.KAVENEGAR_API_KEY;
+
+  if (kavenegarKey) {
+    try {
+      const sender = process.env.KAVENEGAR_SENDER || '10008663';
+      const url = `https://api.kavenegar.com/v1/${kavenegarKey}/sms/send.json?receptor=${normalized}&sender=${sender}&message=${encodeURIComponent(text)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.return?.status === 200) {
+        return { success: true };
+      }
+      console.error('[SMS] Kavenegar notification error:', data);
+    } catch (err) {
+      console.error('[SMS] Error calling SMS provider:', err);
+    }
+  }
+
+  // Fallback log
+  console.log('====================================================');
+  console.log(`[SMS-DEV] Notification to ${normalized}:\n${text}`);
+  console.log('====================================================');
+
+  return { success: true };
+}

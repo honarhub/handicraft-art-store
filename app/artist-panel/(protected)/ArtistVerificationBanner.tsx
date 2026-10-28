@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface Props {
+  artistId?: string;
   verificationLevel: number;
   isApproved: boolean;
   brandName?: string | null;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function ArtistVerificationBanner({
+  artistId,
   verificationLevel,
   isApproved,
   brandName,
@@ -20,9 +22,26 @@ export default function ArtistVerificationBanner({
   const [approved, setApproved] = useState<boolean>(isApproved);
   const [pending, setPending] = useState<boolean>(hasPendingEdits);
   const [currentBrandName, setCurrentBrandName] = useState<string | null>(brandName || null);
+  const [celebrationDismissed, setCelebrationDismissed] = useState<boolean>(true);
 
   const prevPendingRef = React.useRef(hasPendingEdits);
   const prevLevelRef = React.useRef(verificationLevel);
+
+  useEffect(() => {
+    try {
+      const isDismissed = localStorage.getItem(`level2_celebration_dismissed_${artistId || 'default'}`);
+      setCelebrationDismissed(isDismissed === 'true');
+    } catch {
+      setCelebrationDismissed(false);
+    }
+  }, [artistId]);
+
+  const handleDismissCelebration = () => {
+    setCelebrationDismissed(true);
+    try {
+      localStorage.setItem(`level2_celebration_dismissed_${artistId || 'default'}`, 'true');
+    } catch {}
+  };
 
   useEffect(() => {
     setLevel(verificationLevel);
@@ -100,10 +119,72 @@ export default function ArtistVerificationBanner({
     };
   }, []);
 
-  // When admin gives final approval (Level >= 2 and not pending), the top banner is NOT displayed.
-  // Remaining verification steps are handled inside the dedicated verification tab.
+  // --- CASE C: Level 2+ Approved Celebration & Notification Banner ---
   if (approved && level >= 2 && !pending) {
-    return null;
+    if (celebrationDismissed) {
+      return null;
+    }
+
+    return (
+      <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-blue-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border-2 border-blue-500/40 shadow-2xl relative overflow-hidden transition-all animate-in fade-in" dir="rtl">
+        <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-xl">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 text-xs font-black bg-blue-500 text-white px-3.5 py-1 rounded-full shadow-sm">
+                <span>⭐</span>
+                <span>احراز هویت: سطح {level} از ۳ (تایید شده)</span>
+              </span>
+
+              <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>فعال و منتشر در ویترین عمومی</span>
+              </span>
+            </div>
+
+            <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+              <span>🎉 تبریک! هویت و شناسنامه هنری شما تایید شد</span>
+            </h3>
+
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+              پروفایل اختصاصی فروشگاه و آثار شما توسط ناظر پلتفرم تایید گردید و اکنون در ویترین عمومی هنرهاب برای خریداران سراسر کشور فعال و در دسترس است.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 justify-start md:justify-end flex-shrink-0">
+            {artistId && (
+              <a
+                href={`/artist/${artistId}`}
+                target="_blank"
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-3 rounded-2xl transition-all shadow-md shadow-blue-600/30 text-xs sm:text-sm whitespace-nowrap"
+              >
+                <span>👁️</span>
+                <span>مشاهده صفحه من در ویترین</span>
+              </a>
+            )}
+
+            <Link
+              href="/artist-panel/verification"
+              className="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-3 rounded-2xl transition-all border border-slate-700 text-xs sm:text-sm whitespace-nowrap"
+            >
+              <span>سطوح احراز هویت</span>
+              <span>←</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleDismissCelebration}
+              className="px-3.5 py-2.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors text-xs font-bold flex items-center gap-1 border border-slate-700/60"
+              title="بستن این پیام"
+            >
+              <span>✕</span>
+              <span>متوجه شدم</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // --- CASE A: Pending Admin Review ---

@@ -94,6 +94,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
       {/* Main Content Area */}
       <main className="flex-1 w-full overflow-y-auto flex flex-col p-4 sm:p-8">
         <ArtistVerificationBanner
+          artistId={artist.id}
           verificationLevel={artist.verificationLevel || 0}
           isApproved={artist.isApproved}
           brandName={artist.brandName}
