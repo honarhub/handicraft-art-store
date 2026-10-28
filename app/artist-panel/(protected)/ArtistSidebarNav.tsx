@@ -91,13 +91,10 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
     window.addEventListener('artist-status-updated', handleStatusUpdate);
     window.addEventListener('focus', fetchCounts);
 
-    const interval = setInterval(fetchCounts, 5000);
-
     return () => {
       window.removeEventListener('artist-counts-update', handleUpdate);
       window.removeEventListener('artist-status-updated', handleStatusUpdate);
       window.removeEventListener('focus', fetchCounts);
-      clearInterval(interval);
     };
   }, [fetchCounts]);
 

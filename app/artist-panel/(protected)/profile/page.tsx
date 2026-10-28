@@ -139,18 +139,18 @@ export default function ArtistProfilePage() {
     const handleStatusUpdate = () => {
       fetchProfile(true);
     };
-    window.addEventListener('artist-status-updated', handleStatusUpdate);
 
-    // Silent background poll every 6s (only when active in tab)
-    const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchProfile(true);
-      }
-    }, 6000);
+    // Re-check once when the user returns/focuses this browser tab (Zero periodic interval)
+    const handleTabFocus = () => {
+      fetchProfile(true);
+    };
+
+    window.addEventListener('artist-status-updated', handleStatusUpdate);
+    window.addEventListener('focus', handleTabFocus);
 
     return () => {
       window.removeEventListener('artist-status-updated', handleStatusUpdate);
-      clearInterval(interval);
+      window.removeEventListener('focus', handleTabFocus);
     };
   }, []);
 

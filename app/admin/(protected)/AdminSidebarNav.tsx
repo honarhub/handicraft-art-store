@@ -44,13 +44,9 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
     window.addEventListener('admin-counts-update', handleUpdate);
     window.addEventListener('focus', handleUpdate);
 
-    // 2. Real-time: poll every 5 seconds for updates without reload
-    const interval = setInterval(fetchCounts, 5000);
-
     return () => {
       window.removeEventListener('admin-counts-update', handleUpdate);
       window.removeEventListener('focus', handleUpdate);
-      clearInterval(interval);
     };
   }, [fetchCounts]);
 

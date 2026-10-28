@@ -28,12 +28,8 @@ export default function ArtistProductsTable({ initialProducts }: ArtistProductsT
   useEffect(() => {
     window.addEventListener('focus', fetchProducts);
 
-    // Poll every 8 seconds for real-time status updates and new admin feedback
-    const interval = setInterval(fetchProducts, 8000);
-
     return () => {
       window.removeEventListener('focus', fetchProducts);
-      clearInterval(interval);
     };
   }, [fetchProducts]);
 

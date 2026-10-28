@@ -28,7 +28,7 @@ export default function ArtistVerificationBanner({
     if (brandName) setCurrentBrandName(brandName);
   }, [verificationLevel, isApproved, hasPendingEdits, brandName]);
 
-  // Live polling & Event syncing so admin review automatically updates this banner without Ctrl+F5
+  // Event & Focus-based syncing (Zero background periodic polling)
   useEffect(() => {
     const handleStatusUpdate = (e: any) => {
       if (e.detail) {
@@ -49,9 +49,8 @@ export default function ArtistVerificationBanner({
 
     window.addEventListener('artist-status-updated', handleStatusUpdate);
 
-    // Live background polling (only when tab is visible)
+    // Fetch once when component mounts or when user focuses/switches to this tab
     const checkLiveStatus = async () => {
-      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
       try {
         const res = await fetch('/api/artist/counts', { cache: 'no-store' });
         if (res.ok) {
@@ -77,15 +76,13 @@ export default function ArtistVerificationBanner({
       }
     };
 
-    // Initial check and interval
+    // Check once on mount and on tab focus (NO interval polling)
     checkLiveStatus();
-    const intervalId = setInterval(checkLiveStatus, 5000);
     window.addEventListener('focus', checkLiveStatus);
 
     return () => {
       window.removeEventListener('artist-status-updated', handleStatusUpdate);
       window.removeEventListener('focus', checkLiveStatus);
-      clearInterval(intervalId);
     };
   }, []);
 

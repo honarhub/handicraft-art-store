@@ -154,17 +154,11 @@ export default function AdminArtistsPage() {
       fetchArtists(true);
     };
     window.addEventListener('admin-counts-update', handleAdminUpdate);
-
-    // Lightweight visibility-aware auto-update every 8 seconds (only when tab is active)
-    const intervalId = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchArtists(true);
-      }
-    }, 8000);
+    window.addEventListener('focus', handleAdminUpdate);
 
     return () => {
       window.removeEventListener('admin-counts-update', handleAdminUpdate);
-      clearInterval(intervalId);
+      window.removeEventListener('focus', handleAdminUpdate);
     };
   }, [fetchArtists]);
 
