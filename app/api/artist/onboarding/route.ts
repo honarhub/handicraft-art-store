@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { step } = body;
+    const step = Number(body.step || body.level);
 
     let artist = await prisma.artistProfile.findUnique({
       where: { userId: session.user.id }
@@ -201,6 +201,9 @@ export async function POST(req: Request) {
           finalCardImage = saveUploadImageSync(nationalCardImage, 'artists', 'kyc-card');
         } else if (nationalCardImage) {
           finalCardImage = nationalCardImage;
+        }
+        if (!finalCardImage) {
+          return NextResponse.json({ error: 'تصویر روی کارت ملی الزامی است.' }, { status: 400 });
         }
       }
 

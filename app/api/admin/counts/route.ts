@@ -38,7 +38,16 @@ export async function GET() {
     const level2PendingCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) < 2 && hasEdits(a.pendingEdits)).length;
 
     // درخواست‌های احراز هویت سطح ۳ (قرمز): سطح ۲ که مدارک مالی ثبت کرده‌اند
-    const level3PendingCount = allArtistsForCount.filter(a => a.verificationLevel === 2 && Boolean(a.nationalId)).length;
+    const isL3Pending = (a: any) => {
+      if ((a.verificationLevel || 0) !== 2) return false;
+      if (a.nationalId) return true;
+      try {
+        const pe = typeof a.pendingEdits === 'string' ? JSON.parse(a.pendingEdits) : a.pendingEdits;
+        if (pe?.type === 'LEVEL_3_KYC') return true;
+      } catch {}
+      return false;
+    };
+    const level3PendingCount = allArtistsForCount.filter(isL3Pending).length;
 
     // کل نوتیف‌های قرمز برای منوی هنرمندان
     const verificationRequestsCount = level2PendingCount + level3PendingCount;

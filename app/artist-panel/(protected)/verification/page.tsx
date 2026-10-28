@@ -180,6 +180,7 @@ export default function ArtistVerificationPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          step: 3,
           level: 3,
           nationalId: nationalId.trim(),
           nationalCardImage,
@@ -194,6 +195,7 @@ export default function ArtistVerificationPage() {
 
       setKycSuccess('مدارک هویتی و مالی شما با موفقیت ثبت شد و در صف تایید ناظر پلتفرم قرار گرفت.');
       window.dispatchEvent(new CustomEvent('artist-status-updated', { detail: { verificationLevel: 2 } }));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
       fetchProfile();
     } catch (err: any) {
       setKycError(err.message || 'مشکلی در ثبت مدارک رخ داد.');
