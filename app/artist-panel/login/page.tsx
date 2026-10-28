@@ -44,23 +44,25 @@ function ArtistLoginContent() {
   // Handle URL error query params
   useEffect(() => {
     const error = searchParams.get('error');
-    if (error === 'not_artist') {
+    if (error === 'deleted') {
+      // Force immediate direct signout for deleted artist
+      signOut({ redirect: false });
+      setErrorMsg('حساب کاربری هنرمندی شما توسط ادمین حذف شده است و از سیستم خارج شدید.');
+    } else if (error === 'not_artist') {
       setErrorMsg('حساب کاربری شما دسترسی هنرمند ندارد. لطفاً ابتدا ثبت‌نام کنید یا با حساب هنرمندی وارد شوید.');
     } else if (error === 'no_profile') {
       setErrorMsg('پروفایل هنرمند برای این حساب یافت نشد. لطفاً ابتدا ثبت‌نام خود را تکمیل کنید.');
-    } else if (error === 'deleted') {
-      setErrorMsg('حساب هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی تماس بگیرید.');
     }
   }, [searchParams]);
 
   // Handle redirect if already logged in as artist/admin
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && searchParams.get('error') !== 'deleted') {
       if (session?.user?.role === 'ARTIST' || session?.user?.role === 'ADMIN') {
         router.push('/artist-panel/dashboard');
       }
     }
-  }, [status, session, router]);
+  }, [status, session, router, searchParams]);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -277,8 +279,8 @@ function ArtistLoginContent() {
     }
   };
 
-  // If already authenticated as a regular user, show role upgrade UI
-  if (status === 'authenticated' && session?.user?.role !== 'ARTIST' && session?.user?.role !== 'ADMIN') {
+  // If already authenticated as a regular user, show role upgrade UI (skip if deleted)
+  if (status === 'authenticated' && session?.user?.role !== 'ARTIST' && session?.user?.role !== 'ADMIN' && searchParams.get('error') !== 'deleted') {
     return (
       <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-3xl sm:px-10 border border-slate-100 text-center">
         <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4">

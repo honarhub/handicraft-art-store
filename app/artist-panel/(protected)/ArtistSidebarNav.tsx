@@ -9,42 +9,44 @@ interface ArtistSidebarNavProps {
   verificationLevel?: number;
 }
 
-function MedalStarIcon({ level, active }: { level: number; active: boolean }) {
-  if (active) {
-    return (
-      <span
-        title={`مدال سطح ${level}: کسب شده`}
-        className="inline-flex items-center justify-center transition-transform hover:scale-110 drop-shadow-sm"
-      >
-        <svg width="18" height="22" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {/* Ribbon */}
-          <path d="M7 2L12 8L17 2V9L12 13L7 9V2Z" fill="#F59E0B" />
-          <path d="M7 2L12 8V13L7 9V2Z" fill="#D97706" opacity="0.7" />
-          {/* Medallion Coin */}
-          <circle cx="12" cy="18" r="7.5" fill="url(#goldGradientSidebar)" stroke="#B45309" strokeWidth="1.2" />
-          {/* Star in Center */}
-          <path d="M12 13.8L13.1 16.3L15.8 16.6L13.8 18.4L14.4 21.1L12 19.6L9.6 21.1L10.2 18.4L8.2 16.6L10.9 16.3L12 13.8Z" fill="#78350F" />
-          <defs>
-            <linearGradient id="goldGradientSidebar" x1="6" y1="12" x2="18" y2="24" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#FDE047" />
-              <stop offset="0.5" stopColor="#FBBF24" />
-              <stop offset="1" stopColor="#D97706" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </span>
-    );
-  }
+function NavMedalLevelIcon({ level }: { level: number }) {
+  const currentLvl = level > 0 ? level : 1;
+  const persianNums: Record<number, string> = { 1: '۱', 2: '۲', 3: '۳' };
+  const numText = persianNums[currentLvl] || String(currentLvl);
 
   return (
-    <span
-      title={`مدال سطح ${level}: قفل`}
-      className="inline-flex items-center justify-center opacity-35 grayscale"
+    <span 
+      className="inline-flex items-center justify-center shrink-0 transition-transform drop-shadow-sm -my-1"
+      title={`احراز هویت: سطح ${numText}`}
     >
-      <svg width="18" height="22" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M7 2L12 8L17 2V9L12 13L7 9V2Z" fill="#6B7280" />
-        <circle cx="12" cy="18" r="7.5" fill="#374151" stroke="#6B7280" strokeWidth="1.2" />
-        <path d="M12 13.8L13.1 16.3L15.8 16.6L13.8 18.4L14.4 21.1L12 19.6L9.6 21.1L10.2 18.4L8.2 16.6L10.9 16.3L12 13.8Z" fill="#1F2937" />
+      <svg width="28" height="34" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Ribbon */}
+        <path d="M8 2L14 10L20 2V12L14 16L8 12V2Z" fill="#F59E0B" />
+        <path d="M8 2L14 10V16L8 12V2Z" fill="#D97706" opacity="0.8" />
+        {/* Medallion Coin Outer */}
+        <circle cx="14" cy="21" r="11" fill="url(#navMedalGoldGradient)" stroke="#B45309" strokeWidth="1.5" />
+        {/* Inner ring */}
+        <circle cx="14" cy="21" r="8.5" stroke="#FEF08A" strokeWidth="1" fill="none" opacity="0.8" />
+        {/* Number inside medal */}
+        <text
+          x="14"
+          y="25"
+          textAnchor="middle"
+          fill="#78350F"
+          fontSize="13"
+          fontWeight="900"
+          className="select-none font-bold"
+          style={{ fontFamily: 'inherit' }}
+        >
+          {numText}
+        </text>
+        <defs>
+          <linearGradient id="navMedalGoldGradient" x1="5" y1="12" x2="23" y2="30" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FDE047" />
+            <stop offset="0.4" stopColor="#FBBF24" />
+            <stop offset="1" stopColor="#D97706" />
+          </linearGradient>
+        </defs>
       </svg>
     </span>
   );
@@ -102,25 +104,29 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
   const navItems = [
     {
       href: '/artist-panel/dashboard',
-      label: '📊 پیشخوان من',
+      label: 'پیشخوان من',
+      icon: <span className="text-base">📊</span>,
     },
     {
       href: '/artist-panel/products',
-      label: '📦 مدیریت آثار و محصولات',
+      label: 'مدیریت آثار و محصولات',
+      icon: <span className="text-base">📦</span>,
       badge: unreadCount,
     },
     {
       href: '/artist-panel/profile',
-      label: '👤 پروفایل',
+      label: 'پروفایل',
+      icon: <span className="text-base">👤</span>,
     },
     {
       href: '/artist-panel/verification',
-      label: '🎖️ سطوح احراز هویت',
-      isVerification: true,
+      label: 'سطوح احراز هویت',
+      icon: <NavMedalLevelIcon level={level} />,
     },
     {
       href: '/artist-panel/security',
-      label: '🔒 تنظیمات امنیتی',
+      label: 'تنظیمات امنیتی',
+      icon: <span className="text-base">🔒</span>,
     },
   ];
 
@@ -140,20 +146,9 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
             }`}
           >
             <span className="flex items-center gap-3">
-              {item.label}
+              {item.icon}
+              <span>{item.label}</span>
             </span>
-
-            {/* 3 Medal Icons for Verification Tiers */}
-            {item.isVerification && (
-              <div 
-                className="flex items-center gap-1 bg-teal-950/40 px-2 py-1 rounded-full border border-teal-800/40 shadow-xs" 
-                title={`سطح احراز هویت: ${level} از ۳`}
-              >
-                <MedalStarIcon level={1} active={level >= 1} />
-                <MedalStarIcon level={2} active={level >= 2} />
-                <MedalStarIcon level={3} active={level >= 3} />
-              </div>
-            )}
 
             {item.badge !== undefined && item.badge > 0 && (
               <span 

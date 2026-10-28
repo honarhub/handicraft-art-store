@@ -83,7 +83,7 @@ export const authOptions: NextAuthOptions = {
             user = await prisma.user.create({
               data: {
                 phoneNumber: normalized,
-                name: `هنرمند ${normalized.slice(-4)}`,
+                name: '',
                 role: 'ARTIST',
                 artistProfile: {
                   create: {
@@ -266,10 +266,16 @@ export const authOptions: NextAuthOptions = {
       if (lookupFilter && trigger !== 'update') {
         const dbUser = await prisma.user.findUnique({
           where: lookupFilter,
-          select: { id: true, name: true, role: true, email: true, artistProfile: { select: { id: true } } }
+          select: { 
+            id: true, 
+            name: true, 
+            role: true, 
+            email: true, 
+            artistProfile: { select: { id: true, isDeleted: true } } 
+          }
         });
-        if (!dbUser) {
-          // Invalidate session cleanly if user is deleted
+        if (!dbUser || dbUser.artistProfile?.isDeleted) {
+          // Invalidate session cleanly if user or artist is deleted
           return {} as any;
         }
         

@@ -72,7 +72,7 @@ export default function ArtistVerificationBanner({
             </div>
 
             <h3 className="text-base sm:text-lg font-black text-white">
-              {brandName ? `استودیو و گالری ${brandName}` : 'فروشگاه هنری شما'}
+              {brandName ? brandName : 'فروشگاه هنری شما'}
             </h3>
 
             <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed">
@@ -120,7 +120,7 @@ export default function ArtistVerificationBanner({
           </div>
 
           <h3 className="text-base sm:text-lg font-black text-white">
-            {brandName ? `استودیو و گالری ${brandName}` : 'فروشگاه هنری شما'}
+            {brandName ? brandName : 'فروشگاه هنری شما'}
           </h3>
 
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
