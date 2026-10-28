@@ -159,8 +159,7 @@ export default function ArtistVerificationBanner({
                 target="_blank"
                 className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-3 rounded-2xl transition-all shadow-md shadow-blue-600/30 text-xs sm:text-sm whitespace-nowrap"
               >
-                <span>👁️</span>
-                <span>مشاهده صفحه من در ویترین</span>
+                <span>مشاهده صفحه عمومی من</span>
               </a>
             )}
 
