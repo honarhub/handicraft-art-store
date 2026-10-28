@@ -73,37 +73,22 @@ export const authOptions: NextAuthOptions = {
             data: { used: true }
           });
 
-          // Find or create User
-          let user = await prisma.user.findFirst({
+          // Find User - MUST exist in DB (no auto-creation on login!)
+          const user = await prisma.user.findFirst({
             where: { phoneNumber: normalized },
             include: { artistProfile: true }
           });
 
           if (!user) {
-            user = await prisma.user.create({
-              data: {
-                phoneNumber: normalized,
-                name: '',
-                role: 'ARTIST',
-                artistProfile: {
-                  create: {
-                    isApproved: false,
-                    isActive: true,
-                    verificationLevel: 0
-                  }
-                }
-              },
-              include: { artistProfile: true }
-            });
-          } else if (!user.artistProfile && user.role !== 'ADMIN') {
-            await prisma.artistProfile.create({
-              data: {
-                userId: user.id,
-                isApproved: false,
-                isActive: true,
-                verificationLevel: 0
-              }
-            });
+            throw new Error("این شماره موبایل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید.");
+          }
+
+          if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
+            throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد.");
+          }
+
+          if (user.artistProfile?.isDeleted) {
+            throw new Error("حساب هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی تماس بگیرید.");
           }
 
           return {
@@ -114,23 +99,65 @@ export const authOptions: NextAuthOptions = {
           };
         }
 
-        // --- 2. Standard Email + Password Login ---
+        // --- 2. Mobile Phone + Password Login ---
+        if (credentials?.phone && credentials?.password && !credentials?.code) {
+          const normalized = normalizePhoneNumber(credentials.phone);
+          const user = await prisma.user.findFirst({
+            where: { phoneNumber: normalized },
+            include: { artistProfile: true }
+          });
+
+          if (!user) {
+            throw new Error("این شماره موبایل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید.");
+          }
+
+          if (!user.password) {
+            throw new Error("برای این حساب رمز عبور تعیین نشده است. لطفاً با رمز یکبار مصرف پیامکی وارد شوید یا از فراموشی رمز عبور استفاده نمایید.");
+          }
+
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isPasswordValid) {
+            throw new Error("رمز عبور اشتباه است.");
+          }
+
+          if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
+            throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد.");
+          }
+
+          if (user.artistProfile?.isDeleted) {
+            throw new Error("حساب هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی تماس بگیرید.");
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
+        }
+
+        // --- 3. Standard Email + Password Login ---
         if (!credentials?.email || !credentials?.password) {
           throw new Error("ایمیل و رمز عبور الزامی است");
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
+          where: { email: credentials.email.trim().toLowerCase() },
+          include: { artistProfile: true }
         });
 
-        if (!user || !user.password) {
-          throw new Error("کاربری با این مشخصات یافت نشد");
+        if (!user) {
+          throw new Error("این ایمیل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید.");
+        }
+
+        if (!user.password) {
+          throw new Error("برای این حساب رمز عبور تعریف نشده است. در صورت ثبت نام با گوگل یا موبایل، از آن طریق اقدام کنید.");
         }
 
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
-          throw new Error("رمز عبور اشتباه است");
+          throw new Error("رمز عبور اشتباه است.");
         }
 
         if (credentials.loginType === 'admin' && user.role !== 'ADMIN') {
@@ -141,9 +168,7 @@ export const authOptions: NextAuthOptions = {
           if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
             throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد");
           }
-          let artist = await prisma.artistProfile.findUnique({
-            where: { userId: user.id }
-          });
+          let artist = user.artistProfile;
           // Auto-create artist profile for admin if testing artist panel
           if (!artist && user.role === 'ADMIN') {
             artist = await prisma.artistProfile.create({
@@ -242,7 +267,10 @@ export const authOptions: NextAuthOptions = {
             user.role = dbUser.role || 'ARTIST';
           }
         } else {
-          user.role = isAdmin ? 'ADMIN' : 'ARTIST';
+          if (!isAdmin) {
+            return '/artist-panel/login?error=not_registered';
+          }
+          user.role = 'ADMIN';
         }
       }
       return true;

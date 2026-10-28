@@ -78,6 +78,10 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
       countTitle: 'تخصص‌های در انتظار تایید'
     },
     { 
+      href: '/admin/referrals', 
+      label: '🤝 کدهای معرف هنرمندان' 
+    },
+    { 
       href: '/admin/blog', 
       label: '📝 مدیریت وبلاگ و مقالات' 
     },

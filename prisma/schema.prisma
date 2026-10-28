@@ -62,6 +62,8 @@ model User {
   certificates  ProductCertificate[] // مدارک مالکیت محصولات خریداری شده
   reviews       ProductReview[]
   questions     ProductQuestion[]
+  createdReferrals ReferralCode[] @relation("CreatedReferrals")
+  usedReferral     ReferralCode?  @relation("UsedReferral")
 }
 
 enum Role {
@@ -80,6 +82,22 @@ model VerificationCode {
   createdAt DateTime @default(now())
 
   @@index([target, type])
+}
+
+model ReferralCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  creatorId   String?   // کاربری که کد را ایجاد کرده یا به او تخصیص یافته (هنرمند یا ادمین)
+  creator     User?     @relation("CreatedReferrals", fields: [creatorId], references: [id], onDelete: SetNull)
+  usedById    String?   @unique // کاربری که با این کد ثبت نام کرده است
+  usedBy      User?     @relation("UsedReferral", fields: [usedById], references: [id], onDelete: SetNull)
+  isUsed      Boolean   @default(false)
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([creatorId])
+  @@index([code])
 }
 
 model ArtistProfile {

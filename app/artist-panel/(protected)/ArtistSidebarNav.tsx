@@ -121,6 +121,11 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
       icon: <NavMedalLevelIcon level={level} />,
     },
     {
+      href: '/artist-panel/referrals',
+      label: 'معرفی از هنرمندان',
+      icon: <span className="text-base">🤝</span>,
+    },
+    {
       href: '/artist-panel/security',
       label: 'تنظیمات امنیتی',
       icon: <span className="text-base">🔒</span>,

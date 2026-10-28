@@ -5,7 +5,7 @@ import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sm
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { phone, email, type } = body;
+    const { phone, email, type, referralCode } = body;
 
     if (!phone && !email) {
       return NextResponse.json({ error: 'شماره موبایل یا ایمیل الزامی است.' }, { status: 400 });
@@ -28,6 +28,37 @@ export async function POST(req: Request) {
         return NextResponse.json({ 
           error: 'شماره موبایل نامعتبر است. فرمت صحیح: ۰۹۱۲۳۴۵۶۷۸۹' 
         }, { status: 400 });
+      }
+    }
+
+    // Special validation for registration OTP
+    if (type === 'REGISTER_OTP') {
+      // 1. Check if user already exists
+      const existingUser = await prisma.user.findFirst({
+        where: isEmail ? { email: normalizedTarget } : { phoneNumber: normalizedTarget }
+      });
+      if (existingUser) {
+        return NextResponse.json({ 
+          error: 'این حساب قبلاً ثبت‌نام شده است. لطفاً از بخش ورود اقدام نمایید.' 
+        }, { status: 400 });
+      }
+
+      // 2. Validate referral code
+      if (!referralCode || !referralCode.trim()) {
+        return NextResponse.json({ error: 'کد معرف الزامی است.' }, { status: 400 });
+      }
+
+      const cleanRefCode = referralCode.trim().toUpperCase();
+      const refRecord = await prisma.referralCode.findUnique({
+        where: { code: cleanRefCode }
+      });
+
+      if (!refRecord) {
+        return NextResponse.json({ error: 'کد معرف وارد شده نامعتبر است.' }, { status: 400 });
+      }
+
+      if (refRecord.isUsed) {
+        return NextResponse.json({ error: 'این کد معرف قبلاً استفاده شده است و دیگر قابل استفاده نمی‌باشد.' }, { status: 400 });
       }
     }
 
