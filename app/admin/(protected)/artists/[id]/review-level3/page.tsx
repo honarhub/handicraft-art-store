@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isValidIranianNationalId } from '@/lib/sms';
 
 // Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
 function ReviewLevelMedalIcon({ level }: { level: number }) {
@@ -517,10 +518,23 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
                     )}
                   </div>
                 ) : (
-                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                     <p className={`text-xs text-slate-800 leading-relaxed font-bold ${field.isMono ? 'font-mono text-left dir-ltr' : ''}`}>
                       {field.value}
                     </p>
+                    {field.key === 'nationalId' && artist.nationalId && (
+                      isValidIranianNationalId(artist.nationalId) ? (
+                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span>✓</span>
+                          <span>الگوریتم ده رقمی معتبر</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-red-800 bg-red-100 border border-red-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>ساختار کد ملی نامعتبر</span>
+                        </span>
+                      )
+                    )}
                   </div>
                 )}
               </div>

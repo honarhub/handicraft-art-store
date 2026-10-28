@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { isValidIranianNationalId } from '@/lib/sms';
 
 function MedalStarBadge({ level, active }: { level: number; active: boolean }) {
   if (active) {
@@ -146,9 +147,15 @@ export default function ArtistVerificationPage() {
     setKycSuccess('');
 
     // Validate only fields that are NOT already approved
-    if (!isNationalIdApproved && (!nationalId.trim() || nationalId.length !== 10)) {
-      setKycError('کد ملی باید ۱۰ رقم باشد.');
-      return;
+    if (!isNationalIdApproved) {
+      if (!nationalId.trim()) {
+        setKycError('کد ملی ۱۰ رقمی الزامی است.');
+        return;
+      }
+      if (!isValidIranianNationalId(nationalId)) {
+        setKycError('کد ملی وارد شده نامعتبر است (الگوریتم صحت‌سنجی ده رقمی رعایت نشده است).');
+        return;
+      }
     }
     if (!isCardApproved && !nationalCardImage) {
       setKycError('تصویر روی کارت ملی الزامی است.');
@@ -553,9 +560,23 @@ export default function ArtistVerificationPage() {
                         ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
                         : isNationalIdRejected
                         ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                        : nationalId.length === 10 && !isValidIranianNationalId(nationalId)
+                        ? 'border-red-300 ring-1 ring-red-200 bg-white'
                         : 'border-slate-200 focus:border-teal-500 bg-white'
                     }`}
                   />
+                  {!isNationalIdApproved && nationalId.length === 10 && !isValidIranianNationalId(nationalId) && (
+                    <p className="text-[11px] text-red-500 font-bold mt-1 flex items-center gap-1">
+                      <span>⚠️</span>
+                      <span>کد ملی ۱۰ رقمی با الگوریتم رسمی همخوانی ندارد.</span>
+                    </p>
+                  )}
+                  {!isNationalIdApproved && nationalId.length === 10 && isValidIranianNationalId(nationalId) && (
+                    <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                      <span>✓</span>
+                      <span>ساختار و رقم کنترلی کد ملی معتبر است.</span>
+                    </p>
+                  )}
                   {isNationalIdRejected && (
                     <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
                       <span>⚠️</span>

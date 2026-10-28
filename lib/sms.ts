@@ -93,3 +93,47 @@ export async function sendSmsNotification(phone: string, text: string): Promise<
 
   return { success: true };
 }
+
+/**
+ * Iranian National ID (کد ملی) Validation Algorithm
+ * 1. Converts Persian/Arabic digits to English digits
+ * 2. Checks length === 10 digits
+ * 3. Rejects repetitive digits (0000000000, 1111111111, ..., 9999999999)
+ * 4. Verifies standard checksum modulo 11
+ */
+export function isValidIranianNationalId(rawId: string | null | undefined): boolean {
+  if (!rawId) return false;
+
+  // 1. Convert Persian/Arabic digits to English
+  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+  let code = rawId.trim();
+  for (let i = 0; i < 10; i++) {
+    code = code.replace(new RegExp(persianDigits[i], 'g'), i.toString());
+    code = code.replace(new RegExp(arabicDigits[i], 'g'), i.toString());
+  }
+
+  // Remove non-numeric characters
+  code = code.replace(/\D/g, '');
+
+  // Must be exactly 10 digits
+  if (!/^\d{10}$/.test(code)) return false;
+
+  // Reject all repetitive patterns (0000000000, 1111111111, ..., 9999999999)
+  if (/^(\d)\1{9}$/.test(code)) return false;
+
+  // Standard checksum modulo 11
+  const checkDigit = parseInt(code.charAt(9), 10);
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(code.charAt(i), 10) * (10 - i);
+  }
+
+  const remainder = sum % 11;
+  if (remainder < 2) {
+    return checkDigit === remainder;
+  } else {
+    return checkDigit === 11 - remainder;
+  }
+}

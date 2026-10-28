@@ -81,7 +81,7 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
     },
     specialties: dbArtist.specialties && dbArtist.specialties.filter(s => s.isApproved).length > 0 
       ? dbArtist.specialties.filter(s => s.isApproved).map(s => s.name).join('، ') 
-      : 'نامشخص',
+      : null,
     bio: dbArtist.bio || 'توضیحاتی برای این هنرمند ثبت نشده است.',
     portfolioUrl: dbArtist.portfolioUrl || null,
     socialLinks: (dbArtist.socialLinks as Record<string, string>) || {},
@@ -105,7 +105,9 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
           </div>
           <div className="text-center md:text-right text-white">
             <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tight">{artist.user.name}</h1>
-            <p className="text-emerald-200 text-lg md:text-xl font-medium mb-4">{artist.specialties}</p>
+            {artist.specialties && (
+              <p className="text-emerald-200 text-lg md:text-xl font-medium mb-4">{artist.specialties}</p>
+            )}
             {artist.portfolioUrl && (
               <a href={artist.portfolioUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full text-sm font-medium transition-colors mb-4">
                 🔗 سایت شخصی

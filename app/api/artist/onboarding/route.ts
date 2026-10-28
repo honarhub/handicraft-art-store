@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { normalizePhoneNumber } from '@/lib/sms';
+import { normalizePhoneNumber, isValidIranianNationalId } from '@/lib/sms';
 import { saveUploadImageSync } from '@/lib/fileUpload';
 
 export const dynamic = 'force-dynamic';
@@ -180,8 +180,10 @@ export async function POST(req: Request) {
       }
 
       // If field not already approved, validate requirement
-      if (!existingApproved.includes('nationalId') && (!nationalId || nationalId.trim().length !== 10)) {
-        return NextResponse.json({ error: 'کد ملی ۱۰ رقمی الزامی است.' }, { status: 400 });
+      if (!existingApproved.includes('nationalId')) {
+        if (!nationalId || !isValidIranianNationalId(nationalId)) {
+          return NextResponse.json({ error: 'کد ملی وارد شده طبق الگوریتم رسمی نامعتبر است.' }, { status: 400 });
+        }
       }
       if (!existingApproved.includes('address') && (!address || !address.trim())) {
         return NextResponse.json({ error: 'آدرس محل سکونت یا کارگاه الزامی است.' }, { status: 400 });

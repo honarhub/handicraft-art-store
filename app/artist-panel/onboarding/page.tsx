@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { IRAN_PROVINCES } from '@/lib/provinces';
+import { isValidIranianNationalId } from '@/lib/sms';
 
 export default function ArtistOnboardingPage() {
   const router = useRouter();
@@ -170,8 +171,8 @@ export default function ArtistOnboardingPage() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!nationalId.trim() || nationalId.trim().length !== 10) {
-      setErrorMsg('کد ملی باید دقیقاً ۱۰ رقم باشد.');
+    if (!nationalId.trim() || !isValidIranianNationalId(nationalId)) {
+      setErrorMsg('کد ملی وارد شده طبق الگوریتم رسمی ۱۰ رقمی نامعتبر است.');
       return;
     }
     if (!shebaNumber.trim() || shebaNumber.replace(/\s/g, '').length < 24) {
