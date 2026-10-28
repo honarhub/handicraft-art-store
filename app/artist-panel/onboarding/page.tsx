@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { IRAN_PROVINCES } from '@/lib/provinces';
-import { isValidIranianNationalId } from '@/lib/sms';
+import { isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
 
 export default function ArtistOnboardingPage() {
   const router = useRouter();
@@ -175,8 +175,8 @@ export default function ArtistOnboardingPage() {
       setErrorMsg('کدملی نادرست است.');
       return;
     }
-    if (!shebaNumber.trim() || shebaNumber.replace(/\s/g, '').length < 24) {
-      setErrorMsg('شماره شبا بانکی معتبر وارد نمایید.');
+    if (!shebaNumber.trim() || !isValidIranianSheba(shebaNumber)) {
+      setErrorMsg('شماره شبا نادرست است.');
       return;
     }
     if (!address.trim()) {

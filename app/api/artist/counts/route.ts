@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { hasProfilePendingEdits } from '@/lib/sms';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +60,7 @@ export async function GET() {
       verificationLevel: artist.verificationLevel || 1,
       isApproved: artist.isApproved,
       brandName: artist.brandName,
-      hasPendingEdits: Boolean(artist.pendingEdits),
+      hasPendingEdits: hasProfilePendingEdits(artist.pendingEdits),
       adminFeedback: artist.adminFeedback
     });
   } catch (error) {

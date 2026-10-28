@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { isValidIranianNationalId } from '@/lib/sms';
+import { isValidIranianNationalId, isValidIranianSheba, hasProfilePendingEdits } from '@/lib/sms';
 
 function MedalStarBadge({ level, active }: { level: number; active: boolean }) {
   if (active) {
@@ -92,7 +92,7 @@ export default function ArtistVerificationPage() {
   // Derive Level 3 Granular Approval/Rejection states
   const level = artist?.verificationLevel || 1;
   const isApproved = Boolean(artist?.isApproved);
-  const hasPendingEdits = Boolean(artist?.pendingEdits);
+  const hasProfileEdits = hasProfilePendingEdits(artist?.pendingEdits);
 
   let approvedFields: string[] = [];
   let rejectedFields: Record<string, string> = {};
@@ -161,9 +161,15 @@ export default function ArtistVerificationPage() {
       setKycError('تصویر روی کارت ملی الزامی است.');
       return;
     }
-    if (!isShebaApproved && (!shebaNumber.trim() || shebaNumber.replace(/^IR/i, '').trim().length !== 24)) {
-      setKycError('شماره شبا باید ۲۴ رقم بدون IR باشد.');
-      return;
+    if (!isShebaApproved) {
+      if (!shebaNumber.trim()) {
+        setKycError('شماره شبا ۲۴ رقمی الزامی است.');
+        return;
+      }
+      if (!isValidIranianSheba(shebaNumber)) {
+        setKycError('شماره شبا نادرست است.');
+        return;
+      }
     }
     if (!isAddressApproved && !address.trim()) {
       setKycError('آدرس محل سکونت یا کارگاه الزامی است.');
@@ -274,18 +280,18 @@ export default function ArtistVerificationPage() {
 
         {/* --- LEVEL 2 CARD --- */}
         <div className={`bg-white rounded-3xl p-6 sm:p-7 border-2 shadow-sm transition-all relative ${
-          level >= 2 && !hasPendingEdits
+          level >= 2 && !hasProfileEdits
             ? 'border-emerald-300'
-            : hasPendingEdits
+            : hasProfileEdits
             ? 'border-amber-300'
             : 'border-slate-200'
         }`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <span className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg ${
-                level >= 2 && !hasPendingEdits
+                level >= 2 && !hasProfileEdits
                   ? 'bg-emerald-100 text-emerald-800'
-                  : hasPendingEdits
+                  : hasProfileEdits
                   ? 'bg-amber-100 text-amber-800'
                   : 'bg-slate-100 text-slate-600'
               }`}>
@@ -301,12 +307,12 @@ export default function ArtistVerificationPage() {
               </div>
             </div>
 
-            {level >= 2 && !hasPendingEdits ? (
+            {level >= 2 && !hasProfileEdits ? (
               <span className="bg-emerald-500 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs">
                 <span>✓</span>
                 <span>تایید شده (فعال در ویترین)</span>
               </span>
-            ) : hasPendingEdits ? (
+            ) : hasProfileEdits ? (
               <span className="bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 animate-pulse shadow-xs">
                 <span>⏳</span>
                 <span>در انتظار بررسی و تایید ادمین</span>
@@ -322,9 +328,9 @@ export default function ArtistVerificationPage() {
           </div>
 
           <p className="text-xs text-slate-600 mt-4 leading-relaxed">
-            {level >= 2 && !hasPendingEdits
+            {level >= 2 && !hasProfileEdits
               ? 'پروفایل شما توسط ناظر پلتفرم بررسی و تایید شده است و فروشگاه و محصولات شما در دید عموم خریداران قرار دارد.'
-              : hasPendingEdits
+              : hasProfileEdits
               ? 'اطلاعات پروفایل شما ارسال شده و در حال بررسی است. پس از تایید، محصولات شما در ویترین عمومی فعال خواهند شد.'
               : 'برای اینکه محصولات و صفحه شما به خریداران در سایت نمایش داده شود، تکمیل و تایید پروفایل این مرحله الزامی است.'}
           </p>
@@ -627,6 +633,18 @@ export default function ArtistVerificationPage() {
                       IR
                     </span>
                   </div>
+                  {!isShebaApproved && shebaNumber.replace(/\D/g, '').length === 24 && !isValidIranianSheba(shebaNumber) && (
+                    <p className="text-[11px] text-red-500 font-bold mt-1 flex items-center gap-1">
+                      <span>⚠️</span>
+                      <span>شماره شبا نادرست است.</span>
+                    </p>
+                  )}
+                  {!isShebaApproved && shebaNumber.replace(/\D/g, '').length === 24 && isValidIranianSheba(shebaNumber) && (
+                    <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                      <span>✓</span>
+                      <span>شماره شبا صحیح است</span>
+                    </p>
+                  )}
                   {isShebaRejected && (
                     <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
                       <span>⚠️</span>

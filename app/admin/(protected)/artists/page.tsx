@@ -621,18 +621,11 @@ export default function AdminArtistsPage() {
                       <div className="flex justify-end items-center gap-2">
                         <Link
                           href={`/admin/artists/${artist.id}/review-level3`}
-                          className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
                         >
                           <span>🔍</span>
                           <span>بررسی و اعتبارسنجی مدارک</span>
                         </Link>
-                        <button
-                          onClick={() => handleApproveLevel3(artist.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors shadow-sm whitespace-nowrap"
-                          title="تایید مستقیم تمام ۵ مدرک و ارتقا به سطح ۳"
-                        >
-                          ✓ تایید مستقیم همه
-                        </button>
                       </div>
                     </td>
                   </tr>

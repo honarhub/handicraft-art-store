@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import LogoutButton from '@/app/components/LogoutButton';
 import ArtistSidebarNav from './ArtistSidebarNav';
 import ArtistVerificationBanner from './ArtistVerificationBanner';
+import { hasProfilePendingEdits } from '@/lib/sms';
 
 export default async function ArtistPanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -98,7 +99,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
           verificationLevel={artist.verificationLevel || 0}
           isApproved={artist.isApproved}
           brandName={artist.brandName}
-          hasPendingEdits={Boolean(artist.pendingEdits)}
+          hasPendingEdits={hasProfilePendingEdits(artist.pendingEdits)}
         />
         {artist.user.mustChangePassword && (
           <div className="bg-red-500 text-white p-4 shadow-sm flex items-center justify-between">

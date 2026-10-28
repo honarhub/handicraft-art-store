@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { normalizePhoneNumber, isValidIranianNationalId } from '@/lib/sms';
+import { normalizePhoneNumber, isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
 import { saveUploadImageSync } from '@/lib/fileUpload';
 
 export const dynamic = 'force-dynamic';
@@ -191,8 +191,10 @@ export async function POST(req: Request) {
       if (!existingApproved.includes('postalCode') && (!postalCode || postalCode.trim().length !== 10)) {
         return NextResponse.json({ error: 'کد پستی ۱۰ رقمی الزامی است.' }, { status: 400 });
       }
-      if (!existingApproved.includes('shebaNumber') && (!shebaNumber || shebaNumber.replace(/^IR/i, '').trim().length !== 24)) {
-        return NextResponse.json({ error: 'شماره شبا ۲۴ رقمی الزامی است.' }, { status: 400 });
+      if (!existingApproved.includes('shebaNumber')) {
+        if (!shebaNumber || !isValidIranianSheba(shebaNumber)) {
+          return NextResponse.json({ error: 'شماره شبا نادرست است.' }, { status: 400 });
+        }
       }
 
       let finalCardImage = artist.nationalCardImage;

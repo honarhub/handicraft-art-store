@@ -137,3 +137,60 @@ export function isValidIranianNationalId(rawId: string | null | undefined): bool
     return checkDigit === 11 - remainder;
   }
 }
+
+/**
+ * Iranian Sheba (IBAN) Validation Algorithm (ISO 13616 / MOD-97-10)
+ * 1. Converts Persian/Arabic digits to English digits
+ * 2. Removes 'IR', spaces and non-numeric characters
+ * 3. Verifies length === 24 digits
+ * 4. Rearranges: [22 digits] + "1827" + [first 2 digits]
+ * 5. Computes BigInt(rearranged) % 97n === 1n
+ */
+export function isValidIranianSheba(rawSheba: string | null | undefined): boolean {
+  if (!rawSheba) return false;
+
+  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+  let cleaned = rawSheba.trim().toUpperCase();
+  for (let i = 0; i < 10; i++) {
+    cleaned = cleaned.replace(new RegExp(persianDigits[i], 'g'), i.toString());
+    cleaned = cleaned.replace(new RegExp(arabicDigits[i], 'g'), i.toString());
+  }
+
+  // Remove IR prefix and non-numeric characters
+  cleaned = cleaned.replace(/^IR/i, '').replace(/\D/g, '');
+
+  // Must be exactly 24 digits
+  if (cleaned.length !== 24) return false;
+
+  // Rearrange: body (last 22 digits) + '1827' (IR) + check digits (first 2 digits)
+  const checkDigits = cleaned.substring(0, 2);
+  const accountBody = cleaned.substring(2);
+  const rearranged = accountBody + '1827' + checkDigits;
+
+  try {
+    let remainder = 0;
+    for (let i = 0; i < rearranged.length; i += 7) {
+      const chunk = String(remainder) + rearranged.substring(i, i + 7);
+      remainder = parseInt(chunk, 10) % 97;
+    }
+    return remainder === 1;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Helper to distinguish Level 2 Profile edits from Level 3 KYC submissions
+ */
+export function hasProfilePendingEdits(pendingEdits: any): boolean {
+  if (!pendingEdits) return false;
+  try {
+    const pe = typeof pendingEdits === 'string' ? JSON.parse(pendingEdits) : pendingEdits;
+    if (pe?.type === 'LEVEL_3_KYC') return false;
+    return Boolean(pe && typeof pe === 'object' && Object.keys(pe).length > 0);
+  } catch {
+    return false;
+  }
+}

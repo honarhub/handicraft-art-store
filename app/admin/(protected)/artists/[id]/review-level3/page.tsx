@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { isValidIranianNationalId } from '@/lib/sms';
+import { isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
 
 // Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
 function ReviewLevelMedalIcon({ level }: { level: number }) {
@@ -159,12 +159,13 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
   const [previouslyApproved, setPreviouslyApproved] = useState<string[]>([]);
 
   // Decisions: key -> { status: 'approve' | 'reject', reason: string }
+  // By default, all unapproved items start in 'reject' (عدم تایید) state as requested
   const [decisions, setDecisions] = useState<Record<string, { status: 'approve' | 'reject', reason: string }>>({
-    nationalId: { status: 'approve', reason: '' },
-    nationalCardImage: { status: 'approve', reason: '' },
-    shebaNumber: { status: 'approve', reason: '' },
-    address: { status: 'approve', reason: '' },
-    postalCode: { status: 'approve', reason: '' }
+    nationalId: { status: 'reject', reason: '' },
+    nationalCardImage: { status: 'reject', reason: '' },
+    shebaNumber: { status: 'reject', reason: '' },
+    address: { status: 'reject', reason: '' },
+    postalCode: { status: 'reject', reason: '' }
   });
 
   const getFieldLabel = (field: string) => {
@@ -227,17 +228,15 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
 
         // Setup decisions for all 5 fields:
         // If field was previously approved -> default 'approve' (and will be locked)
-        // If field was previously rejected and not yet approved -> default 'reject' with previous reason or empty
+        // By default, all unapproved items start in 'reject' (عدم تایید) state
         const initialDecisions: Record<string, { status: 'approve' | 'reject', reason: string }> = {};
         const keys = ['nationalId', 'nationalCardImage', 'shebaNumber', 'address', 'postalCode'];
         keys.forEach(k => {
           if (prevApproved.includes(k)) {
             initialDecisions[k] = { status: 'approve', reason: '' };
-          } else if (prevRejected[k]) {
-            initialDecisions[k] = { status: 'reject', reason: prevRejected[k] || '' };
           } else {
-            // Fresh submission -> default 'approve'
-            initialDecisions[k] = { status: 'approve', reason: '' };
+            // Default is 'reject' (عدم تایید)
+            initialDecisions[k] = { status: 'reject', reason: prevRejected[k] || '' };
           }
         });
 
@@ -429,7 +428,7 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
           <span className="text-xl">🪪</span>
           <div>
             <h4 className="font-black text-sm text-red-950 mb-0.5">
-              اعتبارسنجی دانه‌ای مدارک هویتی و حساب بانکی
+              اعتبارسنجی مدارک هویتی و حساب بانکی
             </h4>
             <p className="text-xs text-red-800">
               شما می‌توانید هر مدرک را به صورت مجزا تایید یا با ذکر دلیل مشخص رد نمایید. مواردی که تایید می‌شوند در پنل هنرمند قفل (فیکس) شده و مواردی که تایید نشده‌اند همراه با پیام شما جهت اصلاح و ارسال مجدد به هنرمند نمایش داده خواهند شد. با تایید هر ۵ مورد، هنرمند مستقیماً به سطح ۳ ارتقا می‌یابد.
@@ -532,6 +531,19 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
                         <span className="text-[11px] font-bold text-red-800 bg-red-100 border border-red-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                           <span>⚠️</span>
                           <span>ساختار کد ملی نامعتبر</span>
+                        </span>
+                      )
+                    )}
+                    {field.key === 'shebaNumber' && artist.shebaNumber && (
+                      isValidIranianSheba(artist.shebaNumber) ? (
+                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span>✓</span>
+                          <span>شماره شبا معتبر</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-red-800 bg-red-100 border border-red-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>ساختار شبا نامعتبر</span>
                         </span>
                       )
                     )}
