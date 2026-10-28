@@ -172,7 +172,7 @@ export default function ArtistOnboardingPage() {
     setSuccessMsg('');
 
     if (!nationalId.trim() || !isValidIranianNationalId(nationalId)) {
-      setErrorMsg('کد ملی وارد شده طبق الگوریتم رسمی ۱۰ رقمی نامعتبر است.');
+      setErrorMsg('کدملی نادرست است.');
       return;
     }
     if (!shebaNumber.trim() || shebaNumber.replace(/\s/g, '').length < 24) {

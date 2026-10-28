@@ -153,7 +153,7 @@ export default function ArtistVerificationPage() {
         return;
       }
       if (!isValidIranianNationalId(nationalId)) {
-        setKycError('کد ملی وارد شده نامعتبر است (الگوریتم صحت‌سنجی ده رقمی رعایت نشده است).');
+        setKycError('کدملی نادرست است.');
         return;
       }
     }
@@ -568,7 +568,7 @@ export default function ArtistVerificationPage() {
                   {!isNationalIdApproved && nationalId.length === 10 && !isValidIranianNationalId(nationalId) && (
                     <p className="text-[11px] text-red-500 font-bold mt-1 flex items-center gap-1">
                       <span>⚠️</span>
-                      <span>کد ملی ۱۰ رقمی با الگوریتم رسمی همخوانی ندارد.</span>
+                      <span>کدملی نادرست است.</span>
                     </p>
                   )}
                   {!isNationalIdApproved && nationalId.length === 10 && isValidIranianNationalId(nationalId) && (

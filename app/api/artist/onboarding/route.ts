@@ -182,7 +182,7 @@ export async function POST(req: Request) {
       // If field not already approved, validate requirement
       if (!existingApproved.includes('nationalId')) {
         if (!nationalId || !isValidIranianNationalId(nationalId)) {
-          return NextResponse.json({ error: 'کد ملی وارد شده طبق الگوریتم رسمی نامعتبر است.' }, { status: 400 });
+          return NextResponse.json({ error: 'کدملی نادرست است.' }, { status: 400 });
         }
       }
       if (!existingApproved.includes('address') && (!address || !address.trim())) {
