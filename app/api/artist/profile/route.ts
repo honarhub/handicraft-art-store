@@ -76,6 +76,8 @@ export async function PATCH(request: Request) {
     const { 
       name, 
       brandName, 
+      province,
+      city,
       bio, 
       portfolioUrl, 
       socialLinks, 
@@ -129,6 +131,8 @@ export async function PATCH(request: Request) {
     const pendingEdits = {
       name: name.trim(),
       brandName: brandName?.trim() || null,
+      province: province?.trim() || artist.province || null,
+      city: city?.trim() || artist.city || null,
       bio: bio.trim(),
       portfolioUrl: portfolioUrl?.trim() || null,
       socialLinks: cleanSocialLinks,
@@ -150,12 +154,12 @@ export async function PATCH(request: Request) {
       }
     });
 
-    // Update artist profile (promote to Level 2)
+    // Update artist profile (keep verification level at Level 1 until admin explicitly approves)
     const updatedArtist = await prisma.artistProfile.update({
       where: { id: artist.id },
       data: {
         brandName: brandName?.trim() || null,
-        verificationLevel: Math.max(artist.verificationLevel || 0, 2),
+        verificationLevel: artist.verificationLevel || 1,
         pendingEdits: pendingEdits as any,
         adminFeedback: null
       }

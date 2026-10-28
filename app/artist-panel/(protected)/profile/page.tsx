@@ -1,18 +1,22 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import SocialLinksInput from '@/app/components/SocialLinksInput';
 import AvatarCropModal from '@/app/components/AvatarCropModal';
 import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
+import { IRAN_PROVINCES } from '@/lib/provinces';
 
 export default function ArtistProfilePage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [artist, setArtist] = useState<any>(null);
   const [pendingMode, setPendingMode] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [successMsg, setSuccessMsg] = useState('');
 
   const errorRef = useRef<HTMLDivElement>(null);
@@ -32,6 +36,8 @@ export default function ArtistProfilePage() {
   // Form Fields
   const [name, setName] = useState('');
   const [brandName, setBrandName] = useState('');
+  const [province, setProvince] = useState('تهران');
+  const [city, setCity] = useState('تهران');
   const [bio, setBio] = useState('');
   const [portfolioUrl, setPortfolioUrl] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -45,7 +51,7 @@ export default function ArtistProfilePage() {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
-  // Phone OTP Modal States (Required for SSO users adding their mobile)
+  // Phone OTP Modal States (Required for every profile submission)
   const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
   const [phoneOtpCode, setPhoneOtpCode] = useState('');
   const [phoneOtpLoading, setPhoneOtpLoading] = useState(false);
@@ -53,7 +59,7 @@ export default function ArtistProfilePage() {
   const [phoneOtpError, setPhoneOtpError] = useState('');
   const [devCode, setDevCode] = useState<string | null>(null);
 
-  // Email OTP Modal States (Optional for phone-registered users)
+  // Email OTP Modal States (Optional for email verification)
   const [showEmailOtpModal, setShowEmailOtpModal] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [emailOtpLoading, setEmailOtpLoading] = useState(false);
@@ -102,6 +108,8 @@ export default function ArtistProfilePage() {
         setPendingMode(true);
         setName(edits.name || data.user?.name || '');
         setBrandName(edits.brandName || data.brandName || '');
+        setProvince(edits.province || data.province || 'تهران');
+        setCity(edits.city || data.city || 'تهران');
         setBio(edits.bio || data.bio || '');
         setPortfolioUrl(edits.portfolioUrl || data.portfolioUrl || '');
         setImagePreview(edits.image || data.user?.image || null);
@@ -112,6 +120,8 @@ export default function ArtistProfilePage() {
       } else {
         setName(data.user?.name || '');
         setBrandName(data.brandName || '');
+        setProvince(data.province || 'تهران');
+        setCity(data.city || 'تهران');
         setBio(data.bio || '');
         setPortfolioUrl(data.portfolioUrl || '');
         setImagePreview(data.user?.image || null);
@@ -144,6 +154,7 @@ export default function ArtistProfilePage() {
       setRawImageForCrop(base64);
       setCropModalOpen(true);
       setErrorMsg('');
+      setFieldErrors(prev => ({ ...prev, image: '' }));
       setValidationErrors([]);
     } catch {
       setErrorMsg('خطا در بارگذاری تصویر');
@@ -156,6 +167,7 @@ export default function ArtistProfilePage() {
     setImagePreview(croppedBase64);
     setCropModalOpen(false);
     setRawImageForCrop(null);
+    setFieldErrors(prev => ({ ...prev, image: '' }));
   };
 
   // --- AI Auto Complete Handlers ---
@@ -234,7 +246,7 @@ export default function ArtistProfilePage() {
     return url;
   };
 
-  // --- Send Phone OTP (For SSO users entering their mobile) ---
+  // --- Send Phone OTP (For verifying edits) ---
   const handleSendPhoneOtp = async () => {
     if (!phoneNumber || !phoneNumber.trim()) {
       setErrorMsg('لطفاً ابتدا شماره موبایل را وارد کنید.');
@@ -242,6 +254,7 @@ export default function ArtistProfilePage() {
     }
     setPhoneOtpLoading(true);
     setPhoneOtpError('');
+    setErrorMsg('');
     try {
       const res = await fetch('/api/auth/otp/send', {
         method: 'POST',
@@ -256,6 +269,14 @@ export default function ArtistProfilePage() {
       setShowPhoneOtpModal(true);
     } catch (err: any) {
       setErrorMsg(err.message || 'خطا در ارسال پیامک کد تایید');
+      // Scroll smoothly so the user sees the rate-limit or SMS error clearly
+      setTimeout(() => {
+        if (errorRef.current) {
+          errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 50);
     } finally {
       setPhoneOtpLoading(false);
     }
@@ -289,7 +310,7 @@ export default function ArtistProfilePage() {
     }
   };
 
-  // --- Send Email OTP (Optional for phone-authenticated users) ---
+  // --- Send Email OTP (Optional for email verification) ---
   const handleSendEmailOtp = async () => {
     if (!email || !email.trim()) {
       setErrorMsg('لطفاً آدرس ایمیل خود را وارد کنید.');
@@ -343,41 +364,66 @@ export default function ArtistProfilePage() {
     }
   };
 
-  // --- Primary Form Submission with Comprehensive Validation ---
+  // --- Primary Form Submission with Comprehensive Custom Validation (No HTML5) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+    setPhoneOtpError('');
 
     const errors: string[] = [];
+    const fErrors: Record<string, string> = {};
 
     // 1. Avatar check
     if (!imagePreview && !artist?.user?.image) {
-      errors.push('بارگذاری تصویر پروفایل الزامی است.');
+      const msg = 'بارگذاری تصویر پروفایل الزامی است.';
+      errors.push(msg);
+      fErrors.image = msg;
     }
 
     // 2. Name check
     if (!name.trim()) {
-      errors.push('نام و نام خانوادگی الزامی است.');
+      const msg = 'نام و نام خانوادگی الزامی است.';
+      errors.push(msg);
+      fErrors.name = msg;
     }
 
     // 3. Phone check
     if (!phoneNumber || !phoneNumber.trim()) {
-      errors.push('شماره موبایل الزامی است.');
+      const msg = 'شماره موبایل الزامی است.';
+      errors.push(msg);
+      fErrors.phoneNumber = msg;
     } else {
       const norm = normalizePhoneNumber(phoneNumber);
       if (!isValidIranianMobile(norm)) {
-        errors.push('شماره موبایل اشتباه است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).');
+        const msg = 'شماره موبایل اشتباه است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).';
+        errors.push(msg);
+        fErrors.phoneNumber = msg;
       }
     }
 
-    // 4. Bio check
+    // 4. Province & City check
+    if (!province || !province.trim()) {
+      const msg = 'انتخاب استان محل فعالیت الزامی است.';
+      errors.push(msg);
+      fErrors.province = msg;
+    }
+    if (!city || !city.trim()) {
+      const msg = 'انتخاب شهرستان محل فعالیت الزامی است.';
+      errors.push(msg);
+      fErrors.city = msg;
+    }
+
+    // 5. Bio check
     if (!bio.trim()) {
-      errors.push('درباره شما (بیوگرافی و معرفی هنرمند) الزامی است.');
+      const msg = 'درباره شما (بیوگرافی و معرفی هنرمند) الزامی است.';
+      errors.push(msg);
+      fErrors.bio = msg;
     }
 
     // If there are validation errors, display all in red list and scroll smoothly
     if (errors.length > 0) {
+      setFieldErrors(fErrors);
       setValidationErrors(errors);
       setTimeout(() => {
         errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -385,21 +431,18 @@ export default function ArtistProfilePage() {
       return;
     }
 
+    setFieldErrors({});
     setValidationErrors([]);
 
-    // If SSO user and phone is not verified yet, require OTP verification first!
-    if (isSsoUser && !isPhoneVerified) {
-      await handleSendPhoneOtp();
-      return;
-    }
-
-    await executeSaveProfile(isPhoneVerified);
+    // For every profile submission, trigger phone OTP verification
+    await handleSendPhoneOtp();
   };
 
   const executeSaveProfile = async (phoneVerifiedStatus: boolean) => {
     setSubmitLoading(true);
     setErrorMsg('');
     setValidationErrors([]);
+    setFieldErrors({});
     setSuccessMsg('');
 
     const formattedUrl = formatUrl(portfolioUrl);
@@ -411,6 +454,8 @@ export default function ArtistProfilePage() {
         body: JSON.stringify({
           name: name.trim(),
           brandName: brandName.trim() || undefined,
+          province: province.trim() || undefined,
+          city: city.trim() || undefined,
           bio: bio.trim(),
           portfolioUrl: formattedUrl,
           socialLinks,
@@ -432,11 +477,23 @@ export default function ArtistProfilePage() {
       setArtist({ 
         ...artist, 
         pendingEdits: data.artist?.pendingEdits || true,
+        province,
+        city,
         adminFeedback: null 
       });
+
+      // Notify banner & layout immediately without needing full page refresh
+      window.dispatchEvent(new CustomEvent('artist-status-updated', {
+        detail: { hasPendingEdits: true, verificationLevel: 1 }
+      }));
+
+      router.refresh();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setErrorMsg(err.message || 'مشکلی در ثبت اطلاعات پیش آمد.');
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
     } finally {
       setSubmitLoading(false);
     }
@@ -451,6 +508,8 @@ export default function ArtistProfilePage() {
         const labels: Record<string, string> = {
           name: 'نام و نام خانوادگی',
           brandName: 'نام برند هنری یا استودیو',
+          province: 'استان کارگاه',
+          city: 'شهرستان کارگاه',
           image: 'تصویر پروفایل',
           bio: 'درباره شما (بیوگرافی)',
           specialties: 'تخصص‌ها',
@@ -458,50 +517,46 @@ export default function ArtistProfilePage() {
           socialLinks: 'شبکه‌های اجتماعی'
         };
         return (
-          <div className="mb-8 p-5 bg-red-50 border-2 border-red-200 rounded-3xl">
-            <h4 className="font-black text-red-900 text-sm mb-3 flex items-center gap-2">
-              <span className="text-xl">⚠️</span>
-              <span>بازخورد ادمین در خصوص موارد نیازمند اصلاح:</span>
-            </h4>
-            <div className="space-y-2">
-              {Object.entries(parsed).map(([key, reason]) => (
-                <div key={key} className="p-3 bg-white rounded-2xl border border-red-200 text-xs sm:text-sm">
-                  <span className="font-bold text-red-700">{labels[key] || key}: </span>
-                  <span className="text-slate-800 font-medium">{String(reason)}</span>
-                </div>
-              ))}
+          <div className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in">
+            <div className="flex items-center gap-2 text-red-900 font-black text-sm mb-2.5">
+              <span className="text-lg">⚠️</span>
+              <span>پیام ناظر پلتفرم جهت اصلاح موارد زیر:</span>
             </div>
-            <p className="text-xs text-red-700 mt-3 font-medium">
-              موارد تایید شده اعمال شده‌اند. لطفاً موارد رد شده فوق را اصلاح نموده و مجدداً جهت بررسی ارسال فرمایید.
-            </p>
+            <ul className="space-y-2 text-xs sm:text-sm text-red-800 list-disc list-inside">
+              {Object.entries(parsed).map(([k, reason]: [string, any]) => (
+                <li key={k} className="leading-relaxed">
+                  <span className="font-bold text-red-950">{labels[k] || k}: </span>
+                  <span>{reason}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         );
       }
     } catch {
-      // Plain text feedback
+      // Plain text fallback
     }
 
     return (
-      <div className="mb-8 p-5 bg-red-50 border-2 border-red-200 rounded-3xl flex gap-4 items-start">
-        <span className="text-2xl">⚠️</span>
-        <div>
-          <h4 className="font-bold text-red-800 text-sm">درخواست ویرایش قبلی شما رد شد!</h4>
-          <p className="text-red-700 text-xs sm:text-sm mt-1">دلیل ادمین: {artist.adminFeedback}</p>
-        </div>
+      <div className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl text-xs sm:text-sm text-red-800 leading-relaxed">
+        <h4 className="font-black text-red-900 mb-1">بازخورد ادمین جهت بازبینی:</h4>
+        <p>{artist.adminFeedback}</p>
       </div>
     );
   };
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex items-center justify-center font-sans" dir="rtl">
-        <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="p-8 text-center text-slate-500 font-bold">
+        در حال بارگذاری اطلاعات پروفایل...
       </div>
     );
   }
 
   const artistName = artist?.user?.name || '';
   const supportHref = '/support?message=' + encodeURIComponent('درخواست پیگیری وضعیت اکانت غیرفعال هنرمند\nنام هنرمند: ' + artistName) + '&name=' + encodeURIComponent(artistName);
+
+  const citiesForSelectedProvince = IRAN_PROVINCES.find(p => p.name === province)?.cities || [];
 
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto font-sans" dir="rtl">
@@ -521,7 +576,7 @@ export default function ArtistProfilePage() {
 
       {/* General Alert */}
       {errorMsg && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-bold rounded-2xl flex items-center gap-2">
+        <div ref={errorRef} className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-bold rounded-2xl flex items-center gap-2">
           <span>⚠️</span>
           <span>{errorMsg}</span>
         </div>
@@ -629,7 +684,7 @@ export default function ArtistProfilePage() {
           </div>
         )}
 
-        {/* Validation Errors Box (Shown prominently above avatar with smooth scroll) */}
+        {/* Validation Errors Box (Shown prominently above form with smooth scroll) */}
         {validationErrors.length > 0 && (
           <div ref={errorRef} className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in">
             <div className="flex items-center gap-2 text-red-900 font-black text-sm mb-2.5">
@@ -644,14 +699,16 @@ export default function ArtistProfilePage() {
           </div>
         )}
 
-        {/* Profile Form (Frozen if pending review) */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Profile Form (noValidate disables native HTML5 popups, custom validation handles errors) */}
+        <form noValidate onSubmit={handleSubmit} className="space-y-6">
           <fieldset disabled={pendingMode || !artist?.isActive} className="space-y-6">
             
             {/* 1. Avatar (Required *) */}
             <div className="flex flex-col sm:flex-row items-center gap-6 mb-8 border-b border-slate-100 pb-8">
               <div className="relative group">
-                <div className="w-24 h-24 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center shadow-xs">
+                <div className={`w-24 h-24 rounded-full border-2 overflow-hidden bg-slate-100 flex items-center justify-center shadow-xs ${
+                  fieldErrors.image ? 'border-red-400 ring-2 ring-red-200' : 'border-slate-200'
+                }`}>
                   {imagePreview ? (
                     <img src={imagePreview} alt="Profile Preview" className="w-full h-full object-cover" />
                   ) : (
@@ -671,6 +728,12 @@ export default function ArtistProfilePage() {
                   تصویر پروفایل <span className="text-red-500">*</span>
                 </h3>
                 <p className="text-xs text-slate-500">حجم کمتر از ۵ مگابایت (JPG, PNG, WEBP) - کادربندی دایره‌ای</p>
+                {fieldErrors.image && (
+                  <p className="text-red-500 text-xs font-bold mt-1 flex items-center gap-1 justify-center sm:justify-start">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.image}</span>
+                  </p>
+                )}
                 {imagePreview && !pendingMode && (
                   <button
                     type="button"
@@ -696,11 +759,21 @@ export default function ArtistProfilePage() {
                 <input 
                   type="text" 
                   value={name} 
-                  onChange={e => setName(e.target.value)} 
-                  required 
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-600" 
+                  onChange={e => {
+                    setName(e.target.value);
+                    if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: '' }));
+                  }} 
+                  className={`w-full px-4 py-3 rounded-xl border text-sm text-slate-900 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-600 ${
+                    fieldErrors.name ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100' : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100'
+                  }`} 
                   placeholder="مثال: مریم کریمی" 
                 />
+                {fieldErrors.name && (
+                  <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.name}</span>
+                  </p>
+                )}
               </div>
 
               {/* 3. Brand or Studio Name (Optional) */}
@@ -735,22 +808,29 @@ export default function ArtistProfilePage() {
                     type="tel" 
                     dir="ltr"
                     value={phoneNumber} 
-                    onChange={e => setPhoneNumber(e.target.value)} 
-                    readOnly={isPhoneVerified && !isSsoUser} 
-                    disabled={pendingMode || (isPhoneVerified && !isSsoUser)} 
-                    required
+                    onChange={e => {
+                      setPhoneNumber(e.target.value);
+                      if (fieldErrors.phoneNumber) setFieldErrors(prev => ({ ...prev, phoneNumber: '' }));
+                    }} 
+                    disabled={pendingMode} 
                     maxLength={11}
                     className={`w-full px-4 py-3 rounded-xl border text-sm font-mono text-left outline-none transition-all ${
-                      (isPhoneVerified && !isSsoUser) || pendingMode
+                      fieldErrors.phoneNumber
+                        ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100'
+                        : pendingMode
                         ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                         : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
                     }`} 
                     placeholder="09123456789" 
                   />
                 </div>
-                {isSsoUser && !isPhoneVerified && !pendingMode && (
-                  <p className="text-[11px] text-amber-700 mt-1 leading-relaxed">
-                    جهت تایید نهایی پروفایل، با کلیک بر روی ثبت تغییرات کد تایید پیامکی ارسال خواهد شد.
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  تمام اطلاع رسانی ها به این شماره انجام می شود.
+                </p>
+                {fieldErrors.phoneNumber && (
+                  <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.phoneNumber}</span>
                   </p>
                 )}
               </div>
@@ -797,7 +877,71 @@ export default function ArtistProfilePage() {
                 </div>
               </div>
 
-              {/* 6. Portfolio / Personal Website (Optional) */}
+              {/* 6. Workshop Location: Province & City */}
+              <div>
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
+                  استان محل فعالیت / کارگاه <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={province}
+                  onChange={(e) => {
+                    const sel = e.target.value;
+                    setProvince(sel);
+                    const pData = IRAN_PROVINCES.find(p => p.name === sel);
+                    setCity(pData && pData.cities.length > 0 ? pData.cities[0] : '');
+                    if (fieldErrors.province) setFieldErrors(prev => ({ ...prev, province: '' }));
+                  }}
+                  disabled={pendingMode || !artist?.isActive}
+                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all bg-white disabled:bg-slate-100 disabled:text-slate-600 ${
+                    fieldErrors.province
+                      ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100'
+                      : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
+                  }`}
+                >
+                  <option value="">انتخاب استان...</option>
+                  {IRAN_PROVINCES.map(p => (
+                    <option key={p.name} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+                {fieldErrors.province && (
+                  <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.province}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
+                  شهرستان محل فعالیت / کارگاه <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={city}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    if (fieldErrors.city) setFieldErrors(prev => ({ ...prev, city: '' }));
+                  }}
+                  disabled={pendingMode || !artist?.isActive || !province}
+                  className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all bg-white disabled:bg-slate-100 disabled:text-slate-600 ${
+                    fieldErrors.city
+                      ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100'
+                      : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
+                  }`}
+                >
+                  <option value="">انتخاب شهرستان...</option>
+                  {citiesForSelectedProvince.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {fieldErrors.city && (
+                  <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.city}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* 7. Portfolio / Personal Website (Optional) */}
               <div className="md:col-span-2">
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
                   لینک سایت شخصی یا نمونه کار <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
@@ -813,7 +957,7 @@ export default function ArtistProfilePage() {
                 />
               </div>
 
-              {/* 7. Social Links (Optional, with YOUR_USERNAME hint and black prefix) */}
+              {/* 8. Social Links (Optional) */}
               <div className="md:col-span-2">
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
                   شبکه‌های اجتماعی <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
@@ -821,7 +965,7 @@ export default function ArtistProfilePage() {
                 <SocialLinksInput socialLinks={socialLinks} onChange={setSocialLinks} />
               </div>
               
-              {/* 8. Specialties (Optional) */}
+              {/* 9. Specialties (Optional) */}
               <div className="md:col-span-2">
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
                   تخصص‌ها و رشته‌های هنری <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
@@ -829,19 +973,31 @@ export default function ArtistProfilePage() {
                 <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
               </div>
 
-              {/* 9. Bio / About you (Required *) */}
+              {/* 10. Bio / About you (Required *) */}
               <div className="md:col-span-2">
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
                   درباره شما (بیوگرافی و معرفی هنرمند) <span className="text-red-500">*</span>
                 </label>
                 <textarea 
                   value={bio} 
-                  onChange={e => setBio(e.target.value)} 
+                  onChange={e => {
+                    setBio(e.target.value);
+                    if (fieldErrors.bio) setFieldErrors(prev => ({ ...prev, bio: '' }));
+                  }} 
                   rows={4} 
-                  required
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none leading-relaxed text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-600" 
+                  className={`w-full px-4 py-3 rounded-xl border leading-relaxed text-sm text-slate-900 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-600 ${
+                    fieldErrors.bio
+                      ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100'
+                      : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100'
+                  }`} 
                   placeholder="داستان هنر، انگیزه و پیشینه کارگاه هنری خود را شرح دهید..."
                 />
+                {fieldErrors.bio && (
+                  <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.bio}</span>
+                  </p>
+                )}
               </div>
 
             </div>
@@ -858,23 +1014,16 @@ export default function ArtistProfilePage() {
                 disabled={submitLoading || !artist?.isActive} 
                 className="w-full mt-6 bg-teal-600 hover:bg-teal-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-teal-500/20 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {submitLoading ? (
-                  <span>در حال ثبت...</span>
-                ) : (
-                  <span>ثبت و ارسال برای تایید</span>
-                )}
+                {submitLoading ? 'در حال ثبت و ارسال...' : 'ثبت و ارسال برای تایید'}
               </button>
             )}
 
           </fieldset>
         </form>
 
-        {!artist?.isActive && (
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 rounded-3xl cursor-not-allowed border border-red-100 flex items-center justify-center"></div>
-        )}
       </div>
 
-      {/* Phone OTP Modal (For verifying mobile phone) */}
+      {/* Phone OTP Modal (Sent for verifying each profile edit) */}
       {showPhoneOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-8 shadow-2xl border border-slate-100 text-center relative animate-in zoom-in-95">
@@ -890,9 +1039,9 @@ export default function ArtistProfilePage() {
               📱
             </div>
 
-            <h3 className="text-lg font-black text-slate-800 mb-2">تایید شماره موبایل</h3>
+            <h3 className="text-lg font-black text-slate-800 mb-2">تایید پیامکی ویرایش پروفایل</h3>
             <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-              کد تایید ۵ رقمی پیامک‌شده به شماره <span className="font-mono font-bold text-slate-800 dir-ltr inline-block">{phoneNumber}</span> را وارد کنید:
+              کد تایید ۵ رقمی ارسال‌شده به شماره <span className="font-mono font-bold text-slate-800 dir-ltr inline-block">{phoneNumber}</span> را وارد کنید:
             </p>
 
             {devCode && (
@@ -946,7 +1095,7 @@ export default function ArtistProfilePage() {
               onClick={() => handleVerifyPhoneOtp(phoneOtpCode)}
               className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl transition-all text-xs disabled:opacity-50"
             >
-              {phoneOtpLoading ? 'در حال بررسی...' : 'تایید شماره موبایل و ثبت نهایی'}
+              {phoneOtpLoading ? 'در حال بررسی...' : 'تایید کد و ثبت نهایی پروفایل'}
             </button>
           </div>
         </div>

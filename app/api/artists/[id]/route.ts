@@ -103,6 +103,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         if (approvedFields.includes('email') && edits.email) userUpdate.email = edits.email;
 
         if (approvedFields.includes('brandName')) artistUpdate.brandName = edits.brandName || null;
+        if (approvedFields.includes('province') && edits.province) artistUpdate.province = edits.province;
+        if (approvedFields.includes('city') && edits.city) artistUpdate.city = edits.city;
         if (approvedFields.includes('bio') && edits.bio) artistUpdate.bio = edits.bio;
         if (approvedFields.includes('portfolioUrl')) artistUpdate.portfolioUrl = edits.portfolioUrl || null;
         if (approvedFields.includes('socialLinks')) artistUpdate.socialLinks = edits.socialLinks || {};
@@ -118,14 +120,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           finalFeedback = JSON.stringify(rejectedFields);
         }
 
-        // Full approval if no rejections and required bio/image are approved (or were already valid)
+        // Full approval if no rejections
         const isFullApproval = !hasRejections;
         if (isFullApproval) {
           artistUpdate.isApproved = true;
           artistUpdate.isActive = true;
-          artistUpdate.verificationLevel = Math.max(artist.verificationLevel || 0, 2);
+          artistUpdate.verificationLevel = 2; // Promoted to Level 2
           artistUpdate.adminFeedback = null;
         } else {
+          // Revert to level 1 if any field was rejected until re-submitted and fully approved
+          artistUpdate.verificationLevel = 1;
           artistUpdate.adminFeedback = finalFeedback || adminFeedback || 'برخی از موارد نیاز به بازبینی و اصلاح دارند.';
         }
 

@@ -62,6 +62,12 @@ export default function ArtistOnboardingPage() {
         const a = data.artist;
         setArtist(a);
 
+        // If artist is already Level 1 or higher, redirect to the inside-panel verification page
+        if ((a.verificationLevel || 0) >= 1) {
+          router.replace('/artist-panel/verification');
+          return;
+        }
+
         if (a.user?.name) setName(a.user.name);
         else if (session?.user?.name) setName(session.user.name);
         if (a.user?.phoneNumber) setPhone(a.user.phoneNumber);
