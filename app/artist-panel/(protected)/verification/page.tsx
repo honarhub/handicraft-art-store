@@ -574,7 +574,7 @@ export default function ArtistVerificationPage() {
                   {!isNationalIdApproved && nationalId.length === 10 && isValidIranianNationalId(nationalId) && (
                     <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
                       <span>✓</span>
-                      <span>ساختار و رقم کنترلی کد ملی معتبر است.</span>
+                      <span>کد ملی صحیح است</span>
                     </p>
                   )}
                   {isNationalIdRejected && (
