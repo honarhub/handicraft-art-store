@@ -17,25 +17,39 @@ export async function GET() {
       where: { isApproved: false }
     });
 
-    // 2. هنرمندان جدید (ثبت‌نام شده ولی هنوز تایید نشده)
-    const newRegistrationsCount = await prisma.artistProfile.count({
-      where: { isApproved: false, isDeleted: false }
-    });
-
-    // 3. درخواست‌های ویرایش پروفایل هنرمندان
+    // 2. شمارش درخواست‌های احراز هویت (قرمز) و ویرایش‌ها (زرد) و فیلترهای سطوح
     const allArtistsForCount = await prisma.artistProfile.findMany({
       where: { isDeleted: false },
-      select: { pendingEdits: true }
+      select: { verificationLevel: true, pendingEdits: true, nationalId: true }
     });
-    const pendingArtistsCount = allArtistsForCount.filter((a) => {
-      if (!a.pendingEdits) return false;
+
+    const hasEdits = (pendingEdits: any) => {
+      if (!pendingEdits) return false;
       try {
-        const edits = typeof a.pendingEdits === 'string' ? JSON.parse(a.pendingEdits) : a.pendingEdits;
-        return edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+        const parsed = typeof pendingEdits === 'string' ? JSON.parse(pendingEdits) : pendingEdits;
+        return parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0;
       } catch {
         return false;
       }
-    }).length;
+    };
+
+    // درخواست‌های احراز هویت سطح ۲ (قرمز): سطح ۰ یا ۱ که پروفایل فرستاده‌اند
+    const level2PendingCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) < 2 && hasEdits(a.pendingEdits)).length;
+
+    // درخواست‌های احراز هویت سطح ۳ (قرمز): سطح ۲ که مدارک مالی ثبت کرده‌اند
+    const level3PendingCount = allArtistsForCount.filter(a => a.verificationLevel === 2 && Boolean(a.nationalId)).length;
+
+    // کل نوتیف‌های قرمز برای منوی هنرمندان
+    const verificationRequestsCount = level2PendingCount + level3PendingCount;
+
+    // درخواست‌های ویرایش پروفایل هنرمندان تایید شده (زرد): سطح ۲ یا ۳ که ادیت دارند
+    const profileEditsCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) >= 2 && hasEdits(a.pendingEdits)).length;
+
+    // تعداد هنرمندان سطح صفر (جهت دکمه فیلتر بالای صفحه)
+    const level0Count = allArtistsForCount.filter(a => (a.verificationLevel || 0) === 0).length;
+
+    // تعداد هنرمندان سطح یک (جهت دکمه فیلتر بالای صفحه)
+    const level1Count = allArtistsForCount.filter(a => (a.verificationLevel || 0) === 1).length;
 
     // 4. محصولات: جدید (PENDING بدون ویرایش) و محصولات دارای تغییرات پیشنهادی (pendingEdits)
     const allProductsForCount = await prisma.product.findMany({
@@ -67,8 +81,14 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      newRegistrationsCount,
-      pendingArtistsCount,
+      newRegistrationsCount: verificationRequestsCount, // Red notification badge
+      pendingArtistsCount: profileEditsCount, // Yellow notification badge
+      verificationRequestsCount,
+      profileEditsCount,
+      level0Count,
+      level1Count,
+      level2PendingCount,
+      level3PendingCount,
       newProductsCount,
       pendingProductEditsCount,
       pendingSpecialtiesCount,

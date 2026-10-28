@@ -307,6 +307,11 @@ export default function ArtistVerificationPage() {
                 <span>✓</span>
                 <span>تایید شده (تسویه فعال)</span>
               </span>
+            ) : level >= 2 && artist?.nationalId ? (
+              <span className="bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 animate-pulse shadow-xs">
+                <span>⏳</span>
+                <span>در انتظار بررسی و تایید ادمین</span>
+              </span>
             ) : level >= 2 ? (
               <span className="bg-teal-100 text-teal-800 font-bold text-xs px-3 py-1 rounded-full border border-teal-200">
                 آماده تکمیل و ثبت مدارک

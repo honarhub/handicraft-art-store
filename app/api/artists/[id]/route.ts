@@ -206,6 +206,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json(updatedArtist);
     }
     
+    if (action === 'approveLevel3') {
+      const updatedArtist = await prisma.artistProfile.update({
+        where: { id: artistId },
+        data: {
+          verificationLevel: 3,
+          adminFeedback: null
+        }
+      });
+      return NextResponse.json(updatedArtist);
+    }
+
+    if (action === 'rejectLevel3') {
+      const updatedArtist = await prisma.artistProfile.update({
+        where: { id: artistId },
+        data: {
+          nationalId: null,
+          nationalCardImage: null,
+          shebaNumber: null,
+          address: null,
+          postalCode: null,
+          adminFeedback: body.adminFeedback || 'مدارک هویتی و مالی مرحله ۳ تایید نشد. لطفاً مدارک را با دقت بررسی و مجدداً ارسال نمایید.'
+        }
+      });
+      return NextResponse.json(updatedArtist);
+    }
+    
     if (action === 'rejectRegistration') {
       const artist = await prisma.artistProfile.findUnique({
         where: { id: artistId },

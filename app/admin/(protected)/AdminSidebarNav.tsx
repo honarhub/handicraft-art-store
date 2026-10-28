@@ -63,9 +63,9 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
       href: '/admin/artists', 
       label: '👤 مدیریت هنرمندان', 
       count: counts.pendingArtistsCount, 
-      countTitle: 'درخواست‌های ویرایش هنرمندان',
+      countTitle: 'درخواست‌های ویرایش پروفایل هنرمندان',
       newCount: counts.newRegistrationsCount,
-      newTitle: 'ثبت‌نام جدید در انتظار تایید'
+      newTitle: 'درخواست‌های ارتقا و احراز هویت (سطح ۲ و ۳)'
     },
     { 
       href: '/admin/products', 

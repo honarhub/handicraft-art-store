@@ -23,7 +23,7 @@ export default async function Home() {
       where: { 
         status: 'APPROVED', 
         deletedAt: null,
-        artist: { isActive: true, isDeleted: false, isApproved: true }
+        artist: { isActive: true, isDeleted: false, isApproved: true, verificationLevel: { gte: 2 } }
       },
       select: {
         id: true,
@@ -43,7 +43,7 @@ export default async function Home() {
       where: { 
         status: 'APPROVED', 
         deletedAt: null,
-        artist: { isActive: true, isDeleted: false, isApproved: true }
+        artist: { isActive: true, isDeleted: false, isApproved: true, verificationLevel: { gte: 2 } }
       },
       include: { artist: { include: { user: true } } },
       take: 6,

@@ -20,25 +20,51 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    const formattedArtists = artists.map(artist => ({
-      id: artist.id,
-      displayId: artist.displayId,
-      name: artist.user.name || 'بدون نام',
-      brandName: artist.brandName,
-      email: artist.user.email,
-      phoneNumber: artist.user.phoneNumber,
-      province: artist.province,
-      city: artist.city,
-      verificationLevel: artist.verificationLevel || 0,
-      nationalId: artist.nationalId,
-      shebaNumber: artist.shebaNumber,
-      specialties: artist.specialties || [],
-      status: artist.isDeleted ? 'DELETED' : 'ACTIVE',
-      isActive: artist.isActive,
-      isApproved: artist.isApproved,
-      productsCount: artist._count.products,
-      hasPendingEdits: artist.pendingEdits !== null
-    }));
+    const formattedArtists = artists.map(artist => {
+      let hasEdits = false;
+      if (artist.pendingEdits) {
+        try {
+          const edits = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits;
+          hasEdits = edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+        } catch {
+          hasEdits = false;
+        }
+      }
+
+      const vLevel = artist.verificationLevel || 0;
+      const isLevel2Pending = !artist.isDeleted && vLevel < 2 && hasEdits;
+      const isLevel3Pending = !artist.isDeleted && vLevel === 2 && Boolean(artist.nationalId);
+      const isProfileEditPending = !artist.isDeleted && vLevel >= 2 && hasEdits;
+
+      return {
+        id: artist.id,
+        displayId: artist.displayId,
+        name: artist.user.name || 'بدون نام',
+        brandName: artist.brandName,
+        email: artist.user.email,
+        phoneNumber: artist.user.phoneNumber,
+        image: artist.user.image,
+        province: artist.province,
+        city: artist.city,
+        bio: artist.bio,
+        verificationLevel: vLevel,
+        nationalId: artist.nationalId,
+        nationalCardImage: artist.nationalCardImage,
+        address: artist.address,
+        postalCode: artist.postalCode,
+        shebaNumber: artist.shebaNumber,
+        specialties: artist.specialties || [],
+        status: artist.isDeleted ? 'DELETED' : 'ACTIVE',
+        isActive: artist.isActive,
+        isApproved: artist.isApproved,
+        productsCount: artist._count.products,
+        hasPendingEdits: hasEdits,
+        isLevel2Pending,
+        isLevel3Pending,
+        isProfileEditPending,
+        createdAt: artist.createdAt || artist.user.createdAt
+      };
+    });
 
     return NextResponse.json(formattedArtists);
   } catch (error) {

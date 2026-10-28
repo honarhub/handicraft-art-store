@@ -179,7 +179,8 @@ export async function POST(req: Request) {
           address,
           postalCode,
           shebaNumber: shebaNumber.replace(/^IR/i, '').trim(),
-          verificationLevel: Math.max(currentLevel, 3)
+          verificationLevel: currentLevel, // Stays at Level 2 until admin explicitly approves Level 3
+          adminFeedback: null
         },
         include: {
           specialties: true,

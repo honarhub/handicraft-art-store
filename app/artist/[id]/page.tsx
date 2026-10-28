@@ -37,16 +37,16 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
 
   const isOwner = Boolean(session?.user?.id && session.user.id === dbArtist.userId);
 
-  // Access check for unapproved or inactive profiles (admin and owner preview only)
-  if (!dbArtist.isActive || !dbArtist.isApproved) {
+  // Access check: only Level 2 and above profiles are public. Levels 0 and 1 are preview only for admin & owner.
+  if (!dbArtist.isActive || !dbArtist.isApproved || (dbArtist.verificationLevel || 0) < 2) {
     if (!isAdmin && !isOwner) {
       return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans p-4" dir="rtl">
           <div className="text-center max-w-lg w-full">
             <h1 className="text-9xl font-black text-slate-200 mb-4 tracking-tighter">403</h1>
-            <h2 className="text-2xl font-black text-slate-800 mb-4">در انتظار تایید مدیریت</h2>
+            <h2 className="text-2xl font-black text-slate-800 mb-4">در انتظار احراز هویت و انتشار عمومی</h2>
             <p className="text-slate-600 mb-8 leading-relaxed">
-              این پروفایل در حال حاضر در انتظار بررسی و تایید توسط مدیریت سایت می‌باشد. لطفاً اندکی صبر کنید. اگر فکر می‌کنید مشکلی پیش آمده است، با پشتیبانی در ارتباط باشید.
+              این پروفایل هنرمندی در حال حاضر در مرحله تکمیل مدارک و ارتقا به سطح ۲ قرار دارد و هنوز به صورت عمومی منتشر نشده است.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a 

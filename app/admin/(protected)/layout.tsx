@@ -41,25 +41,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     where: { isApproved: false }
   });
 
-  // Get new artist registrations count (pending approval)
-  const newRegistrationsCount = await prisma.artistProfile.count({
-    where: { isApproved: false, isDeleted: false }
-  });
-
-  // Get count of pending profile edit requests
+  // Get count of artists for verification requests (RED) and profile edits (YELLOW)
   const allArtistsForCount = await prisma.artistProfile.findMany({
     where: { isDeleted: false },
-    select: { pendingEdits: true }
+    select: { verificationLevel: true, pendingEdits: true, nationalId: true }
   });
-  const pendingArtistsCount = allArtistsForCount.filter((a) => {
-    if (!a.pendingEdits) return false;
+
+  const hasEditsLayout = (pendingEdits: any) => {
+    if (!pendingEdits) return false;
     try {
-      const edits = typeof a.pendingEdits === 'string' ? JSON.parse(a.pendingEdits) : a.pendingEdits;
-      return edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+      const parsed = typeof pendingEdits === 'string' ? JSON.parse(pendingEdits) : pendingEdits;
+      return parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0;
     } catch {
       return false;
     }
-  }).length;
+  };
+
+  const level2PendingCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) < 2 && hasEditsLayout(a.pendingEdits)).length;
+  const level3PendingCount = allArtistsForCount.filter(a => a.verificationLevel === 2 && Boolean(a.nationalId)).length;
+  // Red notification badge: requests for Level 2 & Level 3
+  const newRegistrationsCount = level2PendingCount + level3PendingCount;
+  // Yellow notification badge: edits by verified artists (Level 2 & 3)
+  const pendingArtistsCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) >= 2 && hasEditsLayout(a.pendingEdits)).length;
 
   // Get products count: new and pending edits
   const allProductsForCount = await prisma.product.findMany({

@@ -31,8 +31,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     notFound();
   }
 
-  // If product is deactivated or pending, return 404 for public visitors (allow preview for admin & owner)
-  if (product.status !== 'APPROVED') {
+  // If product is deactivated, pending, or artist is not yet Level 2, allow preview only for admin & owner
+  if (product.status !== 'APPROVED' || (product.artist.verificationLevel || 0) < 2) {
     const session = await getServerSession(authOptions);
     const isOwner = session?.user?.id === product.artist.userId;
     const isAdmin = session?.user?.role === 'ADMIN';

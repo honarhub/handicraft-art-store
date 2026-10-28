@@ -32,7 +32,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     artist: {
       isActive: true,
       isDeleted: false,
-      isApproved: true
+      isApproved: true,
+      verificationLevel: { gte: 2 }
     },
     pricingTiers: {
       some: {
