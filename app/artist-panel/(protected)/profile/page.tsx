@@ -132,25 +132,27 @@ export default function ArtistProfilePage() {
     }
   };
 
+  const pendingModeRef = useRef(pendingMode);
   useEffect(() => {
+    pendingModeRef.current = pendingMode;
+  }, [pendingMode]);
+
+  useEffect(() => {
+    // Initial fetch once on page mount
     fetchProfile(false);
 
-    // Auto-update when status or admin review changes
-    const handleStatusUpdate = () => {
-      fetchProfile(true);
-    };
-
-    // Re-check once when the user returns/focuses this browser tab (Zero periodic interval)
-    const handleTabFocus = () => {
-      fetchProfile(true);
+    // Auto-update ONLY if the profile was previously locked/pending and admin has now completed the review.
+    // When the artist is actively editing the form (pendingMode === false), never overwrite their inputs!
+    const handleStatusUpdate = (e: any) => {
+      if (pendingModeRef.current && e?.detail && e.detail.hasPendingEdits === false) {
+        fetchProfile(true);
+      }
     };
 
     window.addEventListener('artist-status-updated', handleStatusUpdate);
-    window.addEventListener('focus', handleTabFocus);
 
     return () => {
       window.removeEventListener('artist-status-updated', handleStatusUpdate);
-      window.removeEventListener('focus', handleTabFocus);
     };
   }, []);
 
