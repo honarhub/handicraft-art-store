@@ -102,7 +102,7 @@ function SplitReviewToggle({
     return (
       <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-800 px-3 py-1.5 rounded-xl text-xs font-black shadow-xs">
         <span>✓</span>
-        <span>قبلاً تایید و قفل شده</span>
+        <span>قبلاً تایید شده</span>
       </div>
     );
   }

@@ -20,7 +20,7 @@ export async function GET() {
     // 2. شمارش درخواست‌های احراز هویت (قرمز) و ویرایش‌ها (زرد) و فیلترهای سطوح
     const allArtistsForCount = await prisma.artistProfile.findMany({
       where: { isDeleted: false },
-      select: { verificationLevel: true, pendingEdits: true, nationalId: true }
+      select: { verificationLevel: true, pendingEdits: true, nationalId: true, adminFeedback: true }
     });
 
     const hasEdits = (pendingEdits: any) => {
@@ -37,15 +37,24 @@ export async function GET() {
     // درخواست‌های احراز هویت سطح ۲ (قرمز): سطح ۰ یا ۱ که پروفایل فرستاده‌اند
     const level2PendingCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) < 2 && hasEdits(a.pendingEdits)).length;
 
-    // درخواست‌های احراز هویت سطح ۳ (قرمز): سطح ۲ که مدارک مالی ثبت کرده‌اند
+    // درخواست‌های احراز هویت سطح ۳ (قرمز): فقط مواردی که در انتظار بررسی ادمین هستند (نه مواردی که فیدبک داده شده و منتظر اصلاح هنرمند هستند)
     const isL3Pending = (a: any) => {
       if ((a.verificationLevel || 0) !== 2) return false;
-      if (a.nationalId) return true;
-      try {
-        const pe = typeof a.pendingEdits === 'string' ? JSON.parse(a.pendingEdits) : a.pendingEdits;
-        if (pe?.type === 'LEVEL_3_KYC') return true;
-      } catch {}
-      return false;
+      let isL3Kyc = false;
+      let l3Status: string | null = null;
+      if (a.pendingEdits) {
+        try {
+          const pe = typeof a.pendingEdits === 'string' ? JSON.parse(a.pendingEdits) : a.pendingEdits;
+          if (pe?.type === 'LEVEL_3_KYC') {
+            isL3Kyc = true;
+            l3Status = pe.status;
+          }
+        } catch {}
+      }
+      if (l3Status === 'NEEDS_REVISION' || Boolean(a.adminFeedback)) {
+        return false;
+      }
+      return (Boolean(a.nationalId) || isL3Kyc);
     };
     const level3PendingCount = allArtistsForCount.filter(isL3Pending).length;
 

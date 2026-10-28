@@ -40,7 +40,13 @@ export async function GET() {
 
       const vLevel = artist.verificationLevel || 0;
       const isLevel2Pending = !artist.isDeleted && vLevel < 2 && hasEdits;
-      const isLevel3Pending = !artist.isDeleted && vLevel === 2 && (Boolean(artist.nationalId) || isLevel3Kyc);
+      
+      // Level 3 requests appear in admin's pending table ONLY when waiting for admin action.
+      // Once admin reviews and provides feedback (NEEDS_REVISION), it is removed until the artist revises and resubmits.
+      const isL3WaitingAdmin = (isLevel3Kyc && level3Status === 'PENDING') ||
+        (!artist.isDeleted && vLevel === 2 && (Boolean(artist.nationalId) || isLevel3Kyc) && level3Status !== 'NEEDS_REVISION' && !artist.adminFeedback);
+      const isLevel3Pending = !artist.isDeleted && vLevel === 2 && isL3WaitingAdmin;
+      
       const isProfileEditPending = !artist.isDeleted && vLevel >= 2 && hasEdits;
 
       return {

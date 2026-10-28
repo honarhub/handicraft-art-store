@@ -440,7 +440,7 @@ export default function ArtistVerificationPage() {
                       برخی از مدارک توسط ادمین تایید نشده است
                     </h4>
                     <p className="text-amber-800">
-                      مدارکی که تایید شده‌اند به رنگ سبز نشان داده شده و قفل (ثابت) می‌باشند. لطفاً مواردی که با برچسب قرمز مشخص شده‌اند را طبق پیام بازخورد ادمین اصلاح نموده و در انتهای فرم دکمه ارسال مجدد را بزنید.
+                      مدارکی که تایید شده‌اند به رنگ سبز نشان داده شده و قطعی می‌باشند. لطفاً مواردی که با برچسب قرمز مشخص شده‌اند را طبق پیام بازخورد ادمین اصلاح نموده و در انتهای فرم دکمه ارسال مجدد را بزنید.
                     </p>
                   </div>
                 </div>
@@ -470,7 +470,7 @@ export default function ArtistVerificationPage() {
                   {isCardApproved && (
                     <span className="text-[11px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
                       <span>✓</span>
-                      <span>تایید شده و قفل</span>
+                      <span>تایید شده</span>
                     </span>
                   )}
                   {isCardRejected && (
@@ -482,7 +482,7 @@ export default function ArtistVerificationPage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  {/* Trimmed Rectangular Preview */}
+                  {/* Trimmed Rectangular Preview Frame */}
                   <div className={`relative w-full max-w-xs sm:w-64 aspect-[1.6/1] rounded-2xl overflow-hidden border-2 bg-slate-100 flex items-center justify-center shadow-xs transition-all ${
                     isCardApproved
                       ? 'border-emerald-300 ring-2 ring-emerald-100'
@@ -490,7 +490,19 @@ export default function ArtistVerificationPage() {
                       ? 'border-red-400 ring-2 ring-red-100'
                       : 'border-slate-200'
                   }`}>
-                    {nationalCardImage ? (
+                    {isCardApproved ? (
+                      <div className="flex flex-col items-center justify-center text-center p-4 gap-2 bg-emerald-50/70 w-full h-full">
+                        <div className="w-11 h-11 rounded-2xl bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center text-xl font-black shadow-xs">
+                          ✓
+                        </div>
+                        <span className="text-xs font-black text-emerald-950">
+                          تصویر کارت ملی تایید شده است
+                        </span>
+                        <span className="text-[10px] text-emerald-700/80">
+                          جهت حفظ حریم خصوصی، تصویر مدارک نمایش داده نمی‌شود
+                        </span>
+                      </div>
+                    ) : nationalCardImage ? (
                       <img
                         src={nationalCardImage}
                         alt="پیش‌نمایش کارت ملی"
@@ -500,13 +512,6 @@ export default function ArtistVerificationPage() {
                       <div className="flex flex-col items-center justify-center text-slate-400 gap-1.5 p-3 text-center">
                         <span className="text-3xl">🪪</span>
                         <span className="text-[11px] font-bold">تصویر کارت ملی انتخاب نشده</span>
-                      </div>
-                    )}
-
-                    {isCardApproved && (
-                      <div className="absolute top-2 right-2 bg-emerald-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-lg backdrop-blur-xs shadow flex items-center gap-1">
-                        <span>✓</span>
-                        <span>ثابت</span>
                       </div>
                     )}
                   </div>
