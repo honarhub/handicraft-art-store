@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server';
 import { generateWithFallback } from '@/lib/gemini';
+import prisma from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    const siteSettings = await prisma.siteSettings.findUnique({
+      where: { id: 'default' },
+      select: { artistAiEnabled: true }
+    });
+    if (siteSettings && siteSettings.artistAiEnabled === false) {
+      return NextResponse.json({ error: 'سرویس هوش مصنوعی موقتاً قطع می‌باشد' }, { status: 403 });
+    }
+
     const { base64Data, mimeType } = await request.json();
 
     if (!base64Data || !mimeType) {

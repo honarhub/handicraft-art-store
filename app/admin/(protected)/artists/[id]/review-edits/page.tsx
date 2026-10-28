@@ -471,95 +471,172 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Review Cards for All Fields */}
-      <div className="space-y-6">
-        {fieldsToCheck.map(({ key, isImage }) => {
-          const oldVal = (current as any)[key];
-          const newVal = (pending as any)[key];
-          
-          const isChanged = (oldVal || '').toString().trim() !== (newVal || '').toString().trim();
-          const decision = decisions[key];
-
-          return (
-            <div key={key} className={`bg-white rounded-3xl p-6 border shadow-xs transition-all ${
-              !isChanged
-                ? 'border-slate-200 bg-slate-50/40'
-                : decision?.status === 'approve'
-                ? 'border-emerald-300 ring-2 ring-emerald-500/10'
-                : 'border-red-300 ring-2 ring-red-500/10'
-            }`}>
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100 mb-4">
-                <h4 className="font-black text-slate-800 text-base flex items-center gap-2">
-                  <span>{getFieldLabel(key)}</span>
-                </h4>
-
-                {/* If Unchanged: Show Green Badge; If Changed: Show Split Rectangle Switch */}
-                {!isChanged ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black shadow-xs">
-                    <span>✓</span>
-                    <span>بدون تغییر</span>
-                  </span>
-                ) : (
-                  <SplitReviewToggle
-                    status={decision?.status || 'reject'}
-                    onToggle={(newStatus) => setDecisionStatus(key, newStatus)}
-                  />
-                )}
-              </div>
-
-              {/* Comparison Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-3.5 bg-slate-50 text-slate-700 rounded-2xl border border-slate-200 text-xs">
-                  <span className="font-bold text-slate-500 block mb-1.5">مقدار قبلی:</span>
-                  {isImage ? (
-                    oldVal ? (
-                      <img src={oldVal} alt="Old" className="w-20 h-20 rounded-xl object-cover border border-slate-200" />
-                    ) : (
-                      <span className="text-slate-400 font-medium">بدون تصویر / قبلاً ثبت نشده</span>
-                    )
-                  ) : (
-                    <p className="whitespace-pre-wrap leading-relaxed">{oldVal || <span className="text-slate-400">خالی</span>}</p>
-                  )}
-                </div>
-
-                <div className={`p-3.5 rounded-2xl border text-xs ${
-                  isChanged ? 'bg-emerald-50/60 text-slate-900 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'
-                }`}>
-                  <span className={`font-bold block mb-1.5 ${isChanged ? 'text-emerald-800' : 'text-slate-500'}`}>
-                    {isChanged ? 'مقدار جدید ارسالی هنرمند:' : 'مقدار فعلی:'}
-                  </span>
-                  {isImage ? (
-                    newVal ? (
-                      <img src={newVal} alt="New" className="w-20 h-20 rounded-xl object-cover border border-emerald-300 shadow-sm" />
-                    ) : (
-                      <span className="text-slate-400">بدون تصویر</span>
-                    )
-                  ) : (
-                    <p className="whitespace-pre-wrap leading-relaxed font-medium">{newVal || <span className="text-slate-400">خالی</span>}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* If Rejected, show reason input box (removed if approved) */}
-              {isChanged && decision?.status === 'reject' && (
-                <div className="mt-4 pt-4 border-t border-red-100 animate-in fade-in">
-                  <label className="block text-xs font-bold text-red-700 mb-1.5">
-                    دلیل عدم تایید این مورد (الزامی جهت نمایش به هنرمند) *:
-                  </label>
-                  <input
-                    type="text"
-                    value={decision?.reason || ''}
-                    onChange={e => handleReasonChange(key, e.target.value)}
-                    placeholder={`مثال: دلیل عدم تایید ${getFieldLabel(key)}...`}
-                    className="w-full px-3.5 py-2.5 bg-red-50/50 border border-red-200 rounded-xl text-xs text-red-900 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200"
-                  />
-                </div>
-              )}
-
+      {/* Review Cards for All Fields: Changed fields on TOP, Unchanged fields on BOTTOM */}
+      <div className="space-y-8">
+        
+        {/* SECTION 1: Changed Fields (Top) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b-2 border-amber-400">
+            <div className="flex items-center gap-2">
+              <span className="flex h-3 w-3 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
+              <h3 className="font-black text-slate-900 text-base sm:text-lg">
+                موارد تغییر یافته و نیازمند بررسی
+              </h3>
             </div>
-          );
-        })}
+            <span className="bg-amber-400 text-slate-950 font-black text-xs px-3 py-1 rounded-full shadow-2xs">
+              {fieldsToCheck.filter(f => {
+                const oldVal = (current as any)[f.key];
+                const newVal = (pending as any)[f.key];
+                return (oldVal || '').toString().trim() !== (newVal || '').toString().trim();
+              }).length} مورد تغییر کرده
+            </span>
+          </div>
+
+          <div className="space-y-5">
+            {fieldsToCheck
+              .filter(({ key }) => {
+                const oldVal = (current as any)[key];
+                const newVal = (pending as any)[key];
+                return (oldVal || '').toString().trim() !== (newVal || '').toString().trim();
+              })
+              .map(({ key, isImage }) => {
+                const oldVal = (current as any)[key];
+                const newVal = (pending as any)[key];
+                const decision = decisions[key];
+
+                return (
+                  <div key={key} className={`bg-white rounded-3xl p-6 border shadow-xs transition-all ${
+                    decision?.status === 'approve'
+                      ? 'border-emerald-300 ring-2 ring-emerald-500/10'
+                      : 'border-red-300 ring-2 ring-red-500/10'
+                  }`}>
+                    
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100 mb-4">
+                      <h4 className="font-black text-slate-800 text-base flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        <span>{getFieldLabel(key)}</span>
+                      </h4>
+
+                      <SplitReviewToggle
+                        status={decision?.status || 'reject'}
+                        onToggle={(newStatus) => setDecisionStatus(key, newStatus)}
+                      />
+                    </div>
+
+                    {/* Comparison Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3.5 bg-slate-50 text-slate-700 rounded-2xl border border-slate-200 text-xs">
+                        <span className="font-bold text-slate-500 block mb-1.5">مقدار قبلی:</span>
+                        {isImage ? (
+                          oldVal ? (
+                            <img src={oldVal} alt="Old" className="w-20 h-20 rounded-xl object-cover border border-slate-200" />
+                          ) : (
+                            <span className="text-slate-400 font-medium">بدون تصویر / قبلاً ثبت نشده</span>
+                          )
+                        ) : (
+                          <p className="whitespace-pre-wrap leading-relaxed">{oldVal || <span className="text-slate-400">خالی</span>}</p>
+                        )}
+                      </div>
+
+                      <div className="p-3.5 rounded-2xl border text-xs bg-emerald-50/60 text-slate-900 border-emerald-200">
+                        <span className="font-bold block mb-1.5 text-emerald-800">
+                          مقدار جدید ارسالی هنرمند:
+                        </span>
+                        {isImage ? (
+                          newVal ? (
+                            <img src={newVal} alt="New" className="w-20 h-20 rounded-xl object-cover border border-emerald-300 shadow-sm" />
+                          ) : (
+                            <span className="text-slate-400">بدون تصویر</span>
+                          )
+                        ) : (
+                          <p className="whitespace-pre-wrap leading-relaxed font-medium">{newVal || <span className="text-slate-400">خالی</span>}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* If Rejected, show reason input box (removed if approved) */}
+                    {decision?.status === 'reject' && (
+                      <div className="mt-4 pt-4 border-t border-red-100 animate-in fade-in">
+                        <label className="block text-xs font-bold text-red-700 mb-1.5">
+                          دلیل عدم تایید این مورد (الزامی جهت نمایش به هنرمند) *:
+                        </label>
+                        <input
+                          type="text"
+                          value={decision?.reason || ''}
+                          onChange={e => handleReasonChange(key, e.target.value)}
+                          placeholder={`مثال: دلیل عدم تایید ${getFieldLabel(key)}...`}
+                          className="w-full px-3.5 py-2.5 bg-red-50/50 border border-red-200 rounded-xl text-xs text-red-900 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200 font-medium"
+                        />
+                      </div>
+                    )}
+
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
+        {/* SECTION 2: Unchanged Fields (Bottom) */}
+        <div className="space-y-4 pt-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 text-sm">📁</span>
+              <h3 className="font-bold text-slate-700 text-sm sm:text-base">
+                موارد بدون تغییر
+              </h3>
+            </div>
+            <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
+              {fieldsToCheck.filter(f => {
+                const oldVal = (current as any)[f.key];
+                const newVal = (pending as any)[f.key];
+                return (oldVal || '').toString().trim() === (newVal || '').toString().trim();
+              }).length} مورد بدون تغییر
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {fieldsToCheck
+              .filter(({ key }) => {
+                const oldVal = (current as any)[key];
+                const newVal = (pending as any)[key];
+                return (oldVal || '').toString().trim() === (newVal || '').toString().trim();
+              })
+              .map(({ key, isImage }) => {
+                const val = (current as any)[key];
+
+                return (
+                  <div key={key} className="bg-slate-50/70 rounded-2xl p-5 border border-slate-200 shadow-2xs">
+                    <div className="flex justify-between items-center pb-3 border-b border-slate-200/80 mb-3">
+                      <h4 className="font-bold text-slate-700 text-sm flex items-center gap-2">
+                        <span>{getFieldLabel(key)}</span>
+                      </h4>
+
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-emerald-700 border border-emerald-200 text-xs font-bold shadow-2xs">
+                        <span>✓</span>
+                        <span>بدون تغییر</span>
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-white text-slate-700 rounded-xl border border-slate-200 text-xs">
+                      {isImage ? (
+                        val ? (
+                          <img src={val} alt="Current" className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
+                        ) : (
+                          <span className="text-slate-400">بدون تصویر</span>
+                        )
+                      ) : (
+                        <p className="whitespace-pre-wrap leading-relaxed">{val || <span className="text-slate-400">خالی</span>}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+
       </div>
 
       {/* Action Submit Button */}

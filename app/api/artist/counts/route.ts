@@ -14,7 +14,14 @@ export async function GET() {
 
     const artist = await prisma.artistProfile.findUnique({
       where: { userId: session.user.id },
-      select: { id: true }
+      select: { 
+        id: true,
+        verificationLevel: true,
+        isApproved: true,
+        brandName: true,
+        pendingEdits: true,
+        adminFeedback: true
+      }
     });
 
     if (!artist) {
@@ -48,7 +55,12 @@ export async function GET() {
     return NextResponse.json({
       unreadFeedbackCount,
       pendingCount,
-      approvedCount
+      approvedCount,
+      verificationLevel: artist.verificationLevel || 1,
+      isApproved: artist.isApproved,
+      brandName: artist.brandName,
+      hasPendingEdits: Boolean(artist.pendingEdits),
+      adminFeedback: artist.adminFeedback
     });
   } catch (error) {
     console.error('Error fetching artist counts:', error);

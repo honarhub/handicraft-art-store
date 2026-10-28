@@ -303,11 +303,12 @@ model StockNotification {
 }
 
 model SiteSettings {
-  id                 String     @id @default("default")
-  featuredSpecialtyId String?
-  featuredSpecialty  Specialty? @relation(fields: [featuredSpecialtyId], references: [id])
-  dynamicRows        Json       @default("[]")
-  updatedAt          DateTime   @updatedAt
+  id                  String     @id @default("default")
+  featuredSpecialtyId  String?
+  featuredSpecialty   Specialty? @relation(fields: [featuredSpecialtyId], references: [id])
+  dynamicRows         Json       @default("[]")
+  artistAiEnabled     Boolean    @default(true)
+  updatedAt           DateTime   @updatedAt
 }
 
 model PasswordResetToken {

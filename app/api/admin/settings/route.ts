@@ -24,11 +24,12 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const { featuredSpecialtyId, dynamicRows } = await request.json();
+    const { featuredSpecialtyId, dynamicRows, artistAiEnabled } = await request.json();
 
     const updateData: any = {};
     if (featuredSpecialtyId !== undefined) updateData.featuredSpecialtyId = featuredSpecialtyId || null;
     if (dynamicRows !== undefined) updateData.dynamicRows = dynamicRows;
+    if (artistAiEnabled !== undefined) updateData.artistAiEnabled = Boolean(artistAiEnabled);
 
     const settings = await prisma.siteSettings.upsert({
       where: { id: 'default' },
@@ -36,7 +37,8 @@ export async function PATCH(request: Request) {
       create: { 
         id: 'default',
         ...(featuredSpecialtyId ? { featuredSpecialtyId } : {}),
-        dynamicRows: dynamicRows || []
+        dynamicRows: dynamicRows || [],
+        artistAiEnabled: artistAiEnabled !== undefined ? Boolean(artistAiEnabled) : true
       }
     });
 

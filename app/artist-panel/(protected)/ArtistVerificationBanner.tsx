@@ -19,13 +19,16 @@ export default function ArtistVerificationBanner({
   const [level, setLevel] = useState<number>(verificationLevel);
   const [approved, setApproved] = useState<boolean>(isApproved);
   const [pending, setPending] = useState<boolean>(hasPendingEdits);
+  const [currentBrandName, setCurrentBrandName] = useState<string | null>(brandName || null);
 
   useEffect(() => {
     setLevel(verificationLevel);
     setApproved(isApproved);
     setPending(hasPendingEdits);
-  }, [verificationLevel, isApproved, hasPendingEdits]);
+    if (brandName) setCurrentBrandName(brandName);
+  }, [verificationLevel, isApproved, hasPendingEdits, brandName]);
 
+  // Live polling & Event syncing so admin review automatically updates this banner without Ctrl+F5
   useEffect(() => {
     const handleStatusUpdate = (e: any) => {
       if (e.detail) {
@@ -38,11 +41,52 @@ export default function ArtistVerificationBanner({
         if (typeof e.detail.isApproved === 'boolean') {
           setApproved(e.detail.isApproved);
         }
+        if (e.detail.brandName) {
+          setCurrentBrandName(e.detail.brandName);
+        }
       }
     };
 
     window.addEventListener('artist-status-updated', handleStatusUpdate);
-    return () => window.removeEventListener('artist-status-updated', handleStatusUpdate);
+
+    // Live background polling (only when tab is visible)
+    const checkLiveStatus = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      try {
+        const res = await fetch('/api/artist/counts', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.hasPendingEdits === 'boolean') {
+            setPending(data.hasPendingEdits);
+          }
+          if (typeof data.verificationLevel === 'number') {
+            setLevel(data.verificationLevel);
+          }
+          if (typeof data.isApproved === 'boolean') {
+            setApproved(data.isApproved);
+          }
+          if (data.brandName) {
+            setCurrentBrandName(data.brandName);
+          }
+
+          // Broadcast to other components in page (e.g. profile page)
+          window.dispatchEvent(new CustomEvent('artist-status-updated', { detail: data }));
+        }
+      } catch {
+        // silent on network error
+      }
+    };
+
+    // Initial check and interval
+    checkLiveStatus();
+    const intervalId = setInterval(checkLiveStatus, 5000);
+    window.addEventListener('focus', checkLiveStatus);
+
+    return () => {
+      window.removeEventListener('artist-status-updated', handleStatusUpdate);
+      window.removeEventListener('focus', checkLiveStatus);
+      clearInterval(intervalId);
+    };
   }, []);
 
   // When admin gives final approval (Level >= 2 and not pending), the top banner is NOT displayed.
@@ -72,7 +116,7 @@ export default function ArtistVerificationBanner({
             </div>
 
             <h3 className="text-base sm:text-lg font-black text-white">
-              {brandName ? brandName : 'فروشگاه هنری شما'}
+              {currentBrandName || 'فروشگاه هنری شما'}
             </h3>
 
             <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed">
@@ -120,7 +164,7 @@ export default function ArtistVerificationBanner({
           </div>
 
           <h3 className="text-base sm:text-lg font-black text-white">
-            {brandName ? brandName : 'فروشگاه هنری شما'}
+            {currentBrandName || 'فروشگاه هنری شما'}
           </h3>
 
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">

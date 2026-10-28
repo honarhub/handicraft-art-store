@@ -26,6 +26,7 @@ export default function AdminSettingsPage() {
   const [specialties, setSpecialties] = useState<any[]>([]);
   const [artists, setArtists] = useState<any[]>([]);
   const [dynamicRows, setDynamicRows] = useState<DynamicRow[]>([]);
+  const [artistAiEnabled, setArtistAiEnabled] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -35,12 +36,32 @@ export default function AdminSettingsPage() {
     ]).then(([specialtiesData, artistsData, settingsData]) => {
       setSpecialties(specialtiesData.filter((s: any) => s.isApproved));
       setArtists(artistsData.filter((a: any) => a.isActive && !a.isDeleted));
-      if (settingsData && settingsData.dynamicRows) {
-        setDynamicRows(typeof settingsData.dynamicRows === 'string' ? JSON.parse(settingsData.dynamicRows) : settingsData.dynamicRows);
+      if (settingsData) {
+        if (settingsData.dynamicRows) {
+          setDynamicRows(typeof settingsData.dynamicRows === 'string' ? JSON.parse(settingsData.dynamicRows) : settingsData.dynamicRows);
+        }
+        if (settingsData.artistAiEnabled !== undefined) {
+          setArtistAiEnabled(Boolean(settingsData.artistAiEnabled));
+        }
       }
     }).catch(err => console.error('Error fetching data:', err))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleToggleArtistAi = async (enabled: boolean) => {
+    setArtistAiEnabled(enabled);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artistAiEnabled: enabled })
+      });
+      if (!res.ok) throw new Error('خطا در ذخیره وضعیت');
+    } catch (err) {
+      alert('خطا در ذخیره وضعیت هوش مصنوعی');
+      setArtistAiEnabled(!enabled);
+    }
+  };
 
   const handleAddRow = () => {
     const newRow: DynamicRow = {
@@ -258,6 +279,48 @@ export default function AdminSettingsPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Artist AI Service Settings */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8 mt-8" dir="rtl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center text-2xl shrink-0">
+              ✨
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                <span>سرویس هوش مصنوعی پنل هنرمندان</span>
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                  artistAiEnabled ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {artistAiEnabled ? 'فعال' : 'غیرفعال'}
+                </span>
+              </h3>
+              <p className="text-slate-500 text-xs sm:text-sm mt-1.5 leading-relaxed">
+                فعال یا غیرفعال‌سازی قابلیت‌های هوش مصنوعی (تکمیل خودکار رزومه پروفایل و ثبت سریع اثر با تصویر) برای هنرمندان. در صورت غیرفعال بودن، این بخش‌ها در پنل هنرمند به صورت فریز درآمده و پیام قطعی موقت نمایش داده می‌شود.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+            <button
+              type="button"
+              dir="ltr"
+              onClick={() => handleToggleArtistAi(!artistAiEnabled)}
+              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                artistAiEnabled ? 'bg-teal-600' : 'bg-slate-300'
+              }`}
+              title={artistAiEnabled ? 'غیرفعال کردن هوش مصنوعی هنرمند' : 'فعال کردن هوش مصنوعی هنرمند'}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  artistAiEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
       </div>
       
       <AiContentCronSettings />

@@ -66,32 +66,24 @@ export default function ArtistProfilePage() {
   const [emailOtpTimer, setEmailOtpTimer] = useState(0);
   const [emailOtpError, setEmailOtpError] = useState('');
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  // Global site setting for artist AI
+  const [artistAiEnabled, setArtistAiEnabled] = useState(true);
 
-  // OTP Countdown Timers
-  useEffect(() => {
-    let intv: any = null;
-    if (phoneOtpTimer > 0) {
-      intv = setInterval(() => setPhoneOtpTimer(t => t - 1), 1000);
-    }
-    return () => clearInterval(intv);
-  }, [phoneOtpTimer]);
-
-  useEffect(() => {
-    let intv: any = null;
-    if (emailOtpTimer > 0) {
-      intv = setInterval(() => setEmailOtpTimer(t => t - 1), 1000);
-    }
-    return () => clearInterval(intv);
-  }, [emailOtpTimer]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = async (silent = false) => {
     try {
-      setLoading(true);
-      const res = await fetch('/api/artist/profile', { cache: 'no-store' });
+      if (!silent) setLoading(true);
+      const [res, settingsRes] = await Promise.all([
+        fetch('/api/artist/profile', { cache: 'no-store' }),
+        fetch('/api/site-settings', { cache: 'no-store' }).catch(() => null)
+      ]);
       const data = await res.json();
+
+      if (settingsRes && settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        if (settingsData && typeof settingsData.artistAiEnabled === 'boolean') {
+          setArtistAiEnabled(settingsData.artistAiEnabled);
+        }
+      }
       
       if (!res.ok) throw new Error(data.error || 'خطا در دریافت اطلاعات');
 
@@ -118,6 +110,7 @@ export default function ArtistProfilePage() {
         setPhoneNumber(edits.phoneNumber || data.user?.phoneNumber || '');
         setEmail(edits.email || data.user?.email || '');
       } else {
+        setPendingMode(false);
         setName(data.user?.name || '');
         setBrandName(data.brandName || '');
         setProvince(data.province || 'تهران');
@@ -131,11 +124,52 @@ export default function ArtistProfilePage() {
         setEmail(data.user?.email || '');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'خطا در بارگذاری اطلاعات');
+      if (!silent) {
+        setErrorMsg(err.message || 'خطا در بارگذاری اطلاعات');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProfile(false);
+
+    // Auto-update when status or admin review changes
+    const handleStatusUpdate = () => {
+      fetchProfile(true);
+    };
+    window.addEventListener('artist-status-updated', handleStatusUpdate);
+
+    // Silent background poll every 6s (only when active in tab)
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchProfile(true);
+      }
+    }, 6000);
+
+    return () => {
+      window.removeEventListener('artist-status-updated', handleStatusUpdate);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // OTP Countdown Timers
+  useEffect(() => {
+    let intv: any = null;
+    if (phoneOtpTimer > 0) {
+      intv = setInterval(() => setPhoneOtpTimer(t => t - 1), 1000);
+    }
+    return () => clearInterval(intv);
+  }, [phoneOtpTimer]);
+
+  useEffect(() => {
+    let intv: any = null;
+    if (emailOtpTimer > 0) {
+      intv = setInterval(() => setEmailOtpTimer(t => t - 1), 1000);
+    }
+    return () => clearInterval(intv);
+  }, [emailOtpTimer]);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -623,16 +657,36 @@ export default function ArtistProfilePage() {
         
         {/* AI Auto-Complete Section */}
         {!pendingMode && (
-          <div className="mb-8 p-6 border-2 border-dashed border-teal-200 bg-teal-50/50 rounded-2xl">
+          <div className={`mb-8 p-6 border-2 border-dashed rounded-2xl transition-all ${
+            artistAiEnabled 
+              ? 'border-teal-200 bg-teal-50/50' 
+              : 'border-slate-300 bg-slate-50/80 opacity-75'
+          }`}>
             <div className="flex flex-col md:flex-row items-center gap-6 justify-between">
               <div>
-                <h3 className="font-bold text-teal-900 text-base sm:text-lg flex items-center gap-2">
-                  <span className="text-2xl">✨</span> تکمیل خودکار رزومه با هوش مصنوعی
+                <h3 className={`font-bold text-base sm:text-lg flex flex-wrap items-center gap-2 ${
+                  artistAiEnabled ? 'text-teal-900' : 'text-slate-700'
+                }`}>
+                  <span className="text-2xl">✨</span>
+                  <span>تکمیل خودکار رزومه با هوش مصنوعی (اختیاری)</span>
+                  {!artistAiEnabled && (
+                    <span className="text-xs bg-amber-100 text-amber-900 border border-amber-300 font-black px-2.5 py-0.5 rounded-full shadow-2xs">
+                      سرویس هوش مصنوعی موقتاً قطع می‌باشد
+                    </span>
+                  )}
                 </h3>
-                <p className="text-teal-700 text-xs sm:text-sm mt-1.5 leading-relaxed">
-                  رزومه یا معرفی‌نامه خود را (PDF، تصویر یا متن) آپلود کنید تا هوش مصنوعی فیلدهای پروفایل شما را پر کند.
+                <p className={`text-xs sm:text-sm mt-1.5 leading-relaxed ${
+                  artistAiEnabled ? 'text-teal-700' : 'text-slate-500'
+                }`}>
+                  می‌توانید رزومه یا معرفی‌نامه خود را (PDF، تصویر یا متن) آپلود کنید تا هوش مصنوعی فیلدهای پروفایل شما را خودکار پر کند.
                 </p>
-                {aiError && <p className="text-red-500 text-xs sm:text-sm mt-2 font-bold">{aiError}</p>}
+                {!artistAiEnabled && (
+                  <p className="text-amber-800 text-xs font-bold mt-2 flex items-center gap-1.5">
+                    <span>⚠️</span>
+                    <span>سرویس هوش مصنوعی موقتاً قطع می‌باشد. لطفاً اطلاعات پروفایل را در فرم زیر به صورت دستی تکمیل نمایید.</span>
+                  </p>
+                )}
+                {aiError && artistAiEnabled && <p className="text-red-500 text-xs sm:text-sm mt-2 font-bold">{aiError}</p>}
               </div>
               <div className="relative shrink-0">
                 {aiLoading ? (
@@ -671,10 +725,19 @@ export default function ArtistProfilePage() {
                       type="file" 
                       accept=".txt, .pdf, image/jpeg, image/png, image/webp" 
                       onChange={handleAiUpload}
-                      disabled={!artist?.isActive}
+                      disabled={!artist?.isActive || !artistAiEnabled}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     />
-                    <button disabled={!artist?.isActive} className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-sm disabled:opacity-50 disabled:bg-slate-400 flex items-center gap-2 text-xs sm:text-sm">
+                    <button 
+                      type="button"
+                      disabled={!artist?.isActive || !artistAiEnabled} 
+                      className={`px-5 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-sm flex items-center gap-2 text-xs sm:text-sm ${
+                        artistAiEnabled && artist?.isActive
+                          ? 'bg-teal-600 hover:bg-teal-700 text-white'
+                          : 'bg-slate-300 text-slate-500 cursor-not-allowed border border-slate-300'
+                      }`}
+                      title={!artistAiEnabled ? 'سرویس هوش مصنوعی موقتاً قطع می‌باشد' : undefined}
+                    >
                       <span>📄</span> انتخاب فایل رزومه
                     </button>
                   </>
