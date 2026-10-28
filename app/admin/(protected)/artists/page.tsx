@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import AdminPromptModal from '@/app/components/AdminPromptModal';
 
 // Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
@@ -618,17 +619,19 @@ export default function AdminArtistsPage() {
                     </td>
                     <td className="px-6 py-4 text-left">
                       <div className="flex justify-end items-center gap-2">
+                        <Link
+                          href={`/admin/artists/${artist.id}/review-level3`}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
+                        >
+                          <span>🔍</span>
+                          <span>بررسی و اعتبارسنجی مدارک</span>
+                        </Link>
                         <button
                           onClick={() => handleApproveLevel3(artist.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors shadow-sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-colors shadow-sm whitespace-nowrap"
+                          title="تایید مستقیم تمام ۵ مدرک و ارتقا به سطح ۳"
                         >
-                          ✓ تایید سطح ۳
-                        </button>
-                        <button
-                          onClick={() => handleRejectLevel3(artist.id)}
-                          className="bg-red-100 hover:bg-red-200 text-red-800 font-bold text-xs px-3 py-2 rounded-xl transition-colors"
-                        >
-                          ✕ رد مدارک
+                          ✓ تایید مستقیم همه
                         </button>
                       </div>
                     </td>

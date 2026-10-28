@@ -27,6 +27,7 @@ export async function GET() {
       if (!pendingEdits) return false;
       try {
         const parsed = typeof pendingEdits === 'string' ? JSON.parse(pendingEdits) : pendingEdits;
+        if (parsed?.type === 'LEVEL_3_KYC') return false;
         return parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0;
       } catch {
         return false;

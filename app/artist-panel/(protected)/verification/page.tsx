@@ -88,28 +88,81 @@ export default function ArtistVerificationPage() {
     reader.readAsDataURL(file);
   };
 
+  // Derive Level 3 Granular Approval/Rejection states
+  const level = artist?.verificationLevel || 1;
+  const isApproved = Boolean(artist?.isApproved);
+  const hasPendingEdits = Boolean(artist?.pendingEdits);
+
+  let approvedFields: string[] = [];
+  let rejectedFields: Record<string, string> = {};
+  let level3Status: 'NOT_SUBMITTED' | 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' = 'NOT_SUBMITTED';
+
+  if (level >= 3) {
+    level3Status = 'APPROVED';
+    approvedFields = ['nationalId', 'nationalCardImage', 'shebaNumber', 'address', 'postalCode'];
+  } else if (level >= 2) {
+    if (artist?.pendingEdits) {
+      try {
+        const pe = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits;
+        if (pe.type === 'LEVEL_3_KYC' || pe.approvedFields || pe.rejectedFields) {
+          if (Array.isArray(pe.approvedFields)) approvedFields = pe.approvedFields;
+          if (pe.rejectedFields && typeof pe.rejectedFields === 'object') rejectedFields = pe.rejectedFields;
+          if (pe.status === 'PENDING') level3Status = 'PENDING';
+          if (pe.status === 'NEEDS_REVISION') level3Status = 'NEEDS_REVISION';
+        }
+      } catch {}
+    }
+
+    if (Object.keys(rejectedFields).length === 0 && artist?.adminFeedback) {
+      try {
+        const fb = JSON.parse(artist.adminFeedback);
+        if (typeof fb === 'object' && Object.keys(fb).length > 0) {
+          rejectedFields = fb;
+          level3Status = 'NEEDS_REVISION';
+        }
+      } catch {}
+    }
+
+    if (level3Status === 'NOT_SUBMITTED' && artist?.nationalId) {
+      level3Status = 'PENDING';
+    }
+  }
+
+  const isNationalIdApproved = approvedFields.includes('nationalId');
+  const isCardApproved = approvedFields.includes('nationalCardImage');
+  const isShebaApproved = approvedFields.includes('shebaNumber');
+  const isAddressApproved = approvedFields.includes('address');
+  const isPostalCodeApproved = approvedFields.includes('postalCode');
+
+  const isNationalIdRejected = Boolean(rejectedFields.nationalId);
+  const isCardRejected = Boolean(rejectedFields.nationalCardImage);
+  const isShebaRejected = Boolean(rejectedFields.shebaNumber);
+  const isAddressRejected = Boolean(rejectedFields.address);
+  const isPostalCodeRejected = Boolean(rejectedFields.postalCode);
+
   const handleSubmitLevel3 = async (e: React.FormEvent) => {
     e.preventDefault();
     setKycError('');
     setKycSuccess('');
 
-    if (!nationalId.trim() || nationalId.length !== 10) {
+    // Validate only fields that are NOT already approved
+    if (!isNationalIdApproved && (!nationalId.trim() || nationalId.length !== 10)) {
       setKycError('کد ملی باید ۱۰ رقم باشد.');
       return;
     }
-    if (!nationalCardImage) {
-      setKycError('تصویر کارت ملی الزامی است.');
+    if (!isCardApproved && !nationalCardImage) {
+      setKycError('تصویر روی کارت ملی الزامی است.');
       return;
     }
-    if (!shebaNumber.trim() || shebaNumber.length !== 24) {
+    if (!isShebaApproved && (!shebaNumber.trim() || shebaNumber.replace(/^IR/i, '').trim().length !== 24)) {
       setKycError('شماره شبا باید ۲۴ رقم بدون IR باشد.');
       return;
     }
-    if (!address.trim()) {
+    if (!isAddressApproved && !address.trim()) {
       setKycError('آدرس محل سکونت یا کارگاه الزامی است.');
       return;
     }
-    if (!postalCode.trim() || postalCode.length !== 10) {
+    if (!isPostalCodeApproved && (!postalCode.trim() || postalCode.length !== 10)) {
       setKycError('کد پستی ۱۰ رقمی الزامی است.');
       return;
     }
@@ -123,7 +176,7 @@ export default function ArtistVerificationPage() {
           level: 3,
           nationalId: nationalId.trim(),
           nationalCardImage,
-          shebaNumber: shebaNumber.trim(),
+          shebaNumber: shebaNumber.replace(/^IR/i, '').trim(),
           address: address.trim(),
           postalCode: postalCode.trim()
         })
@@ -132,8 +185,8 @@ export default function ArtistVerificationPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا در ثبت مدارک');
 
-      setKycSuccess('مدارک هویتی و مالی شما با موفقیت ثبت شد و در صف تایید نهایی قرار گرفت.');
-      window.dispatchEvent(new CustomEvent('artist-status-updated', { detail: { verificationLevel: 3 } }));
+      setKycSuccess('مدارک هویتی و مالی شما با موفقیت ثبت شد و در صف تایید ناظر پلتفرم قرار گرفت.');
+      window.dispatchEvent(new CustomEvent('artist-status-updated', { detail: { verificationLevel: 2 } }));
       fetchProfile();
     } catch (err: any) {
       setKycError(err.message || 'مشکلی در ثبت مدارک رخ داد.');
@@ -145,10 +198,6 @@ export default function ArtistVerificationPage() {
   if (loading) {
     return <div className="p-8 text-center text-slate-500 font-bold">در حال بارگذاری سطوح احراز هویت...</div>;
   }
-
-  const level = artist?.verificationLevel || 1;
-  const isApproved = Boolean(artist?.isApproved);
-  const hasPendingEdits = Boolean(artist?.pendingEdits);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 font-sans pb-12" dir="rtl">
@@ -276,6 +325,8 @@ export default function ArtistVerificationPage() {
         <div className={`bg-white rounded-3xl p-6 sm:p-7 border-2 shadow-sm transition-all relative ${
           level >= 3
             ? 'border-emerald-300'
+            : level3Status === 'NEEDS_REVISION'
+            ? 'border-amber-300'
             : level >= 2
             ? 'border-teal-300'
             : 'border-slate-200 opacity-80'
@@ -285,6 +336,8 @@ export default function ArtistVerificationPage() {
               <span className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-lg ${
                 level >= 3
                   ? 'bg-emerald-100 text-emerald-800'
+                  : level3Status === 'NEEDS_REVISION'
+                  ? 'bg-amber-100 text-amber-800'
                   : level >= 2
                   ? 'bg-teal-100 text-teal-800'
                   : 'bg-slate-100 text-slate-400'
@@ -307,7 +360,12 @@ export default function ArtistVerificationPage() {
                 <span>✓</span>
                 <span>تایید شده (تسویه فعال)</span>
               </span>
-            ) : level >= 2 && artist?.nationalId ? (
+            ) : level3Status === 'NEEDS_REVISION' ? (
+              <span className="bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs">
+                <span>⚠️</span>
+                <span>نیاز به اصلاح مدارک</span>
+              </span>
+            ) : level3Status === 'PENDING' ? (
               <span className="bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 animate-pulse shadow-xs">
                 <span>⏳</span>
                 <span>در انتظار بررسی و تایید ادمین</span>
@@ -342,108 +400,327 @@ export default function ArtistVerificationPage() {
 
           {/* Active KYC Form if Level >= 2 */}
           {level >= 2 && (
-            <form onSubmit={handleSubmitLevel3} noValidate className="mt-6 space-y-5">
+            <form onSubmit={handleSubmitLevel3} noValidate className="mt-6 space-y-6">
+              
+              {/* Notification Banners */}
               {kycSuccess && (
-                <div className="p-4 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-2xl border border-emerald-200">
-                  {kycSuccess}
+                <div className="p-4 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-2xl border border-emerald-200 flex items-center gap-2">
+                  <span>✓</span>
+                  <span>{kycSuccess}</span>
                 </div>
               )}
               {kycError && (
-                <div className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-200">
-                  {kycError}
+                <div className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-200 flex items-center gap-2">
+                  <span>✕</span>
+                  <span>{kycError}</span>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    کد ملی ۱۰ رقمی <span className="text-red-500">*</span>
+              {/* Status Alert Banner: Needs Revision */}
+              {level3Status === 'NEEDS_REVISION' && !kycSuccess && (
+                <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl text-xs text-amber-900 leading-relaxed flex items-start gap-3">
+                  <span className="text-xl shrink-0">⚠️</span>
+                  <div>
+                    <h4 className="font-black text-sm text-amber-950 mb-0.5">
+                      برخی از مدارک توسط ادمین تایید نشده است
+                    </h4>
+                    <p className="text-amber-800">
+                      مدارکی که تایید شده‌اند به رنگ سبز نشان داده شده و قفل (ثابت) می‌باشند. لطفاً مواردی که با برچسب قرمز مشخص شده‌اند را طبق پیام بازخورد ادمین اصلاح نموده و در انتهای فرم دکمه ارسال مجدد را بزنید.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Alert Banner: Pending */}
+              {level3Status === 'PENDING' && !kycSuccess && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-900 leading-relaxed flex items-start gap-3">
+                  <span className="text-xl shrink-0">⏳</span>
+                  <div>
+                    <h4 className="font-black text-sm text-blue-950 mb-0.5">
+                      مدارک هویتی و مالی شما در انتظار بررسی ادمین است
+                    </h4>
+                    <p className="text-blue-800">
+                      اطلاعات ارسالی شما در نوبت اعتبارسنجی ناظر پلتفرم قرار دارد. پس از بررسی، نتیجه از طریق پیامک و در همین بخش به شما اطلاع داده خواهد شد.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 1. National Card Image (Rectangular Trimmed Preview Frame - Not Circle) */}
+              <div className="space-y-2 border-b border-slate-100 pb-6">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700">
+                    تصویر روی کارت ملی هوشمند <span className="text-red-500">*</span>
                   </label>
+                  {isCardApproved && (
+                    <span className="text-[11px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                      <span>✓</span>
+                      <span>تایید شده و قفل</span>
+                    </span>
+                  )}
+                  {isCardRejected && (
+                    <span className="text-[11px] font-black text-red-800 bg-red-100 border border-red-300 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                      <span>✕</span>
+                      <span>رد شده - نیاز به تصویر جدید</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  {/* Trimmed Rectangular Preview */}
+                  <div className={`relative w-full max-w-xs sm:w-64 aspect-[1.6/1] rounded-2xl overflow-hidden border-2 bg-slate-100 flex items-center justify-center shadow-xs transition-all ${
+                    isCardApproved
+                      ? 'border-emerald-300 ring-2 ring-emerald-100'
+                      : isCardRejected
+                      ? 'border-red-400 ring-2 ring-red-100'
+                      : 'border-slate-200'
+                  }`}>
+                    {nationalCardImage ? (
+                      <img
+                        src={nationalCardImage}
+                        alt="پیش‌نمایش کارت ملی"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-slate-400 gap-1.5 p-3 text-center">
+                        <span className="text-3xl">🪪</span>
+                        <span className="text-[11px] font-bold">تصویر کارت ملی انتخاب نشده</span>
+                      </div>
+                    )}
+
+                    {isCardApproved && (
+                      <div className="absolute top-2 right-2 bg-emerald-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-lg backdrop-blur-xs shadow flex items-center gap-1">
+                        <span>✓</span>
+                        <span>ثابت</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Button */}
+                  {!isCardApproved && (
+                    <div className="space-y-1.5">
+                      <label className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-colors shadow-xs">
+                        <span>📷</span>
+                        <span>{nationalCardImage ? 'تغییر تصویر کارت ملی' : 'انتخاب تصویر کارت ملی'}</span>
+                        <input type="file" accept="image/*" onChange={handleCardImageUpload} className="hidden" />
+                      </label>
+                      <p className="text-[11px] text-slate-400">
+                        تصویر باید واضح، خوانا و بدون بازتاب نور شدید باشد (حداکثر ۵ مگابایت).
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {isCardRejected && (
+                  <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 flex items-start gap-2 mt-2">
+                    <span className="text-sm">⚠️</span>
+                    <span>علت عدم تایید ادمین: {rejectedFields.nationalCardImage}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. National ID and Sheba Number */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                {/* National ID */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      کد ملی ۱۰ رقمی <span className="text-red-500">*</span>
+                    </label>
+                    {isNationalIdApproved && (
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✓</span>
+                        <span>تایید شده</span>
+                      </span>
+                    )}
+                    {isNationalIdRejected && (
+                      <span className="text-[10px] font-black text-red-800 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✕</span>
+                        <span>نیاز به اصلاح</span>
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     maxLength={10}
+                    disabled={isNationalIdApproved}
                     value={nationalId}
                     onChange={e => setNationalId(e.target.value.replace(/\D/g, ''))}
                     placeholder="۰۰۱۲۳۴۵۶۷۸"
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-teal-500"
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-mono outline-none transition-all ${
+                      isNationalIdApproved
+                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                        : isNationalIdRejected
+                        ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                        : 'border-slate-200 focus:border-teal-500 bg-white'
+                    }`}
                   />
+                  {isNationalIdRejected && (
+                    <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
+                      <span>⚠️</span>
+                      <span>علت عدم تایید: {rejectedFields.nationalId}</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* Sheba Number */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    شماره شبا (۲۴ رقم بدون IR) <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      شماره شبا (۲۴ رقم بدون IR) <span className="text-red-500">*</span>
+                    </label>
+                    {isShebaApproved && (
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✓</span>
+                        <span>تایید شده</span>
+                      </span>
+                    )}
+                    {isShebaRejected && (
+                      <span className="text-[10px] font-black text-red-800 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✕</span>
+                        <span>نیاز به اصلاح</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       type="text"
                       maxLength={24}
+                      disabled={isShebaApproved}
                       value={shebaNumber}
                       onChange={e => setShebaNumber(e.target.value.replace(/\D/g, ''))}
                       placeholder="980120000000000000000000"
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-mono pl-10 outline-none focus:border-teal-500 text-left"
+                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-mono pl-10 outline-none text-left transition-all ${
+                        isShebaApproved
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                          : isShebaRejected
+                          ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                          : 'border-slate-200 focus:border-teal-500 bg-white'
+                      }`}
                       dir="ltr"
                     />
                     <span className="absolute left-3 top-2.5 font-mono font-bold text-slate-400 text-xs">
                       IR
                     </span>
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  تصویر روی کارت ملی هوشمند <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-4">
-                  <label className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-colors">
-                    <span>انتخاب تصویر کارت ملی</span>
-                    <input type="file" accept="image/*" onChange={handleCardImageUpload} className="hidden" />
-                  </label>
-                  {nationalCardImage && (
-                    <span className="text-xs text-emerald-600 font-bold flex items-center gap-1">
-                      <span>✓</span>
-                      <span>تصویر بارگذاری شد</span>
-                    </span>
+                  {isShebaRejected && (
+                    <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
+                      <span>⚠️</span>
+                      <span>علت عدم تایید: {rejectedFields.shebaNumber}</span>
+                    </div>
                   )}
                 </div>
               </div>
 
+              {/* 3. Address and Postal Code */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                
+                {/* Address */}
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    آدرس دقیق کارگاه یا محل سکونت <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      آدرس دقیق کارگاه یا محل سکونت <span className="text-red-500">*</span>
+                    </label>
+                    {isAddressApproved && (
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✓</span>
+                        <span>تایید شده</span>
+                      </span>
+                    )}
+                    {isAddressRejected && (
+                      <span className="text-[10px] font-black text-red-800 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✕</span>
+                        <span>نیاز به اصلاح</span>
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
+                    disabled={isAddressApproved}
                     value={address}
                     onChange={e => setAddress(e.target.value)}
                     placeholder="استان، شهر، خیابان..."
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-teal-500"
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-xs outline-none transition-all ${
+                      isAddressApproved
+                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                        : isAddressRejected
+                        ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                        : 'border-slate-200 focus:border-teal-500 bg-white'
+                    }`}
                   />
+                  {isAddressRejected && (
+                    <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
+                      <span>⚠️</span>
+                      <span>علت عدم تایید: {rejectedFields.address}</span>
+                    </div>
+                  )}
                 </div>
 
+                {/* Postal Code */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    کد پستی ۱۰ رقمی <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      کد پستی ۱۰ رقمی <span className="text-red-500">*</span>
+                    </label>
+                    {isPostalCodeApproved && (
+                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✓</span>
+                        <span>تایید شده</span>
+                      </span>
+                    )}
+                    {isPostalCodeRejected && (
+                      <span className="text-[10px] font-black text-red-800 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span>✕</span>
+                        <span>نیاز به اصلاح</span>
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     maxLength={10}
+                    disabled={isPostalCodeApproved}
                     value={postalCode}
                     onChange={e => setPostalCode(e.target.value.replace(/\D/g, ''))}
                     placeholder="۱۲۳۴۵۶۷۸۹۰"
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-mono outline-none focus:border-teal-500 text-center"
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-mono outline-none text-center transition-all ${
+                      isPostalCodeApproved
+                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                        : isPostalCodeRejected
+                        ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                        : 'border-slate-200 focus:border-teal-500 bg-white'
+                    }`}
                   />
+                  {isPostalCodeRejected && (
+                    <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
+                      <span>⚠️</span>
+                      <span>علت عدم تایید: {rejectedFields.postalCode}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={kycSubmitting}
-                className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs px-6 py-3 rounded-xl transition-all shadow-md shadow-teal-500/20 disabled:opacity-50"
-              >
-                {kycSubmitting ? 'در حال ثبت مدارک...' : 'ثبت و ارسال مدارک مالی برای تایید'}
-              </button>
+              {/* Action Submit Button */}
+              {level < 3 && (
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={kycSubmitting || (approvedFields.length === 5)}
+                    className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl transition-all shadow-md shadow-teal-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>
+                      {kycSubmitting
+                        ? 'در حال ثبت مدارک...'
+                        : level3Status === 'NEEDS_REVISION'
+                        ? 'ارسال مجدد مدارک اصلاح‌شده جهت بررسی ادمین'
+                        : level3Status === 'PENDING'
+                        ? 'ویرایش و ارسال مجدد مدارک'
+                        : 'ثبت و ارسال مدارک مالی برای تایید'}
+                    </span>
+                    <span>←</span>
+                  </button>
+                </div>
+              )}
             </form>
           )}
 

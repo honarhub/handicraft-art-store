@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { normalizePhoneNumber } from '@/lib/sms';
+import { saveUploadImageSync } from '@/lib/fileUpload';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -167,20 +168,56 @@ export async function POST(req: Request) {
     if (step === 3) {
       const { nationalId, nationalCardImage, address, postalCode, shebaNumber } = body;
 
-      if (!nationalId || !address || !shebaNumber) {
-        return NextResponse.json({ error: 'کد ملی، آدرس و شماره شبا الزامی هستند.' }, { status: 400 });
+      // Check existing approved fields
+      let existingApproved: string[] = [];
+      if (artist.pendingEdits) {
+        try {
+          const pe = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits as any;
+          if (Array.isArray(pe.approvedFields)) {
+            existingApproved = pe.approvedFields;
+          }
+        } catch {}
+      }
+
+      // If field not already approved, validate requirement
+      if (!existingApproved.includes('nationalId') && (!nationalId || nationalId.trim().length !== 10)) {
+        return NextResponse.json({ error: 'کد ملی ۱۰ رقمی الزامی است.' }, { status: 400 });
+      }
+      if (!existingApproved.includes('address') && (!address || !address.trim())) {
+        return NextResponse.json({ error: 'آدرس محل سکونت یا کارگاه الزامی است.' }, { status: 400 });
+      }
+      if (!existingApproved.includes('postalCode') && (!postalCode || postalCode.trim().length !== 10)) {
+        return NextResponse.json({ error: 'کد پستی ۱۰ رقمی الزامی است.' }, { status: 400 });
+      }
+      if (!existingApproved.includes('shebaNumber') && (!shebaNumber || shebaNumber.replace(/^IR/i, '').trim().length !== 24)) {
+        return NextResponse.json({ error: 'شماره شبا ۲۴ رقمی الزامی است.' }, { status: 400 });
+      }
+
+      let finalCardImage = artist.nationalCardImage;
+      if (!existingApproved.includes('nationalCardImage')) {
+        if (nationalCardImage && typeof nationalCardImage === 'string' && nationalCardImage.startsWith('data:image')) {
+          finalCardImage = saveUploadImageSync(nationalCardImage, 'artists', 'kyc-card');
+        } else if (nationalCardImage) {
+          finalCardImage = nationalCardImage;
+        }
       }
 
       const updatedArtist = await prisma.artistProfile.update({
         where: { id: artist.id },
         data: {
-          nationalId,
-          nationalCardImage,
-          address,
-          postalCode,
-          shebaNumber: shebaNumber.replace(/^IR/i, '').trim(),
-          verificationLevel: currentLevel, // Stays at Level 2 until admin explicitly approves Level 3
-          adminFeedback: null
+          nationalId: existingApproved.includes('nationalId') ? artist.nationalId : (nationalId?.trim() || artist.nationalId),
+          nationalCardImage: existingApproved.includes('nationalCardImage') ? artist.nationalCardImage : finalCardImage,
+          address: existingApproved.includes('address') ? artist.address : (address?.trim() || artist.address),
+          postalCode: existingApproved.includes('postalCode') ? artist.postalCode : (postalCode?.trim() || artist.postalCode),
+          shebaNumber: existingApproved.includes('shebaNumber') ? artist.shebaNumber : (shebaNumber?.replace(/^IR/i, '').trim() || artist.shebaNumber),
+          verificationLevel: currentLevel, // Stays at Level 2 until admin approves Level 3
+          adminFeedback: null,
+          pendingEdits: {
+            type: 'LEVEL_3_KYC',
+            status: 'PENDING',
+            approvedFields: existingApproved,
+            submittedAt: new Date().toISOString()
+          }
         },
         include: {
           specialties: true,
@@ -190,7 +227,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         success: true,
-        message: 'مدارک و اطلاعات هویتی و مالی مرحله ۳ با موفقیت ثبت شد.',
+        message: 'مدارک و اطلاعات هویتی و مالی مرحله ۳ با موفقیت ثبت شد و در انتظار بررسی ادمین قرار گرفت.',
         artist: updatedArtist
       });
     }

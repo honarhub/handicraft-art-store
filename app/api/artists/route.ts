@@ -22,10 +22,17 @@ export async function GET() {
 
     const formattedArtists = artists.map(artist => {
       let hasEdits = false;
+      let isLevel3Kyc = false;
+      let level3Status = null;
       if (artist.pendingEdits) {
         try {
           const edits = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits;
-          hasEdits = edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+          if (edits?.type === 'LEVEL_3_KYC') {
+            isLevel3Kyc = true;
+            level3Status = edits.status;
+          } else {
+            hasEdits = edits && typeof edits === 'object' && Object.keys(edits).length > 0;
+          }
         } catch {
           hasEdits = false;
         }
@@ -33,7 +40,7 @@ export async function GET() {
 
       const vLevel = artist.verificationLevel || 0;
       const isLevel2Pending = !artist.isDeleted && vLevel < 2 && hasEdits;
-      const isLevel3Pending = !artist.isDeleted && vLevel === 2 && Boolean(artist.nationalId);
+      const isLevel3Pending = !artist.isDeleted && vLevel === 2 && (Boolean(artist.nationalId) || isLevel3Kyc);
       const isProfileEditPending = !artist.isDeleted && vLevel >= 2 && hasEdits;
 
       return {
@@ -59,6 +66,8 @@ export async function GET() {
         isApproved: artist.isApproved,
         productsCount: artist._count.products,
         hasPendingEdits: hasEdits,
+        pendingEdits: artist.pendingEdits,
+        adminFeedback: artist.adminFeedback,
         isLevel2Pending,
         isLevel3Pending,
         isProfileEditPending,

@@ -231,14 +231,100 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json(updatedArtist);
     }
     
+    if (action === 'granularReviewLevel3') {
+      try {
+        const { approvedFields = [], rejectedFields = {} } = body;
+        const artist = await prisma.artistProfile.findUnique({
+          where: { id: artistId },
+          include: { user: true }
+        });
+        if (!artist) {
+          return NextResponse.json({ error: 'هنرمند یافت نشد' }, { status: 404 });
+        }
+
+        const all5Fields = ['nationalId', 'nationalCardImage', 'shebaNumber', 'address', 'postalCode'];
+        
+        // Extract already approved fields from pendingEdits
+        let existingApproved: string[] = [];
+        if (artist.pendingEdits) {
+          try {
+            const pe = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits as any;
+            if (Array.isArray(pe.approvedFields)) {
+              existingApproved = pe.approvedFields;
+            }
+          } catch {}
+        }
+
+        // Merge approved fields and remove any newly rejected fields
+        const totalApproved = Array.from(new Set([...existingApproved, ...approvedFields]))
+          .filter(f => !Object.keys(rejectedFields).includes(f));
+
+        const isFullApproval = all5Fields.every(f => totalApproved.includes(f));
+
+        if (isFullApproval) {
+          const updatedArtist = await prisma.artistProfile.update({
+            where: { id: artistId },
+            data: {
+              verificationLevel: 3,
+              pendingEdits: null,
+              adminFeedback: null
+            },
+            include: { user: true }
+          });
+
+          // Send Level 3 Approval SMS
+          const phone = updatedArtist.user?.phoneNumber;
+          if (phone) {
+            const displayName = updatedArtist.brandName || updatedArtist.user?.name || 'هنرمند گرامی';
+            const smsText = `هنرمند گرامی ${displayName}،\nمدارک هویتی و مالی شما در هنرهاب تایید شد و به سطح ۳ (تسویه حساب فعال) ارتقا یافتید.\nHonarHub.ir`;
+            sendSmsNotification(phone, smsText).catch(e => console.error('Error sending Level 3 SMS:', e));
+          }
+
+          return NextResponse.json({ success: true, artist: updatedArtist, promotedToLevel3: true });
+        } else {
+          // Partial rejection/approval
+          const updatedArtist = await prisma.artistProfile.update({
+            where: { id: artistId },
+            data: {
+              verificationLevel: 2,
+              adminFeedback: JSON.stringify(rejectedFields),
+              pendingEdits: {
+                type: 'LEVEL_3_KYC',
+                status: 'NEEDS_REVISION',
+                approvedFields: totalApproved,
+                rejectedFields,
+                reviewedAt: new Date().toISOString()
+              }
+            },
+            include: { user: true }
+          });
+
+          return NextResponse.json({ success: true, artist: updatedArtist, promotedToLevel3: false });
+        }
+      } catch (err: any) {
+        console.error('Granular Review Level 3 Error:', err);
+        return NextResponse.json({ error: 'خطا در ثبت بررسی مدارک: ' + err.message }, { status: 500 });
+      }
+    }
+    
     if (action === 'approveLevel3') {
       const updatedArtist = await prisma.artistProfile.update({
         where: { id: artistId },
         data: {
           verificationLevel: 3,
+          pendingEdits: null,
           adminFeedback: null
-        }
+        },
+        include: { user: true }
       });
+
+      const phone = updatedArtist.user?.phoneNumber;
+      if (phone) {
+        const displayName = updatedArtist.brandName || updatedArtist.user?.name || 'هنرمند گرامی';
+        const smsText = `هنرمند گرامی ${displayName}،\nمدارک هویتی و مالی شما در هنرهاب تایید شد و به سطح ۳ (تسویه حساب فعال) ارتقا یافتید.\nHonarHub.ir`;
+        sendSmsNotification(phone, smsText).catch(e => console.error('Error sending Level 3 SMS:', e));
+      }
+
       return NextResponse.json(updatedArtist);
     }
 
