@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { saveUploadImageSync } from '@/lib/fileUpload';
-import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
+import { normalizePhoneNumber, isValidIranianMobile, hasProfilePendingEdits } from '@/lib/sms';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,9 +37,11 @@ export async function GET(request: Request) {
     const isSsoUser = artist.user.accounts.some(a => a.provider === 'google');
     const isPhoneVerified = Boolean(artist.user.phoneNumber);
     const isEmailVerified = Boolean(artist.user.emailVerified || isSsoUser);
+    const isProfilePending = hasProfilePendingEdits(artist.pendingEdits);
 
     return NextResponse.json({
       ...artist,
+      pendingEdits: isProfilePending ? artist.pendingEdits : null,
       isSsoUser,
       isPhoneVerified,
       isEmailVerified

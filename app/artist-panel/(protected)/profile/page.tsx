@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import SocialLinksInput from '@/app/components/SocialLinksInput';
 import AvatarCropModal from '@/app/components/AvatarCropModal';
-import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
+import { normalizePhoneNumber, isValidIranianMobile, hasProfilePendingEdits } from '@/lib/sms';
 import { IRAN_PROVINCES } from '@/lib/provinces';
 
 export default function ArtistProfilePage() {
@@ -92,7 +92,7 @@ export default function ArtistProfilePage() {
       setIsPhoneVerified(Boolean(data.isPhoneVerified));
       setIsEmailVerified(Boolean(data.isEmailVerified));
 
-      if (data.pendingEdits) {
+      if (hasProfilePendingEdits(data.pendingEdits)) {
         let edits = data.pendingEdits;
         if (typeof edits === 'string') {
           try { edits = JSON.parse(edits); } catch { edits = {}; }
@@ -552,6 +552,10 @@ export default function ArtistProfilePage() {
           portfolioUrl: 'لینک وب‌سایت شخصی',
           socialLinks: 'شبکه‌های اجتماعی'
         };
+
+        const profileEntries = Object.entries(parsed).filter(([k]) => labels[k]);
+        if (profileEntries.length === 0) return null;
+
         return (
           <div className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in">
             <div className="flex items-center gap-2 text-red-900 font-black text-sm mb-2.5">
@@ -559,7 +563,7 @@ export default function ArtistProfilePage() {
               <span>پیام ناظر پلتفرم جهت اصلاح موارد زیر:</span>
             </div>
             <ul className="space-y-2 text-xs sm:text-sm text-red-800 list-disc list-inside">
-              {Object.entries(parsed).map(([k, reason]: [string, any]) => (
+              {profileEntries.map(([k, reason]: [string, any]) => (
                 <li key={k} className="leading-relaxed">
                   <span className="font-bold text-red-950">{labels[k] || k}: </span>
                   <span>{reason}</span>
