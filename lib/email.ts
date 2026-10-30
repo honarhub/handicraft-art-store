@@ -45,7 +45,8 @@ export async function getEmailConfig() {
 }
 
 /**
- * Modern, responsive Persian HTML template for OTP verification emails
+ * Modern, formal, lightweight Persian HTML template for OTP verification emails
+ * Features Vazirmatn font, HonarHub branding, huge OTP display, and support channels.
  */
 export function renderOtpEmailHtml(code: string): string {
   return `
@@ -54,40 +55,61 @@ export function renderOtpEmailHtml(code: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>کد تایید هنرهاب</title>
+  <!-- Vazirmatn Font for supporting email clients -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+    body, table, td, p, a, span, h1, h2, h3 {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif !important;
+    }
+  </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; direction: rtl; text-align: right;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif; direction: rtl; text-align: right; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 36px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
           
-          <!-- Header Branding -->
+          <!-- Lightweight Header & Brand Logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%); padding: 32px 30px; text-align: center;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">
-                هنر<span style="background-color: #FF9900; color: #000000; padding: 2px 8px; border-radius: 6px; margin-right: 4px; font-size: 24px;">هاب</span>
-              </h1>
-              <p style="margin: 8px 0 0 0; color: #a7f3d0; font-size: 13px;">پلتفرم تخصصی دست‌سازه‌ها و آثار هنری اصیل ایرانی</p>
+            <td style="background-color: #064e3b; padding: 24px 20px; text-align: center;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; direction: rtl; text-align: center;">
+                      <span style="font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">هنر</span><span style="background-color: #FF9900; color: #000000; padding: 2px 7px; border-radius: 6px; margin-right: 3px; font-size: 21px; font-weight: 900; vertical-align: middle;">هاب</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 6px;">
+                    <span style="color: #a7f3d0; font-size: 11.5px; font-weight: 500;">سامانه تخصصی دست‌سازه‌ها و هنرهای اصیل ایرانی</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Main Content -->
+          <!-- Formal & Concise Content -->
           <tr>
-            <td style="padding: 36px 32px;">
-              <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 800; color: #1e293b; text-align: center;">
-                کد تایید یکبار مصرف
-              </h2>
-              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.8; color: #475569; text-align: center;">
-                برای احراز هویت و ورود به حساب کاربری در هنرهاب، لطفاً کد ۵ رقمی زیر را در سایت وارد نمایید:
+            <td style="padding: 30px 28px 24px 28px;">
+              <p style="margin: 0 0 10px 0; font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.6;">
+                کاربر گرامی؛
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 13.5px; line-height: 1.8; color: #475569;">
+                کد تایید یکبار مصرف شما جهت ورود و احراز هویت در سامانه هنرهاب:
               </p>
 
-              <!-- OTP Code Display Box -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0;">
+              <!-- Prominent, Large OTP Box -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 22px 0;">
                 <tr>
                   <td align="center">
-                    <div style="background-color: #ecfdf5; border: 2px dashed #10b981; border-radius: 16px; padding: 18px 30px; display: inline-block;">
-                      <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; color: #065f46; letter-spacing: 10px; display: inline-block; direction: ltr;">
+                    <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 16px; padding: 18px 28px; display: inline-block; min-width: 220px; text-align: center;">
+                      <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #064e3b; letter-spacing: 14px; display: inline-block; direction: ltr; line-height: 1;">
                         ${code}
                       </span>
                     </div>
@@ -95,26 +117,64 @@ export function renderOtpEmailHtml(code: string): string {
                 </tr>
               </table>
 
-              <!-- Notice & Expiry -->
-              <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 14px 18px; margin-top: 24px;">
-                <p style="margin: 0; font-size: 12px; line-height: 1.7; color: #92400e;">
-                  ⏳ <strong>اعتبار زمانی:</strong> این کد به مدت <strong>۲ دقیقه</strong> معتبر است.<br>
-                  🔒 <strong>امنیت حساب:</strong> این کد کاملاً محرمانه است؛ تیم پشتیبانی هنرهاب هرگز آن را از شما درخواست نخواهد کرد.
+              <!-- Compact Expiry & Security Notice -->
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 12px; line-height: 1.8; color: #334155;">
+                  ⏱ <strong>مدت اعتبار:</strong> این کد به مدت <strong>۲ دقیقه</strong> معتبر است.<br>
+                  🔒 <strong>محرمانگی:</strong> این کد محرمانه است؛ آن را با هیچ‌کس به اشتراک نگذارید.
                 </p>
               </div>
 
-              <p style="margin: 28px 0 0 0; font-size: 12px; line-height: 1.6; color: #94a3b8; text-align: center;">
-                اگر شما درخواست این کد را نداده‌اید، نیازی به انجام کاری نیست و این ایمیل را نادیده بگیرید.
+              <p style="margin: 0; font-size: 11.5px; color: #94a3b8; line-height: 1.6;">
+                چنانچه شما درخواست این کد را ثبت نکرده‌اید، این پیام را نادیده بگیرید.
               </p>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Lightweight Support & Communication Footer -->
           <tr>
-            <td style="background-color: #f8fafc; padding: 20px 30px; border-top: 1px solid #f1f5f9; text-align: center;">
-              <p style="margin: 0; font-size: 11px; color: #94a3b8; direction: ltr;">
-                © HonarHub. All rights reserved. • <a href="https://honarhub.ir" style="color: #059669; text-decoration: none;">honarhub.ir</a>
-              </p>
+            <td style="background-color: #f8fafc; padding: 18px 24px; border-top: 1px solid #f1f5f9;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-bottom: 8px;">
+                    <span style="font-size: 11.5px; font-weight: 700; color: #475569;">
+                      مرکز ارتباط و پشتیبانی هنرهاب:
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 0 6px;">
+                          <a href="mailto:support@honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            ✉️ support@honarhub.ir
+                          </a>
+                        </td>
+                        <td style="color: #cbd5e1; font-size: 11px;">|</td>
+                        <td style="padding: 0 6px;">
+                          <a href="https://honarhub.ir/contact" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            💬 تماس با پشتیبانی
+                          </a>
+                        </td>
+                        <td style="color: #cbd5e1; font-size: 11px;">|</td>
+                        <td style="padding: 0 6px;">
+                          <a href="https://honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            🌐 honarhub.ir
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 10px;">
+                    <p style="margin: 0; font-size: 10.5px; color: #94a3b8; direction: ltr;">
+                      © HonarHub. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
@@ -128,7 +188,7 @@ export function renderOtpEmailHtml(code: string): string {
 }
 
 /**
- * Modern, responsive Persian HTML template for Password Reset emails
+ * Modern, formal, lightweight Persian HTML template for Password Reset emails
  */
 export function renderPasswordResetEmailHtml(code: string): string {
   return `
@@ -137,40 +197,61 @@ export function renderPasswordResetEmailHtml(code: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>بازیابی رمز عبور هنرهاب</title>
+  <!-- Vazirmatn Font for supporting email clients -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+    body, table, td, p, a, span, h1, h2, h3 {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif !important;
+    }
+  </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; direction: rtl; text-align: right;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; padding: 40px 10px;">
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif; direction: rtl; text-align: right; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 36px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
           
-          <!-- Header Branding -->
+          <!-- Lightweight Header & Brand Logo -->
           <tr>
-            <td style="background: linear-gradient(135deg, #064e3b 0%, #047857 100%); padding: 32px 30px; text-align: center;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">
-                هنر<span style="background-color: #FF9900; color: #000000; padding: 2px 8px; border-radius: 6px; margin-right: 4px; font-size: 24px;">هاب</span>
-              </h1>
-              <p style="margin: 8px 0 0 0; color: #a7f3d0; font-size: 13px;">بازیابی رمز عبور حساب کاربری</p>
+            <td style="background-color: #064e3b; padding: 24px 20px; text-align: center;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; direction: rtl; text-align: center;">
+                      <span style="font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">هنر</span><span style="background-color: #FF9900; color: #000000; padding: 2px 7px; border-radius: 6px; margin-right: 3px; font-size: 21px; font-weight: 900; vertical-align: middle;">هاب</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 6px;">
+                    <span style="color: #a7f3d0; font-size: 11.5px; font-weight: 500;">بازیابی رمز عبور حساب کاربری</span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Main Content -->
+          <!-- Formal & Concise Content -->
           <tr>
-            <td style="padding: 36px 32px;">
-              <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 800; color: #1e293b; text-align: center;">
-                درخواست بازنشانی رمز عبور
-              </h2>
-              <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.8; color: #475569; text-align: center;">
-                یک درخواست برای بازنشانی رمز عبور حساب کاربری شما در هنرهاب ثبت شده است. جهت تکمیل فرآیند و تعریف رمز جدید، کد ۵ رقمی زیر را وارد نمایید:
+            <td style="padding: 30px 28px 24px 28px;">
+              <p style="margin: 0 0 10px 0; font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.6;">
+                کاربر گرامی؛
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 13.5px; line-height: 1.8; color: #475569;">
+                کد تایید یکبار مصرف شما جهت بازنشانی و تغییر رمز عبور در سامانه هنرهاب:
               </p>
 
-              <!-- Code Display Box -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0;">
+              <!-- Prominent, Large OTP Box -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 22px 0;">
                 <tr>
                   <td align="center">
-                    <div style="background-color: #eff6ff; border: 2px dashed #3b82f6; border-radius: 16px; padding: 18px 30px; display: inline-block;">
-                      <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; color: #1e40af; letter-spacing: 10px; display: inline-block; direction: ltr;">
+                    <div style="background-color: #eff6ff; border: 2px dashed #2563eb; border-radius: 16px; padding: 18px 28px; display: inline-block; min-width: 220px; text-align: center;">
+                      <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #1e40af; letter-spacing: 14px; display: inline-block; direction: ltr; line-height: 1;">
                         ${code}
                       </span>
                     </div>
@@ -178,20 +259,64 @@ export function renderPasswordResetEmailHtml(code: string): string {
                 </tr>
               </table>
 
-              <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 14px 18px; margin-top: 24px;">
-                <p style="margin: 0; font-size: 12px; line-height: 1.7; color: #991b1b;">
-                  ⚠️ <strong>هشدار امنیتی:</strong> چنانچه شما این درخواست را نداده‌اید، نیازی به نگرانی نیست؛ رمز عبور فعلی شما همچنان فعال است و تا زمانی که این کد وارد نشود، تغییری ایجاد نخواهد شد.
+              <!-- Compact Expiry & Security Notice -->
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 12px; line-height: 1.8; color: #334155;">
+                  ⏱ <strong>مدت اعتبار:</strong> این کد به مدت <strong>۲ دقیقه</strong> معتبر است.<br>
+                  🔒 <strong>امنیت:</strong> در صورت عدم ثبت این درخواست توسط شما، رمز عبور فعلی همچنان فعال است و تغییری ایجاد نخواهد شد.
                 </p>
               </div>
+
+              <p style="margin: 0; font-size: 11.5px; color: #94a3b8; line-height: 1.6;">
+                جهت حفظ امنیت حساب، این کد را در اختیار اشخاص دیگر قرار ندهید.
+              </p>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Lightweight Support & Communication Footer -->
           <tr>
-            <td style="background-color: #f8fafc; padding: 20px 30px; border-top: 1px solid #f1f5f9; text-align: center;">
-              <p style="margin: 0; font-size: 11px; color: #94a3b8; direction: ltr;">
-                © HonarHub. All rights reserved. • <a href="https://honarhub.ir" style="color: #059669; text-decoration: none;">honarhub.ir</a>
-              </p>
+            <td style="background-color: #f8fafc; padding: 18px 24px; border-top: 1px solid #f1f5f9;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center" style="padding-bottom: 8px;">
+                    <span style="font-size: 11.5px; font-weight: 700; color: #475569;">
+                      مرکز ارتباط و پشتیبانی هنرهاب:
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 0 6px;">
+                          <a href="mailto:support@honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            ✉️ support@honarhub.ir
+                          </a>
+                        </td>
+                        <td style="color: #cbd5e1; font-size: 11px;">|</td>
+                        <td style="padding: 0 6px;">
+                          <a href="https://honarhub.ir/contact" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            💬 تماس با پشتیبانی
+                          </a>
+                        </td>
+                        <td style="color: #cbd5e1; font-size: 11px;">|</td>
+                        <td style="padding: 0 6px;">
+                          <a href="https://honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            🌐 honarhub.ir
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 10px;">
+                    <p style="margin: 0; font-size: 10.5px; color: #94a3b8; direction: ltr;">
+                      © HonarHub. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
@@ -392,16 +517,8 @@ export async function testEmailService(options: {
     const { data, error } = await resend.emails.send({
       from: fromField,
       to: options.toEmail.trim().toLowerCase(),
-      subject: `ایمیل تستی هنرهاب (کد آزمایشی: ${testCode})`,
-      html: `
-        <div style="font-family: sans-serif; direction: rtl; text-align: right; padding: 20px;">
-          <h2 style="color: #047857;">اتصال موفق سرویس ایمیل هنرهاب (Resend) 🎉</h2>
-          <p>این یک ایمیل تستی است که از طریق پنل مدیریت سایت هنرهاب ارسال شده است.</p>
-          <p><strong>فرستنده:</strong> ${fromField}</p>
-          <p><strong>گیرنده:</strong> ${options.toEmail}</p>
-          <p><strong>کد آزمایشی:</strong> ${testCode}</p>
-        </div>
-      `
+      subject: `کد آزمایشی هنرهاب: ${testCode}`,
+      html: renderOtpEmailHtml(testCode)
     });
 
     if (error) {
