@@ -63,6 +63,7 @@ export async function GET() {
         verificationLevel: vLevel,
         nationalId: artist.nationalId,
         nationalCardImage: artist.nationalCardImage,
+        birthDate: artist.birthDate,
         address: artist.address,
         postalCode: artist.postalCode,
         shebaNumber: artist.shebaNumber,

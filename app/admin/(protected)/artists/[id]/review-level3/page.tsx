@@ -163,6 +163,7 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
   const [decisions, setDecisions] = useState<Record<string, { status: 'approve' | 'reject', reason: string }>>({
     nationalId: { status: 'reject', reason: '' },
     nationalCardImage: { status: 'reject', reason: '' },
+    birthDate: { status: 'reject', reason: '' },
     shebaNumber: { status: 'reject', reason: '' },
     address: { status: 'reject', reason: '' },
     postalCode: { status: 'reject', reason: '' }
@@ -172,6 +173,7 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
     const map: Record<string, string> = {
       nationalId: 'کد ملی ۱۰ رقمی',
       nationalCardImage: 'تصویر روی کارت ملی هوشمند',
+      birthDate: 'تاریخ تولد',
       shebaNumber: 'شماره شبا بانکی (بدون IR)',
       address: 'آدرس دقیق کارگاه یا محل سکونت',
       postalCode: 'کد پستی ۱۰ رقمی'
@@ -226,11 +228,11 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
 
         setPreviouslyApproved(prevApproved);
 
-        // Setup decisions for all 5 fields:
+        // Setup decisions for all 6 fields:
         // If field was previously approved -> default 'approve' (and will be locked)
         // By default, all unapproved items start in 'reject' (عدم تایید) state
         const initialDecisions: Record<string, { status: 'approve' | 'reject', reason: string }> = {};
-        const keys = ['nationalId', 'nationalCardImage', 'shebaNumber', 'address', 'postalCode'];
+        const keys = ['nationalId', 'nationalCardImage', 'birthDate', 'shebaNumber', 'address', 'postalCode'];
         keys.forEach(k => {
           if (prevApproved.includes(k)) {
             initialDecisions[k] = { status: 'approve', reason: '' };
@@ -358,6 +360,13 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
       isMono: false
     },
     {
+      key: 'birthDate',
+      title: 'تاریخ تولد (شمسی)',
+      value: artist.birthDate || 'ثبت نشده',
+      isImage: false,
+      isMono: true
+    },
+    {
       key: 'shebaNumber',
       title: 'شماره شبا بانکی',
       value: artist.shebaNumber ? `IR ${artist.shebaNumber}` : 'ثبت نشده',
@@ -391,7 +400,9 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
               {artist.user?.image ? (
                 <img src={artist.user.image} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-2xl text-slate-400">👤</span>
+                <svg className="w-8 h-8 text-slate-300" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z" />
+                </svg>
               )}
             </div>
             <div>

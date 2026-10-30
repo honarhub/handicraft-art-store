@@ -51,12 +51,30 @@ export default function ArtistVerificationPage() {
   // Level 3 Form States
   const [nationalId, setNationalId] = useState('');
   const [nationalCardImage, setNationalCardImage] = useState<string | null>(null);
+  const [birthDay, setBirthDay] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthYear, setBirthYear] = useState('');
   const [address, setAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [shebaNumber, setShebaNumber] = useState('');
   const [kycSubmitting, setKycSubmitting] = useState(false);
   const [kycSuccess, setKycSuccess] = useState('');
   const [kycError, setKycError] = useState('');
+
+  const PERSIAN_MONTHS = [
+    { value: '01', label: 'فروردین' },
+    { value: '02', label: 'اردیبهشت' },
+    { value: '03', label: 'خرداد' },
+    { value: '04', label: 'تیر' },
+    { value: '05', label: 'مرداد' },
+    { value: '06', label: 'شهریور' },
+    { value: '07', label: 'مهر' },
+    { value: '08', label: 'آبان' },
+    { value: '09', label: 'آذر' },
+    { value: '10', label: 'دی' },
+    { value: '11', label: 'بهمن' },
+    { value: '12', label: 'اسفند' }
+  ];
 
   const fetchProfile = async () => {
     try {
@@ -67,6 +85,14 @@ export default function ArtistVerificationPage() {
 
       if (data.nationalId) setNationalId(data.nationalId);
       if (data.nationalCardImage) setNationalCardImage(data.nationalCardImage);
+      if (data.birthDate) {
+        const parts = data.birthDate.split('/');
+        if (parts.length === 3) {
+          setBirthYear(parts[0]);
+          setBirthMonth(parts[1].padStart(2, '0'));
+          setBirthDay(parts[2].padStart(2, '0'));
+        }
+      }
       if (data.address) setAddress(data.address);
       if (data.postalCode) setPostalCode(data.postalCode);
       if (data.shebaNumber) setShebaNumber(data.shebaNumber);
@@ -94,49 +120,71 @@ export default function ArtistVerificationPage() {
   const isApproved = Boolean(artist?.isApproved);
   const hasProfileEdits = hasProfilePendingEdits(artist?.pendingEdits);
 
+  const kycFieldKeys = ['nationalId', 'nationalCardImage', 'birthDate', 'shebaNumber', 'address', 'postalCode'];
   let approvedFields: string[] = [];
   let rejectedFields: Record<string, string> = {};
   let level3Status: 'NOT_SUBMITTED' | 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' = 'NOT_SUBMITTED';
 
   if (level >= 3) {
     level3Status = 'APPROVED';
-    approvedFields = ['nationalId', 'nationalCardImage', 'shebaNumber', 'address', 'postalCode'];
+    approvedFields = kycFieldKeys;
   } else if (level >= 2) {
+    let hasKycEdits = false;
     if (artist?.pendingEdits) {
       try {
         const pe = typeof artist.pendingEdits === 'string' ? JSON.parse(artist.pendingEdits) : artist.pendingEdits;
-        if (pe.type === 'LEVEL_3_KYC' || pe.approvedFields || pe.rejectedFields) {
+        if (pe?.type === 'LEVEL_3_KYC' || pe?.approvedFields || pe?.rejectedFields) {
+          hasKycEdits = true;
           if (Array.isArray(pe.approvedFields)) approvedFields = pe.approvedFields;
-          if (pe.rejectedFields && typeof pe.rejectedFields === 'object') rejectedFields = pe.rejectedFields;
+          if (pe.rejectedFields && typeof pe.rejectedFields === 'object') {
+            Object.entries(pe.rejectedFields).forEach(([k, v]) => {
+              if (kycFieldKeys.includes(k) && typeof v === 'string') {
+                rejectedFields[k] = v;
+              }
+            });
+          }
           if (pe.status === 'PENDING') level3Status = 'PENDING';
-          if (pe.status === 'NEEDS_REVISION') level3Status = 'NEEDS_REVISION';
+          if (pe.status === 'NEEDS_REVISION' && Object.keys(rejectedFields).length > 0) {
+            level3Status = 'NEEDS_REVISION';
+          }
         }
       } catch {}
     }
 
-    if (Object.keys(rejectedFields).length === 0 && artist?.adminFeedback) {
+    // Only inspect adminFeedback for Level 3 if KYC was actually submitted and rejected for KYC fields
+    if (Object.keys(rejectedFields).length === 0 && artist?.adminFeedback && (artist?.nationalId || hasKycEdits)) {
       try {
-        const fb = JSON.parse(artist.adminFeedback);
-        if (typeof fb === 'object' && Object.keys(fb).length > 0) {
-          rejectedFields = fb;
-          level3Status = 'NEEDS_REVISION';
+        const fb = typeof artist.adminFeedback === 'string' ? JSON.parse(artist.adminFeedback) : artist.adminFeedback;
+        if (typeof fb === 'object' && fb !== null) {
+          const kycRejections: Record<string, string> = {};
+          Object.entries(fb).forEach(([k, v]) => {
+            if (kycFieldKeys.includes(k) && typeof v === 'string') {
+              kycRejections[k] = v;
+            }
+          });
+          if (Object.keys(kycRejections).length > 0) {
+            rejectedFields = kycRejections;
+            level3Status = 'NEEDS_REVISION';
+          }
         }
       } catch {}
     }
 
-    if (level3Status === 'NOT_SUBMITTED' && artist?.nationalId) {
+    if (level3Status === 'NOT_SUBMITTED' && (artist?.nationalId || hasKycEdits)) {
       level3Status = 'PENDING';
     }
   }
 
   const isNationalIdApproved = approvedFields.includes('nationalId');
   const isCardApproved = approvedFields.includes('nationalCardImage');
+  const isBirthDateApproved = approvedFields.includes('birthDate');
   const isShebaApproved = approvedFields.includes('shebaNumber');
   const isAddressApproved = approvedFields.includes('address');
   const isPostalCodeApproved = approvedFields.includes('postalCode');
 
   const isNationalIdRejected = Boolean(rejectedFields.nationalId);
   const isCardRejected = Boolean(rejectedFields.nationalCardImage);
+  const isBirthDateRejected = Boolean(rejectedFields.birthDate);
   const isShebaRejected = Boolean(rejectedFields.shebaNumber);
   const isAddressRejected = Boolean(rejectedFields.address);
   const isPostalCodeRejected = Boolean(rejectedFields.postalCode);
@@ -161,6 +209,12 @@ export default function ArtistVerificationPage() {
       setKycError('تصویر روی کارت ملی الزامی است.');
       return;
     }
+    if (!isBirthDateApproved) {
+      if (!birthDay || !birthMonth || !birthYear) {
+        setKycError('تاریخ کامل تولد (روز، ماه و سال) الزامی است.');
+        return;
+      }
+    }
     if (!isShebaApproved) {
       if (!shebaNumber.trim()) {
         setKycError('شماره شبا ۲۴ رقمی الزامی است.');
@@ -180,6 +234,10 @@ export default function ArtistVerificationPage() {
       return;
     }
 
+    const formattedBirthDate = (birthYear && birthMonth && birthDay)
+      ? `${birthYear}/${birthMonth.padStart(2, '0')}/${birthDay.padStart(2, '0')}`
+      : (artist?.birthDate || '');
+
     setKycSubmitting(true);
     try {
       const res = await fetch('/api/artist/onboarding', {
@@ -190,6 +248,7 @@ export default function ArtistVerificationPage() {
           level: 3,
           nationalId: nationalId.trim(),
           nationalCardImage,
+          birthDate: formattedBirthDate,
           shebaNumber: shebaNumber.replace(/^IR/i, '').trim(),
           address: address.trim(),
           postalCode: postalCode.trim()
@@ -386,8 +445,8 @@ export default function ArtistVerificationPage() {
                 <span>در انتظار بررسی و تایید ادمین</span>
               </span>
             ) : level >= 2 ? (
-              <span className="bg-teal-100 text-teal-800 font-bold text-xs px-3 py-1 rounded-full border border-teal-200">
-                آماده تکمیل و ثبت مدارک
+              <span className="bg-amber-100 text-amber-800 font-bold text-xs px-3 py-1 rounded-full border border-amber-300 shadow-2xs">
+                در انتظار ارسال مدارک
               </span>
             ) : (
               <span className="bg-slate-100 text-slate-500 font-bold text-xs px-3 py-1 rounded-full">
@@ -539,7 +598,7 @@ export default function ArtistVerificationPage() {
                 )}
               </div>
 
-              {/* 2. National ID and Sheba Number */}
+              {/* 2. National ID and Birth Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
                 {/* National ID */}
@@ -598,68 +657,165 @@ export default function ArtistVerificationPage() {
                   )}
                 </div>
 
-                {/* Sheba Number */}
+                {/* Birth Date (Day, Month, Year) */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-slate-700">
-                      شماره شبا (۲۴ رقم بدون IR) <span className="text-red-500">*</span>
+                      تاریخ تولد (روز / ماه / سال) <span className="text-red-500">*</span>
                     </label>
-                    {isShebaApproved && (
+                    {isBirthDateApproved && (
                       <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
                         <span>✓</span>
                         <span>تایید شده</span>
                       </span>
                     )}
-                    {isShebaRejected && (
+                    {isBirthDateRejected && (
                       <span className="text-[10px] font-black text-red-800 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full flex items-center gap-1">
                         <span>✕</span>
                         <span>نیاز به اصلاح</span>
                       </span>
                     )}
                   </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      maxLength={24}
-                      disabled={isShebaApproved}
-                      value={shebaNumber}
-                      onChange={e => setShebaNumber(e.target.value.replace(/\D/g, ''))}
-                      placeholder="980120000000000000000000"
-                      className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-mono pl-10 outline-none text-left transition-all ${
-                        isShebaApproved
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* Day */}
+                    <select
+                      disabled={isBirthDateApproved}
+                      value={birthDay}
+                      onChange={e => setBirthDay(e.target.value)}
+                      className={`w-full px-2 py-2.5 border rounded-xl text-xs outline-none transition-all ${
+                        isBirthDateApproved
                           ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
-                          : isShebaRejected
+                          : isBirthDateRejected
                           ? 'border-red-400 ring-2 ring-red-100 bg-white'
                           : 'border-slate-200 focus:border-teal-500 bg-white'
                       }`}
-                      dir="ltr"
-                    />
-                    <span className="absolute left-3 top-2.5 font-mono font-bold text-slate-400 text-xs">
-                      IR
-                    </span>
+                    >
+                      <option value="">روز</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => {
+                        const val = String(d).padStart(2, '0');
+                        return (
+                          <option key={val} value={val}>
+                            {d.toLocaleString('fa-IR')}
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    {/* Month */}
+                    <select
+                      disabled={isBirthDateApproved}
+                      value={birthMonth}
+                      onChange={e => setBirthMonth(e.target.value)}
+                      className={`w-full px-2 py-2.5 border rounded-xl text-xs outline-none transition-all ${
+                        isBirthDateApproved
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                          : isBirthDateRejected
+                          ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                          : 'border-slate-200 focus:border-teal-500 bg-white'
+                      }`}
+                    >
+                      <option value="">ماه</option>
+                      {PERSIAN_MONTHS.map(m => (
+                        <option key={m.value} value={m.value}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Year */}
+                    <select
+                      disabled={isBirthDateApproved}
+                      value={birthYear}
+                      onChange={e => setBirthYear(e.target.value)}
+                      className={`w-full px-2 py-2.5 border rounded-xl text-xs outline-none transition-all ${
+                        isBirthDateApproved
+                          ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                          : isBirthDateRejected
+                          ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                          : 'border-slate-200 focus:border-teal-500 bg-white'
+                      }`}
+                    >
+                      <option value="">سال</option>
+                      {Array.from({ length: 81 }, (_, i) => 1400 - i).map(y => (
+                        <option key={y} value={String(y)}>
+                          {y.toLocaleString('fa-IR', { useGrouping: false })}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  {!isShebaApproved && shebaNumber.replace(/\D/g, '').length === 24 && !isValidIranianSheba(shebaNumber) && (
-                    <p className="text-[11px] text-red-500 font-bold mt-1 flex items-center gap-1">
-                      <span>⚠️</span>
-                      <span>شماره شبا نادرست است.</span>
-                    </p>
-                  )}
-                  {!isShebaApproved && shebaNumber.replace(/\D/g, '').length === 24 && isValidIranianSheba(shebaNumber) && (
-                    <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
-                      <span>✓</span>
-                      <span>شماره شبا صحیح است</span>
-                    </p>
-                  )}
-                  {isShebaRejected && (
+
+                  {isBirthDateRejected && (
                     <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
                       <span>⚠️</span>
-                      <span>علت عدم تایید: {rejectedFields.shebaNumber}</span>
+                      <span>علت عدم تایید: {rejectedFields.birthDate}</span>
                     </div>
                   )}
                 </div>
+
               </div>
 
-              {/* 3. Address and Postal Code */}
+              {/* 3. Sheba Number */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    شماره شبا (۲۴ رقم بدون IR) <span className="text-red-500">*</span>
+                  </label>
+                  {isShebaApproved && (
+                    <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span>✓</span>
+                      <span>تایید شده</span>
+                    </span>
+                  )}
+                  {isShebaRejected && (
+                    <span className="text-[10px] font-black text-red-800 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span>✕</span>
+                      <span>نیاز به اصلاح</span>
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    maxLength={24}
+                    disabled={isShebaApproved}
+                    value={shebaNumber}
+                    onChange={e => setShebaNumber(e.target.value.replace(/\D/g, ''))}
+                    placeholder="980120000000000000000000"
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-mono pl-10 outline-none text-left transition-all ${
+                      isShebaApproved
+                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                        : isShebaRejected
+                        ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                        : 'border-slate-200 focus:border-teal-500 bg-white'
+                    }`}
+                    dir="ltr"
+                  />
+                  <span className="absolute left-3 top-2.5 font-mono font-bold text-slate-400 text-xs">
+                    IR
+                  </span>
+                </div>
+                {!isShebaApproved && shebaNumber.replace(/\D/g, '').length === 24 && !isValidIranianSheba(shebaNumber) && (
+                  <p className="text-[11px] text-red-500 font-bold mt-1 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>شماره شبا نادرست است.</span>
+                  </p>
+                )}
+                {!isShebaApproved && shebaNumber.replace(/\D/g, '').length === 24 && isValidIranianSheba(shebaNumber) && (
+                  <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                    <span>✓</span>
+                    <span>شماره شبا صحیح است</span>
+                  </p>
+                )}
+                {isShebaRejected && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
+                    <span>⚠️</span>
+                    <span>علت عدم تایید: {rejectedFields.shebaNumber}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Address and Postal Code */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 
                 {/* Address */}
@@ -751,7 +907,7 @@ export default function ArtistVerificationPage() {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    disabled={kycSubmitting || (approvedFields.length === 5)}
+                    disabled={kycSubmitting || (approvedFields.length === 6)}
                     className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl transition-all shadow-md shadow-teal-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
                     <span>

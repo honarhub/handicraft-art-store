@@ -17,9 +17,27 @@ export default function ArtistProfilePage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [successMsg, setSuccessMsg] = useState('');
-
   const errorRef = useRef<HTMLDivElement>(null);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [generalAlertDismissed, setGeneralAlertDismissed] = useState(false);
+
+  const extractGeneralMsg = (feedback: any) => {
+    if (!feedback) return null;
+    try {
+      const parsed = typeof feedback === 'string' ? JSON.parse(feedback) : feedback;
+      if (parsed?._generalMessage && typeof parsed._generalMessage === 'string' && parsed._generalMessage.trim().length > 0) {
+        return parsed._generalMessage.trim();
+      }
+    } catch {}
+    return null;
+  };
+
+  const handleDismissGeneralAlert = (msg: string) => {
+    setGeneralAlertDismissed(true);
+    try {
+      localStorage.setItem(`alert_dismissed_${artist?.id || 'default'}_${encodeURIComponent(msg)}`, 'true');
+    } catch {}
+  };
 
   // AI Resume Auto-Complete states
   const [aiLoading, setAiLoading] = useState(false);
@@ -111,6 +129,7 @@ export default function ArtistProfilePage() {
         setEmail(edits.email || data.user?.email || '');
       } else {
         setPendingMode(false);
+        setSuccessMsg('');
         setName(data.user?.name || '');
         setBrandName(data.brandName || '');
         setProvince(data.province || 'تهران');
@@ -155,6 +174,20 @@ export default function ArtistProfilePage() {
   }, [pendingMode]);
 
   useEffect(() => {
+    const msg = extractGeneralMsg(artist?.adminFeedback);
+    if (msg) {
+      try {
+        const isDismissed = localStorage.getItem(`alert_dismissed_${artist?.id || 'default'}_${encodeURIComponent(msg)}`);
+        setGeneralAlertDismissed(isDismissed === 'true');
+      } catch {
+        setGeneralAlertDismissed(false);
+      }
+    } else {
+      setGeneralAlertDismissed(false);
+    }
+  }, [artist?.id, artist?.adminFeedback]);
+
+  useEffect(() => {
     // Initial fetch once on page mount
     fetchProfile(false);
 
@@ -165,6 +198,7 @@ export default function ArtistProfilePage() {
 
       // Sync admin feedback & field errors immediately from event payload
       if (detail.adminFeedback !== undefined) {
+        setSuccessMsg('');
         setArtist((prev: any) => ({
           ...(prev || {}),
           adminFeedback: detail.adminFeedback,
@@ -192,15 +226,14 @@ export default function ArtistProfilePage() {
       // If review completed (hasPendingEdits is false), exit pendingMode and refresh profile data
       if (detail.hasPendingEdits === false) {
         setPendingMode(false);
+        setSuccessMsg('');
         fetchProfile(true);
       }
     };
 
     const handleFocus = () => {
-      // If artist was waiting for admin review, check and refresh live profile upon returning to tab
-      if (pendingModeRef.current) {
-        fetchProfile(true);
-      }
+      // Check and refresh live profile upon returning to tab
+      fetchProfile(true);
     };
 
     window.addEventListener('artist-status-updated', handleStatusUpdate);
@@ -613,20 +646,29 @@ export default function ArtistProfilePage() {
         const profileEntries = Object.entries(parsed).filter(([k]) => labels[k]);
         const generalMsg = parsed._generalMessage;
 
-        if (profileEntries.length === 0 && !generalMsg) return null;
+        if (profileEntries.length === 0 && (!generalMsg || generalAlertDismissed)) return null;
 
         return (
           <div className="space-y-4 mb-8">
             {/* General Alert / Message from Admin */}
-            {generalMsg && (
-              <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-3xl animate-in fade-in shadow-xs">
-                <div className="flex items-center gap-2 text-amber-950 font-black text-sm mb-2">
-                  <span className="text-xl">⚠️</span>
-                  <span>پیام و هشدار ناظر پلتفرم:</span>
+            {generalMsg && !generalAlertDismissed && (
+              <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-3xl animate-in fade-in shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 text-amber-950 font-black text-sm mb-1.5">
+                    <span className="text-xl">⚠️</span>
+                    <span>پیام و هشدار ناظر پلتفرم:</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-amber-950 font-bold leading-relaxed whitespace-pre-wrap">
+                    {generalMsg}
+                  </p>
                 </div>
-                <p className="text-xs sm:text-sm text-amber-950 font-bold leading-relaxed whitespace-pre-wrap">
-                  {generalMsg}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => handleDismissGeneralAlert(generalMsg)}
+                  className="self-end sm:self-center px-3.5 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-950 border border-amber-400 rounded-xl text-xs font-black transition-colors whitespace-nowrap shadow-xs cursor-pointer"
+                >
+                  متوجه شدم ✕
+                </button>
               </div>
             )}
 
@@ -654,13 +696,24 @@ export default function ArtistProfilePage() {
       // Plain text fallback
     }
 
+    if (generalAlertDismissed) return null;
+
     return (
-      <div className="mb-8 p-5 bg-amber-50 border-2 border-amber-300 rounded-3xl text-xs sm:text-sm text-amber-950 leading-relaxed shadow-xs">
-        <h4 className="font-black text-amber-900 mb-1 flex items-center gap-2">
-          <span>⚠️</span>
-          <span>پیام و هشدار ناظر پلتفرم:</span>
-        </h4>
-        <p className="font-bold whitespace-pre-wrap">{artist.adminFeedback}</p>
+      <div className="mb-8 p-5 bg-amber-50 border-2 border-amber-300 rounded-3xl text-xs sm:text-sm text-amber-950 leading-relaxed shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex-1">
+          <h4 className="font-black text-amber-900 mb-1 flex items-center gap-2">
+            <span>⚠️</span>
+            <span>پیام و هشدار ناظر پلتفرم:</span>
+          </h4>
+          <p className="font-bold whitespace-pre-wrap">{artist.adminFeedback}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => handleDismissGeneralAlert(artist.adminFeedback)}
+          className="self-end sm:self-center px-3.5 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-950 border border-amber-400 rounded-xl text-xs font-black transition-colors whitespace-nowrap shadow-xs cursor-pointer"
+        >
+          متوجه شدم ✕
+        </button>
       </div>
     );
   };
@@ -861,7 +914,11 @@ export default function ArtistProfilePage() {
                   {imagePreview ? (
                     <img src={imagePreview} alt="Profile Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-3xl text-slate-400">👤</span>
+                    <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-300">
+                      <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z" />
+                      </svg>
+                    </div>
                   )}
                 </div>
                 {!pendingMode && (

@@ -25,23 +25,10 @@ export default function ArtistVerificationBanner({
   const [pending, setPending] = useState<boolean>(hasPendingEdits);
   const [currentBrandName, setCurrentBrandName] = useState<string | null>(brandName || null);
   const [celebrationDismissed, setCelebrationDismissed] = useState<boolean>(true);
-  const [generalAlertMsg, setGeneralAlertMsg] = useState<string | null>(null);
-  const [alertDismissed, setAlertDismissed] = useState<boolean>(false);
 
   const prevPendingRef = React.useRef(hasPendingEdits);
   const prevLevelRef = React.useRef(verificationLevel);
   const prevFeedbackRef = React.useRef(adminFeedback);
-
-  const extractGeneralMsg = (feedback: any) => {
-    if (!feedback) return null;
-    try {
-      const parsed = typeof feedback === 'string' ? JSON.parse(feedback) : feedback;
-      if (parsed?._generalMessage && typeof parsed._generalMessage === 'string' && parsed._generalMessage.trim().length > 0) {
-        return parsed._generalMessage.trim();
-      }
-    } catch {}
-    return null;
-  };
 
   useEffect(() => {
     try {
@@ -52,60 +39,11 @@ export default function ArtistVerificationBanner({
     }
   }, [artistId]);
 
-  useEffect(() => {
-    const msg = extractGeneralMsg(adminFeedback);
-    setGeneralAlertMsg(msg);
-    if (msg) {
-      try {
-        const isDismissed = localStorage.getItem(`alert_dismissed_${artistId || 'default'}_${encodeURIComponent(msg)}`);
-        setAlertDismissed(isDismissed === 'true');
-      } catch {
-        setAlertDismissed(false);
-      }
-    }
-  }, [adminFeedback, artistId]);
-
   const handleDismissCelebration = () => {
     setCelebrationDismissed(true);
     try {
       localStorage.setItem(`level2_celebration_dismissed_${artistId || 'default'}`, 'true');
     } catch {}
-  };
-
-  const handleDismissAlert = () => {
-    setAlertDismissed(true);
-    if (generalAlertMsg) {
-      try {
-        localStorage.setItem(`alert_dismissed_${artistId || 'default'}_${encodeURIComponent(generalAlertMsg)}`, 'true');
-      } catch {}
-    }
-  };
-
-  const renderGeneralAlert = () => {
-    if (!generalAlertMsg || alertDismissed) return null;
-
-    return (
-      <div className="bg-amber-500/10 border-2 border-amber-500/50 rounded-2xl p-4 sm:p-5 mb-6 text-amber-200 shadow-lg relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in" dir="rtl">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl flex-shrink-0 mt-0.5">⚠️</span>
-          <div>
-            <h4 className="font-black text-amber-300 text-sm sm:text-base mb-1">
-              پیام و هشدار ناظر پلتفرم:
-            </h4>
-            <p className="text-xs sm:text-sm text-amber-100/90 leading-relaxed whitespace-pre-wrap">
-              {generalAlertMsg}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleDismissAlert}
-          className="self-end sm:self-center px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-xl text-xs font-bold transition-colors whitespace-nowrap"
-        >
-          متوجه شدم ✕
-        </button>
-      </div>
-    );
   };
 
   useEffect(() => {
@@ -138,8 +76,6 @@ export default function ArtistVerificationBanner({
         }
         if (e.detail.adminFeedback !== undefined) {
           prevFeedbackRef.current = e.detail.adminFeedback;
-          const msg = extractGeneralMsg(e.detail.adminFeedback);
-          setGeneralAlertMsg(msg);
         }
       }
     };
@@ -173,10 +109,6 @@ export default function ArtistVerificationBanner({
           if (data.brandName) {
             setCurrentBrandName(data.brandName);
           }
-          if (data.adminFeedback !== undefined) {
-            const msg = extractGeneralMsg(data.adminFeedback);
-            setGeneralAlertMsg(msg);
-          }
 
           // Broadcast only if status actually changed on server
           if (hasEditsChanged || hasLevelChanged || hasFeedbackChanged) {
@@ -201,13 +133,11 @@ export default function ArtistVerificationBanner({
   // --- CASE C: Level 2+ Approved Celebration & Notification Banner ---
   if (approved && level >= 2 && !pending) {
     if (celebrationDismissed) {
-      return renderGeneralAlert();
+      return null;
     }
 
     return (
-      <>
-        {renderGeneralAlert()}
-        <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-blue-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border-2 border-blue-500/40 shadow-2xl relative overflow-hidden transition-all animate-in fade-in" dir="rtl">
+      <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-blue-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border-2 border-blue-500/40 shadow-2xl relative overflow-hidden transition-all animate-in fade-in" dir="rtl">
         <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -264,16 +194,13 @@ export default function ArtistVerificationBanner({
           </div>
         </div>
       </div>
-    </>
-  );
-}
+    );
+  }
 
   // --- CASE A: Pending Admin Review ---
   if (pending) {
     return (
-      <>
-        {renderGeneralAlert()}
-        <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-amber-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border border-amber-900/40 shadow-xl relative overflow-hidden transition-all" dir="rtl">
+      <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-amber-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border border-amber-900/40 shadow-xl relative overflow-hidden transition-all" dir="rtl">
           <div className="absolute top-0 left-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -321,15 +248,12 @@ export default function ArtistVerificationBanner({
             </div>
           </div>
         </div>
-      </>
     );
   }
 
   // --- CASE B: Level 1 (Completed Onboarding, Profile not yet submitted or rejected) ---
   return (
-    <>
-      {renderGeneralAlert()}
-      <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-teal-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border border-teal-900/40 shadow-xl relative overflow-hidden transition-all" dir="rtl">
+    <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-teal-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border border-teal-900/40 shadow-xl relative overflow-hidden transition-all" dir="rtl">
         <div className="absolute top-0 left-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -372,6 +296,5 @@ export default function ArtistVerificationBanner({
           </div>
         </div>
       </div>
-    </>
-  );
-}
+    );
+  }

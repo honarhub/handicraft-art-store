@@ -164,9 +164,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // --- STEP 3: KYC & Legal Identity (National ID, Card Image, Address, Sheba) ---
+    // --- STEP 3: KYC & Legal Identity (National ID, Card Image, Address, Sheba, Birth Date) ---
     if (step === 3) {
-      const { nationalId, nationalCardImage, address, postalCode, shebaNumber } = body;
+      const { nationalId, nationalCardImage, address, postalCode, shebaNumber, birthDate } = body;
 
       // Check existing approved fields
       let existingApproved: string[] = [];
@@ -184,6 +184,9 @@ export async function POST(req: Request) {
         if (!nationalId || !isValidIranianNationalId(nationalId)) {
           return NextResponse.json({ error: 'کدملی نادرست است.' }, { status: 400 });
         }
+      }
+      if (!existingApproved.includes('birthDate') && (!birthDate || !birthDate.trim())) {
+        return NextResponse.json({ error: 'تاریخ تولد الزامی است.' }, { status: 400 });
       }
       if (!existingApproved.includes('address') && (!address || !address.trim())) {
         return NextResponse.json({ error: 'آدرس محل سکونت یا کارگاه الزامی است.' }, { status: 400 });
@@ -214,6 +217,7 @@ export async function POST(req: Request) {
         data: {
           nationalId: existingApproved.includes('nationalId') ? artist.nationalId : (nationalId?.trim() || artist.nationalId),
           nationalCardImage: existingApproved.includes('nationalCardImage') ? artist.nationalCardImage : finalCardImage,
+          birthDate: existingApproved.includes('birthDate') ? artist.birthDate : (birthDate?.trim() || artist.birthDate),
           address: existingApproved.includes('address') ? artist.address : (address?.trim() || artist.address),
           postalCode: existingApproved.includes('postalCode') ? artist.postalCode : (postalCode?.trim() || artist.postalCode),
           shebaNumber: existingApproved.includes('shebaNumber') ? artist.shebaNumber : (shebaNumber?.replace(/^IR/i, '').trim() || artist.shebaNumber),

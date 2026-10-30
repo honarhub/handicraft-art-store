@@ -121,6 +121,7 @@ model ArtistProfile {
   // مدارک هویتی و مالی (سطح ۳)
   nationalId        String?  // کد ملی
   nationalCardImage String?  // تصویر کارت ملی
+  birthDate         String?  // تاریخ تولد (شمسی: YYYY/MM/DD)
   address           String?  // آدرس کارگاه یا محل سکونت
   postalCode        String?  // کد پستی
   shebaNumber       String?  // شماره شبا بانکی (بدون IR)
