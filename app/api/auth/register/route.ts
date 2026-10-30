@@ -127,9 +127,9 @@ export async function POST(req: Request) {
       }
     });
 
-    // 7. Auto-generate 5 referral codes for this new artist
+    // 7. Auto-generate 3 referral codes for this new artist
     try {
-      await ensureArtistReferralCodes(newUser.id, 5);
+      await ensureArtistReferralCodes(newUser.id, 3);
     } catch (e) {
       console.error('Failed to auto-generate referral codes for new artist:', e);
     }

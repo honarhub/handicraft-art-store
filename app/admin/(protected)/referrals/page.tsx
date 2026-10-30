@@ -389,7 +389,7 @@ export default function AdminReferralsPage() {
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   >
                     <option value={1}>۱ عدد کد معرف</option>
-                    <option value={5}>۵ عدد کد معرف (سهمیه یک هنرمند)</option>
+                    <option value={3}>۳ عدد کد معرف (سهمیه یک هنرمند)</option>
                     <option value={10}>۱۰ عدد کد معرف</option>
                     <option value={20}>۲۰ عدد کد معرف</option>
                     <option value={50}>۵۰ عدد کد معرف</option>

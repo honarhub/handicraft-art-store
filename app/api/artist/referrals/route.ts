@@ -22,8 +22,8 @@ export async function GET() {
       return NextResponse.json({ error: 'دسترسی فقط برای هنرمندان مجاز است' }, { status: 403 });
     }
 
-    // Ensure artist has up to 5 referral codes
-    const codes = await ensureArtistReferralCodes(user.id, 5);
+    // Ensure artist has up to 3 referral codes
+    const codes = await ensureArtistReferralCodes(user.id, 3);
 
     return NextResponse.json({
       success: true,
