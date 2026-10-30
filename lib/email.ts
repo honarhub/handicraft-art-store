@@ -104,28 +104,14 @@ export function renderOtpEmailHtml(code: string): string {
                 کد تایید یکبار مصرف شما جهت ورود و احراز هویت در سامانه هنرهاب:
               </p>
 
-              <!-- Prominent, Large OTP Box with Copy Icon (Two Overlapping Squares) -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 24px 0;">
+              <!-- Prominent, Large OTP Box (Digits Only) -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0 24px 0;">
                 <tr>
                   <td align="center">
-                    <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 16px; padding: 16px 24px; display: inline-block; text-align: center; -webkit-user-select: all; -moz-user-select: all; user-select: all; cursor: pointer;" title="کپی کد">
-                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="direction: ltr; margin: 0 auto;">
-                        <tr>
-                          <td style="vertical-align: middle; padding-right: 12px;">
-                            <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #064e3b; letter-spacing: 14px; display: inline-block; line-height: 1; -webkit-user-select: all; user-select: all;">
-                              ${code}
-                            </span>
-                          </td>
-                          <td style="vertical-align: middle;">
-                            <span style="display: inline-block; padding: 8px; background-color: #d1fae5; border-radius: 10px; line-height: 0; vertical-align: middle;" title="کپی">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; display: block;">
-                                <rect width="13" height="13" x="9" y="9" rx="2" ry="2"/>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                              </svg>
-                            </span>
-                          </td>
-                        </tr>
-                      </table>
+                    <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 16px; padding: 18px 36px; display: inline-block; text-align: center; -webkit-user-select: all; -moz-user-select: all; user-select: all; cursor: pointer;">
+                      <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 44px; font-weight: 900; color: #064e3b; letter-spacing: 14px; display: inline-block; direction: ltr; line-height: 1; -webkit-user-select: all; user-select: all;">
+                        ${code}
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -260,28 +246,14 @@ export function renderPasswordResetEmailHtml(code: string): string {
                 کد تایید یکبار مصرف شما جهت بازنشانی و تغییر رمز عبور در سامانه هنرهاب:
               </p>
 
-              <!-- Prominent, Large OTP Box with Copy Icon (Two Overlapping Squares) -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 24px 0;">
+              <!-- Prominent, Large OTP Box (Digits Only) -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0 24px 0;">
                 <tr>
                   <td align="center">
-                    <div style="background-color: #eff6ff; border: 2px dashed #2563eb; border-radius: 16px; padding: 16px 24px; display: inline-block; text-align: center; -webkit-user-select: all; -moz-user-select: all; user-select: all; cursor: pointer;" title="کپی کد">
-                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="direction: ltr; margin: 0 auto;">
-                        <tr>
-                          <td style="vertical-align: middle; padding-right: 12px;">
-                            <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #1e40af; letter-spacing: 14px; display: inline-block; line-height: 1; -webkit-user-select: all; user-select: all;">
-                              ${code}
-                            </span>
-                          </td>
-                          <td style="vertical-align: middle;">
-                            <span style="display: inline-block; padding: 8px; background-color: #dbeafe; border-radius: 10px; line-height: 0; vertical-align: middle;" title="کپی">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; display: block;">
-                                <rect width="13" height="13" x="9" y="9" rx="2" ry="2"/>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                              </svg>
-                            </span>
-                          </td>
-                        </tr>
-                      </table>
+                    <div style="background-color: #eff6ff; border: 2px dashed #2563eb; border-radius: 16px; padding: 18px 36px; display: inline-block; text-align: center; -webkit-user-select: all; -moz-user-select: all; user-select: all; cursor: pointer;">
+                      <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 44px; font-weight: 900; color: #1e40af; letter-spacing: 14px; display: inline-block; direction: ltr; line-height: 1; -webkit-user-select: all; user-select: all;">
+                        ${code}
+                      </span>
                     </div>
                   </td>
                 </tr>
