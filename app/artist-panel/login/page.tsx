@@ -160,6 +160,7 @@ function ArtistLoginContent() {
 
       if (!res.ok || !data.exists) {
         setIsUnregisteredError(true);
+        setUnregisteredEmail(null);
         setErrorMsg('این حساب کاربری در سیستم ثبت نشده است. لطفاً ابتدا «ثبت‌نام» نمایید.');
         setLoginLoading(false);
         return;
@@ -284,9 +285,14 @@ function ArtistLoginContent() {
       setRegIdentifier(loginIdentifier);
       setRegMethod(loginMethod);
     }
+    setRegStep('form');
+    setRegOtpCode('');
     setMainMode('register');
     setErrorMsg('');
     setIsUnregisteredError(false);
+    if (searchParams.get('error')) {
+      router.replace('/artist-panel/login', { scroll: false });
+    }
   };
 
   // ==========================================
@@ -353,13 +359,15 @@ function ArtistLoginContent() {
   };
 
   // Step 2: Complete Registration & Auto Login
-  const handleCompleteRegistration = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (regOtpCode.length !== 5) {
+  const handleCompleteRegistration = async (e?: React.FormEvent, overrideCode?: string) => {
+    if (e) e.preventDefault();
+    const codeToVerify = (overrideCode ?? regOtpCode).trim();
+    if (codeToVerify.length !== 5) {
       setErrorMsg('کد تایید ۵ رقمی را کامل وارد کنید.');
       return;
     }
 
+    if (regLoading) return;
     setRegLoading(true);
     setErrorMsg('');
 
@@ -372,7 +380,7 @@ function ArtistLoginContent() {
           identifier: regIdentifier.trim(),
           referralCode: regReferralCode.trim().toUpperCase(),
           password: regPassword,
-          otpCode: regOtpCode.trim()
+          otpCode: codeToVerify
         })
       });
 
@@ -512,6 +520,11 @@ function ArtistLoginContent() {
                 setErrorMsg('');
                 setSuccessMsg('');
                 setIsUnregisteredError(false);
+                setUnregisteredEmail(null);
+                setRegStep('form');
+                if (searchParams.get('error')) {
+                  router.replace('/artist-panel/login', { scroll: false });
+                }
               }}
               className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all ${
                 mainMode === 'login'
@@ -529,6 +542,9 @@ function ArtistLoginContent() {
                 setErrorMsg('');
                 setSuccessMsg('');
                 setIsUnregisteredError(false);
+                if (searchParams.get('error')) {
+                  router.replace('/artist-panel/login', { scroll: false });
+                }
               }}
               className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all ${
                 mainMode === 'register'
@@ -548,7 +564,7 @@ function ArtistLoginContent() {
                 <span>{errorMsg}</span>
               </div>
               {isUnregisteredError && (
-                <div className="pt-2 border-t border-red-200">
+                <div className="pt-2 border-t border-red-200 space-y-2">
                   <button
                     type="button"
                     onClick={handleGoToRegister}
@@ -556,11 +572,29 @@ function ArtistLoginContent() {
                   >
                     <span>
                       {unregisteredEmail
-                        ? `ثبت‌نام با این مشخصات (${unregisteredEmail})`
-                        : 'ثبت‌نام در هنرهاب با همین مشخصات'}
+                        ? `ثبت‌نام با این ایمیل (${unregisteredEmail})`
+                        : loginIdentifier
+                        ? `ثبت‌نام با این مشخصات (${loginIdentifier})`
+                        : 'ثبت‌نام در هنرهاب'}
                     </span>
                     <span>←</span>
                   </button>
+                  {unregisteredEmail && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUnregisteredEmail(null);
+                        setIsUnregisteredError(false);
+                        setErrorMsg('');
+                        if (searchParams.get('error')) {
+                          router.replace('/artist-panel/login', { scroll: false });
+                        }
+                      }}
+                      className="w-full text-center text-[11px] text-red-700 hover:text-red-900 underline font-bold py-1 cursor-pointer block"
+                    >
+                      صرف‌نظر و ورود با شماره موبایل یا ایمیل دیگر
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -597,6 +631,7 @@ function ArtistLoginContent() {
                         setLoginIdentifier(e.target.value);
                         setErrorMsg('');
                         setIsUnregisteredError(false);
+                        setUnregisteredEmail(null);
                       }}
                       autoFocus
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-wider text-slate-900 bg-slate-50/50"
@@ -842,7 +877,11 @@ function ArtistLoginContent() {
                   <div className="flex border-b border-slate-100 pb-3 mb-2 gap-4 text-xs font-bold">
                     <button
                       type="button"
-                      onClick={() => { setRegMethod('phone'); setErrorMsg(''); }}
+                      onClick={() => {
+                        setRegMethod('phone');
+                        if (regIdentifier.includes('@')) setRegIdentifier('');
+                        setErrorMsg('');
+                      }}
                       className={`pb-1 transition-all ${
                         regMethod === 'phone'
                           ? 'text-emerald-700 border-b-2 border-emerald-600'
@@ -853,7 +892,11 @@ function ArtistLoginContent() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setRegMethod('email'); setErrorMsg(''); }}
+                      onClick={() => {
+                        setRegMethod('email');
+                        if (!regIdentifier.includes('@') && regIdentifier.startsWith('09')) setRegIdentifier('');
+                        setErrorMsg('');
+                      }}
                       className={`pb-1 transition-all ${
                         regMethod === 'email'
                           ? 'text-emerald-700 border-b-2 border-emerald-600'
@@ -1043,17 +1086,21 @@ function ArtistLoginContent() {
                     className="sr-only pointer-events-none opacity-0 absolute -z-10"
                   />
 
-                  <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs text-emerald-950 flex items-center justify-between">
+                  <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl text-xs text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div>
-                      <span className="text-emerald-700 block text-[10px]">کد تایید ارسال شده به:</span>
-                      <span className="font-mono font-bold" dir="ltr">{regIdentifier}</span>
+                      <span className="text-emerald-700 block text-[11px] font-medium">کد تایید ارسال شده به:</span>
+                      <span className="font-mono font-bold text-sm" dir="ltr">{regIdentifier}</span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => setRegStep('form')}
-                      className="text-emerald-800 underline font-black text-[11px]"
+                      onClick={() => {
+                        setRegStep('form');
+                        setRegOtpCode('');
+                        setErrorMsg('');
+                      }}
+                      className="text-emerald-800 hover:text-emerald-950 underline font-black text-xs cursor-pointer"
                     >
-                      ویرایش اطلاعات
+                      ویرایش و تغییر اطلاعات
                     </button>
                   </div>
 
@@ -1076,7 +1123,13 @@ function ArtistLoginContent() {
                       maxLength={5}
                       placeholder="• • • • •"
                       value={regOtpCode}
-                      onChange={(e) => setRegOtpCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 5);
+                        setRegOtpCode(val);
+                        if (regMethod === 'email' && val.length === 5 && !regLoading) {
+                          handleCompleteRegistration(undefined, val);
+                        }
+                      }}
                       autoFocus
                       required
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-2xl tracking-[0.5em] text-slate-900 bg-slate-50/50"
@@ -1090,7 +1143,7 @@ function ArtistLoginContent() {
                       <button
                         type="button"
                         onClick={handleRegisterFormSubmit}
-                        className="text-teal-600 hover:text-teal-700 font-bold"
+                        className="text-teal-600 hover:text-teal-700 font-bold cursor-pointer"
                       >
                         ارسال مجدد کد تایید
                       </button>
@@ -1100,10 +1153,43 @@ function ArtistLoginContent() {
                   <button
                     type="submit"
                     disabled={regLoading || regOtpCode.length !== 5}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm cursor-pointer"
                   >
                     {regLoading ? 'در حال ثبت‌نام و ساخت حساب...' : 'تکمیل ثبت‌نام و ورود به هنرهاب'}
                   </button>
+
+                  <div className="flex items-center gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRegStep('form');
+                        setRegOtpCode('');
+                        setErrorMsg('');
+                      }}
+                      className="flex-1 py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>←</span>
+                      <span>مرحله قبل (ویرایش اطلاعات)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMainMode('login');
+                        setRegStep('form');
+                        setRegOtpCode('');
+                        setErrorMsg('');
+                        setIsUnregisteredError(false);
+                        setUnregisteredEmail(null);
+                        if (searchParams.get('error')) {
+                          router.replace('/artist-panel/login', { scroll: false });
+                        }
+                      }}
+                      className="py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    >
+                      <span>🔐</span>
+                      <span>ورود به هنرهاب</span>
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
