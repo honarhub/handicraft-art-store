@@ -147,7 +147,7 @@ export default function ArtistReferralsPage() {
               <span>باشگاه دعوت هنرمندان برگزیده</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              معرفی از هنرمندان (کدهای دعوت اختصاصی)
+              دعوت از هنرمندان (کدهای دعوت اختصاصی)
             </h1>
             <p className="text-sm sm:text-base text-teal-100/90 leading-relaxed">
               شما به عنوان هنرمند تایید شده در هنرهاب، دارای <strong className="text-amber-300 font-black">۳ کد معرف اختصاصی</strong> هستید تا در اختیار همکاران و هنرمندان دیگر قرار دهید. هر کد یکبار مصرف است و پس از ثبت‌نام موفق، می‌سوزد.

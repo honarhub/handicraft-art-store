@@ -280,6 +280,44 @@ export default function AdminArtistsPage() {
     }
   };
 
+  const handleApproveDeletion = async (id: string, name?: string) => {
+    if (!window.confirm(`آیا از تایید درخواست حذف و بایگانی کامل حساب کاربری «${name || 'هنرمند'}» اطمینان دارید؟\nاین عملیات دسترسی کاربر را مسدود و پروفایل وی را بایگانی می‌کند.`)) return;
+    try {
+      const res = await fetch(`/api/artists/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approveDeleteRequest' })
+      });
+      if (!res.ok) throw new Error('خطا در تایید حذف هنرمند');
+
+      setArtists(prev => prev.map(a => a.id === id ? { ...a, status: 'DELETED', isActive: false, deletionRequested: false } : a));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
+      alert('حساب کاربری هنرمند با موفقیت حذف نرم و بایگانی شد.');
+    } catch (error: any) {
+      alert(error.message || 'عملیات با خطا مواجه شد');
+    }
+  };
+
+  const handleRejectDeletion = async (id: string, name?: string) => {
+    const feedback = window.prompt(`علت رد درخواست حذف حساب کاربری «${name || 'هنرمند'}» را وارد کنید (اختیاری):`, 'درخواست حذف حساب شما توسط مدیریت پلتفرم رد شد.');
+    if (feedback === null) return;
+
+    try {
+      const res = await fetch(`/api/artists/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'rejectDeleteRequest', adminFeedback: feedback })
+      });
+      if (!res.ok) throw new Error('خطا در رد درخواست حذف');
+
+      setArtists(prev => prev.map(a => a.id === id ? { ...a, deletionRequested: false, deletionReason: null, adminFeedback: feedback } : a));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
+      alert('درخواست حذف رد شد و حساب هنرمند فعال باقی ماند.');
+    } catch (error: any) {
+      alert(error.message || 'عملیات با خطا مواجه شد');
+    }
+  };
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword && newPassword.length > 0 && newPassword.length < 6) {
@@ -337,9 +375,10 @@ export default function AdminArtistsPage() {
   const level1Artists = artists.filter(a => a.status !== 'DELETED' && (a.verificationLevel || 0) === 1);
   const verifiedArtists = artists.filter(a => a.status !== 'DELETED' && (a.verificationLevel || 0) >= 2);
 
-  // Red Lists (Verification Requests)
+  // Red Lists (Verification & Deletion Requests)
   const level2Requests = artists.filter(a => a.status !== 'DELETED' && a.isLevel2Pending);
   const level3Requests = artists.filter(a => a.status !== 'DELETED' && a.isLevel3Pending);
+  const deletionRequests = artists.filter(a => a.status !== 'DELETED' && a.deletionRequested);
 
   // Yellow List (Profile Edits of Level 2 & 3 Artists)
   const profileEditRequests = artists.filter(a => a.status !== 'DELETED' && a.isProfileEditPending);
@@ -353,6 +392,7 @@ export default function AdminArtistsPage() {
     if (levelFilter === '0' && (artist.verificationLevel || 0) !== 0) return false;
     if (levelFilter === '1' && (artist.verificationLevel || 0) !== 1) return false;
     if (levelFilter === 'VERIFIED' && (artist.verificationLevel || 0) < 2) return false;
+    if ((levelFilter as string) === 'DELETIONS' && !artist.deletionRequested) return false;
 
     const matchGlobal = globalSearch === '' || 
       artist.name.toLowerCase().includes(globalSearch.toLowerCase()) || 
@@ -470,7 +510,105 @@ export default function AdminArtistsPage() {
             {verifiedArtists.length}
           </span>
         </button>
+
+        {deletionRequests.length > 0 && (
+          <button
+            onClick={() => setLevelFilter('DELETIONS' as any)}
+            className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
+              (levelFilter as string) === 'DELETIONS'
+                ? 'bg-red-700 text-white shadow-md ring-2 ring-red-400'
+                : 'bg-red-50 hover:bg-red-100 text-red-800 border border-red-300'
+            }`}
+          >
+            <span>🗑️ درخواست‌های حذف حساب</span>
+            <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-red-600 text-white animate-pulse">
+              {deletionRequests.length}
+            </span>
+          </button>
+        )}
       </div>
+
+      {/* 🔴 RED SECTION: Account Deletion Requests */}
+      {deletionRequests.length > 0 && (
+        <div className="mb-8 bg-red-50/90 border-2 border-red-400 rounded-3xl p-6 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="flex h-3 w-3 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-700"></span>
+            </span>
+            <h3 className="text-base sm:text-lg font-black text-red-950">
+              درخواست‌های حذف کامل حساب کاربری ({deletionRequests.length})
+            </h3>
+            <span className="bg-red-700 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
+              نیازمند اقدام
+            </span>
+          </div>
+          <p className="text-xs text-red-800 mb-4 leading-relaxed">
+            این هنرمندان از منوی تنظیمات امنیتی پنل خود، درخواست حذف کامل پروفایل و بایگانی حساب خود را ثبت کرده‌اند. با تایید درخواست، حساب کاربری و آثار آن‌ها مانند حذف نرم، از دسترس عمومی خارج شده و بایگانی می‌شود.
+          </p>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
+            <table className="w-full text-right text-xs sm:text-sm">
+              <thead className="bg-red-50 text-red-900 font-bold border-b border-red-200">
+                <tr>
+                  <th className="px-6 py-3.5">هنرمند و استودیو</th>
+                  <th className="px-6 py-3.5">تماس و موقعیت</th>
+                  <th className="px-6 py-3.5">علت درخواست حذف</th>
+                  <th className="px-6 py-3.5">تاریخ ثبت درخواست</th>
+                  <th className="px-6 py-3.5 text-left">اقدام مدیریت</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-red-100">
+                {deletionRequests.map((artist) => (
+                  <tr key={artist.id} className="hover:bg-red-50/40 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900">{artist.name}</div>
+                      {artist.brandName && (
+                        <div className="text-xs text-emerald-800 font-bold mt-0.5">برند: {artist.brandName}</div>
+                      )}
+                      <div className="text-xs text-slate-500 mt-1" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-mono text-xs text-slate-800" dir="ltr">{artist.phoneNumber || '—'}</div>
+                      <div className="text-xs text-slate-600 mt-1">
+                        {artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 max-w-xs">
+                      <div className="text-xs text-red-900 bg-red-50/80 p-2.5 rounded-xl border border-red-200 leading-relaxed font-medium">
+                        {artist.deletionReason || 'دلیلی قید نشده است.'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-500">
+                      {formatPersianDate(artist.deletionRequestedAt || artist.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 text-left">
+                      <div className="flex justify-end items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleApproveDeletion(artist.id, artist.brandName || artist.name)}
+                          className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-black transition-colors shadow-sm shadow-red-500/20 cursor-pointer"
+                        >
+                          <span>تایید و بایگانی حساب</span>
+                          <span>✓</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectDeletion(artist.id, artist.brandName || artist.name)}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                          title="رد درخواست حذف"
+                        >
+                          رد درخواست
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* 🔴 RED SECTION 1: Level 2 Verification Requests */}
       {level2Requests.length > 0 && (

@@ -61,7 +61,7 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
       count: counts.pendingArtistsCount, 
       countTitle: 'درخواست‌های ویرایش پروفایل هنرمندان',
       newCount: counts.newRegistrationsCount,
-      newTitle: 'درخواست‌های ارتقا و احراز هویت (سطح ۲ و ۳)'
+      newTitle: 'درخواست‌های ارتقا، احراز هویت و حذف حساب'
     },
     { 
       href: '/admin/products', 

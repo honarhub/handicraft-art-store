@@ -44,7 +44,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Get count of artists for verification requests (RED) and profile edits (YELLOW)
   const allArtistsForCount = await prisma.artistProfile.findMany({
     where: { isDeleted: false },
-    select: { verificationLevel: true, pendingEdits: true, nationalId: true }
+    select: { verificationLevel: true, pendingEdits: true, nationalId: true, deletionRequested: true }
   });
 
   const hasEditsLayout = (pendingEdits: any) => {
@@ -59,8 +59,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const level2PendingCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) < 2 && hasEditsLayout(a.pendingEdits)).length;
   const level3PendingCount = allArtistsForCount.filter(a => a.verificationLevel === 2 && Boolean(a.nationalId)).length;
-  // Red notification badge: requests for Level 2 & Level 3
-  const newRegistrationsCount = level2PendingCount + level3PendingCount;
+  const deletionRequestsCount = allArtistsForCount.filter(a => Boolean(a.deletionRequested)).length;
+  // Red notification badge: requests for Level 2 & Level 3 & Deletion requests
+  const newRegistrationsCount = level2PendingCount + level3PendingCount + deletionRequestsCount;
   // Yellow notification badge: edits by verified artists (Level 2 & 3)
   const pendingArtistsCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) >= 2 && hasEditsLayout(a.pendingEdits)).length;
 

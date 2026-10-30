@@ -17,10 +17,10 @@ export async function GET() {
       where: { isApproved: false }
     });
 
-    // 2. شمارش درخواست‌های احراز هویت (قرمز) و ویرایش‌ها (زرد) و فیلترهای سطوح
+    // 2. شمارش درخواست‌های احراز هویت (قرمز)، حذف حساب (قرمز) و ویرایش‌ها (زرد) و فیلترهای سطوح
     const allArtistsForCount = await prisma.artistProfile.findMany({
       where: { isDeleted: false },
-      select: { verificationLevel: true, pendingEdits: true, nationalId: true, adminFeedback: true }
+      select: { verificationLevel: true, pendingEdits: true, nationalId: true, adminFeedback: true, deletionRequested: true }
     });
 
     const hasEdits = (pendingEdits: any) => {
@@ -58,8 +58,11 @@ export async function GET() {
     };
     const level3PendingCount = allArtistsForCount.filter(isL3Pending).length;
 
-    // کل نوتیف‌های قرمز برای منوی هنرمندان
-    const verificationRequestsCount = level2PendingCount + level3PendingCount;
+    // درخواست‌های حذف کامل حساب کاربری هنرمند (قرمز)
+    const deletionRequestsCount = allArtistsForCount.filter(a => Boolean(a.deletionRequested)).length;
+
+    // کل نوتیف‌های قرمز برای منوی هنرمندان (احراز ۲ + ۳ + درخواست حذف)
+    const verificationRequestsCount = level2PendingCount + level3PendingCount + deletionRequestsCount;
 
     // درخواست‌های ویرایش پروفایل هنرمندان تایید شده (زرد): سطح ۲ یا ۳ که ادیت دارند
     const profileEditsCount = allArtistsForCount.filter(a => (a.verificationLevel || 0) >= 2 && hasEdits(a.pendingEdits)).length;
@@ -103,6 +106,7 @@ export async function GET() {
       newRegistrationsCount: verificationRequestsCount, // Red notification badge
       pendingArtistsCount: profileEditsCount, // Yellow notification badge
       verificationRequestsCount,
+      deletionRequestsCount,
       profileEditsCount,
       level0Count,
       level1Count,

@@ -5,6 +5,10 @@ export default function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,8 +55,27 @@ export default function ChangePasswordForm() {
     }
   };
 
+  const renderEyeIcon = (shown: boolean) => {
+    if (shown) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+          <line x1="2" y1="2" x2="22" y2="22" />
+        </svg>
+      );
+    }
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  };
+
   return (
-    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 mt-8">
+    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200">
       <h3 className="text-xl font-black text-slate-800 mb-2">تغییر رمز عبور</h3>
       <p className="text-slate-500 mb-6 text-sm">برای امنیت بیشتر، پیشنهاد می‌شود رمز عبور خود را به صورت دوره‌ای تغییر دهید.</p>
       
@@ -70,47 +93,86 @@ export default function ChangePasswordForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5 max-w-md">
+      <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">رمز عبور فعلی</label>
-          <input
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none text-left"
-            dir="ltr"
-            required
-          />
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">رمز عبور فعلی</label>
+          <div className="relative">
+            <input
+              type={showCurrentPassword ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="••••••••"
+              dir="ltr"
+              autoComplete="current-password"
+              required
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              title={showCurrentPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+              aria-label={showCurrentPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+            >
+              {renderEyeIcon(showCurrentPassword)}
+            </button>
+          </div>
         </div>
         
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">رمز عبور جدید</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none text-left"
-            dir="ltr"
-            required
-          />
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">تعیین رمز عبور جدید (حداقل ۶ کاراکتر)</label>
+          <div className="relative">
+            <input
+              type={showNewPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              dir="ltr"
+              autoComplete="new-password"
+              required
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNewPassword(!showNewPassword)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              title={showNewPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+              aria-label={showNewPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+            >
+              {renderEyeIcon(showNewPassword)}
+            </button>
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">تکرار رمز عبور جدید</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none text-left"
-            dir="ltr"
-            required
-          />
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">تکرار رمز عبور جدید</label>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••"
+              dir="ltr"
+              autoComplete="new-password"
+              required
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+              title={showConfirmPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+              aria-label={showConfirmPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+            >
+              {renderEyeIcon(showConfirmPassword)}
+            </button>
+          </div>
         </div>
         
         <button
           type="submit"
           disabled={loading || !currentPassword || !newPassword || !confirmPassword}
-          className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-colors disabled:opacity-50 flex items-center gap-2 mt-4"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-6 rounded-xl shadow-lg shadow-emerald-600/20 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2 mt-2 cursor-pointer"
         >
           {loading ? 'در حال ثبت...' : 'ذخیره رمز عبور جدید'}
         </button>

@@ -360,11 +360,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
       return NextResponse.json({ success: true });
     }
+
+    if (action === 'rejectDeleteRequest') {
+      const updatedArtist = await prisma.artistProfile.update({
+        where: { id: artistId },
+        data: {
+          deletionRequested: false,
+          deletionReason: null,
+          deletionRequestedAt: null,
+          adminFeedback: body.adminFeedback || 'درخواست حذف حساب شما توسط مدیریت پلتفرم بررسی و رد شد.'
+        }
+      });
+      return NextResponse.json(updatedArtist);
+    }
     
-    // پیش‌فرض یا action === 'delete'
+    // پیش‌فرض یا action === 'delete' یا action === 'approveDeleteRequest'
     updateData = { 
       isDeleted: true, 
       isActive: false,
+      deletionRequested: false,
       pendingEdits: null,
       adminFeedback: null
     };

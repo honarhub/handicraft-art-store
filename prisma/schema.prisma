@@ -130,6 +130,11 @@ model ArtistProfile {
   isDeleted   Boolean  @default(false) // حذف نرم هنرمندان
   isApproved  Boolean  @default(false) // تایید ادمین برای ثبت‌نام جدید
   
+  // درخواست حذف کامل پروفایل هنرمندی توسط هنرمند
+  deletionRequested   Boolean   @default(false)
+  deletionReason      String?
+  deletionRequestedAt DateTime?
+  
   // فیلدهای مالی
   balance         Float    @default(0)
   commissionRate  Float    @default(10.0) // 10% پیش‌فرض برای پلتفرم
