@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ChangePasswordForm from '@/app/components/ChangePasswordForm';
 import AiContentCronSettings from './AiContentCronSettings';
+import SmsSettingsCard from './SmsSettingsCard';
 
 export type RowType = 'SPECIALTY' | 'ARTIST' | 'PRICE_UNDER' | 'PRICE_OVER' | 'CHEAPEST' | 'EXPENSIVE' | 'NEWEST';
 
@@ -27,21 +28,23 @@ export default function AdminSettingsPage() {
   const [artists, setArtists] = useState<any[]>([]);
   const [dynamicRows, setDynamicRows] = useState<DynamicRow[]>([]);
   const [artistAiEnabled, setArtistAiEnabled] = useState(true);
+  const [settingsData, setSettingsData] = useState<any>({});
 
   useEffect(() => {
     Promise.all([
       fetch('/api/specialties').then(r => r.json()),
       fetch('/api/artists').then(r => r.json()),
       fetch('/api/admin/settings').then(r => r.json())
-    ]).then(([specialtiesData, artistsData, settingsData]) => {
+    ]).then(([specialtiesData, artistsData, settingsDataRes]) => {
       setSpecialties(specialtiesData.filter((s: any) => s.isApproved));
       setArtists(artistsData.filter((a: any) => a.isActive && !a.isDeleted));
-      if (settingsData) {
-        if (settingsData.dynamicRows) {
-          setDynamicRows(typeof settingsData.dynamicRows === 'string' ? JSON.parse(settingsData.dynamicRows) : settingsData.dynamicRows);
+      if (settingsDataRes) {
+        setSettingsData(settingsDataRes);
+        if (settingsDataRes.dynamicRows) {
+          setDynamicRows(typeof settingsDataRes.dynamicRows === 'string' ? JSON.parse(settingsDataRes.dynamicRows) : settingsDataRes.dynamicRows);
         }
-        if (settingsData.artistAiEnabled !== undefined) {
-          setArtistAiEnabled(Boolean(settingsData.artistAiEnabled));
+        if (settingsDataRes.artistAiEnabled !== undefined) {
+          setArtistAiEnabled(Boolean(settingsDataRes.artistAiEnabled));
         }
       }
     }).catch(err => console.error('Error fetching data:', err))
@@ -61,6 +64,20 @@ export default function AdminSettingsPage() {
       alert('خطا در ذخیره وضعیت هوش مصنوعی');
       setArtistAiEnabled(!enabled);
     }
+  };
+
+  const handleSaveSmsSettings = async (updates: any) => {
+    const res = await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'خطا در ذخیره تنظیمات پیامک');
+    }
+    const updated = await res.json();
+    setSettingsData((prev: any) => ({ ...prev, ...updated }));
   };
 
   const handleAddRow = () => {
@@ -323,6 +340,8 @@ export default function AdminSettingsPage() {
         </div>
       </div>
       
+      <SmsSettingsCard initialSettings={settingsData} onSave={handleSaveSmsSettings} />
+
       <AiContentCronSettings />
 
       <ChangePasswordForm />

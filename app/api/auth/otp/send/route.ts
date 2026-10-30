@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sms';
+import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure } from '@/lib/otp-security';
 
 export async function POST(req: Request) {
   try {
@@ -93,23 +94,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // Rate Limiting: Check last created code for this target within last 60 seconds
-    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000);
-    const recentCode = await prisma.verificationCode.findFirst({
-      where: {
-        target: normalizedTarget,
-        type: targetType,
-        createdAt: { gte: sixtySecondsAgo },
-        used: false
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    if (recentCode) {
-      const waitSeconds = Math.ceil((recentCode.createdAt.getTime() + 60000 - Date.now()) / 1000);
+    // Security & Anti-abuse checks (Kill switch, IP flood protection, per-phone quota, cooldown)
+    const securityCheck = await checkAndEnforceOtpLimits(req, normalizedTarget, targetType, isEmail);
+    if (!securityCheck.allowed) {
       return NextResponse.json({ 
-        error: `لطفاً ${waitSeconds > 0 ? waitSeconds : 10} ثانیه صبر کرده و سپس مجدداً تلاش کنید.` 
-      }, { status: 429 });
+        error: securityCheck.error,
+        isMobileOtpDisabled: securityCheck.isMobileOtpDisabled
+      }, { status: securityCheck.status });
     }
 
     // Invalidate existing unused codes for this target & type
@@ -124,7 +115,8 @@ export async function POST(req: Request) {
 
     // Generate 5-digit OTP (10000 - 99999)
     const code = Math.floor(10000 + Math.random() * 90000).toString();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
+    const intervalSec = securityCheck.siteSettings.otpResendIntervalSeconds || 60;
+    const expiresAt = new Date(Date.now() + Math.max(intervalSec * 2, 120) * 1000);
 
     await prisma.verificationCode.create({
       data: {
@@ -138,17 +130,26 @@ export async function POST(req: Request) {
 
     // Send SMS if mobile
     if (!isEmail) {
-      await sendSmsOtp(normalizedTarget, code);
+      const smsRes = await sendSmsOtp(normalizedTarget, code);
+      if (!smsRes.success) {
+        await logOtpFailure(securityCheck.clientIp, normalizedTarget, targetType, smsRes.error || 'خطا در ارسال پیامک');
+        return NextResponse.json({
+          error: smsRes.error || 'خطا در ارسال پیامک از طریق سامانه. لطفاً بعداً تلاش نمایید یا با پشتیبانی تماس بگیرید.'
+        }, { status: 502 });
+      }
     } else {
       console.log(`[EMAIL OTP] Code for ${normalizedTarget}: ${code}`);
     }
+
+    // Log successful OTP dispatch
+    await logOtpSent(securityCheck.clientIp, normalizedTarget, targetType);
 
     const isDev = process.env.NODE_ENV !== 'production';
 
     return NextResponse.json({
       success: true,
       message: isEmail ? 'کد تایید به ایمیل شما ارسال شد.' : 'کد تایید با موفقیت پیامک شد.',
-      expiresIn: 120,
+      expiresIn: intervalSec,
       target: normalizedTarget,
       ...(isDev ? { devCode: code } : {})
     });

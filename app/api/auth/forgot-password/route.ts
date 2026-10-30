@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sms';
+import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure } from '@/lib/otp-security';
 
 export async function POST(req: Request) {
   try {
@@ -43,9 +44,19 @@ export async function POST(req: Request) {
         }, { status: 400 });
       }
 
+      // Security & Anti-abuse checks (Kill switch, IP flood protection, per-phone quota, cooldown)
+      const securityCheck = await checkAndEnforceOtpLimits(req, normalizedTarget, 'PASSWORD_RESET', !isMobile);
+      if (!securityCheck.allowed) {
+        return NextResponse.json({ 
+          error: securityCheck.error,
+          isMobileOtpDisabled: securityCheck.isMobileOtpDisabled
+        }, { status: securityCheck.status });
+      }
+
       // Generate 5-digit OTP
       const otpCode = Math.floor(10000 + Math.random() * 90000).toString();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      const intervalSec = securityCheck.siteSettings.otpResendIntervalSeconds || 60;
+      const expiresAt = new Date(Date.now() + Math.max(intervalSec * 3, 300) * 1000); // at least 5 minutes
 
       // Invalidate existing unused codes
       await prisma.verificationCode.updateMany({
@@ -68,11 +79,19 @@ export async function POST(req: Request) {
       });
 
       if (isMobile) {
-        await sendSmsOtp(normalizedTarget, otpCode);
+        const smsRes = await sendSmsOtp(normalizedTarget, otpCode);
+        if (!smsRes.success) {
+          await logOtpFailure(securityCheck.clientIp, normalizedTarget, 'PASSWORD_RESET', smsRes.error || 'خطا در ارسال پیامک');
+          return NextResponse.json({
+            error: smsRes.error || 'خطا در ارسال پیامک از طریق سامانه. لطفاً بعداً تلاش نمایید.'
+          }, { status: 502 });
+        }
       } else {
         // For email, log in dev or send email
         console.log(`[EMAIL-RESET] Password reset code for ${normalizedTarget}: [ ${otpCode} ]`);
       }
+
+      await logOtpSent(securityCheck.clientIp, normalizedTarget, 'PASSWORD_RESET');
 
       const isDev = process.env.NODE_ENV !== 'production';
 

@@ -36,54 +36,191 @@ export function isValidIranianMobile(phone: string): boolean {
   return /^09[0-9]{9}$/.test(normalized);
 }
 
-export async function sendSmsOtp(phone: string, code: string): Promise<{ success: boolean; message?: string }> {
-  const normalized = normalizePhoneNumber(phone);
-  
-  // If third-party SMS API key is configured (e.g., Kavenegar / Ghasedak / FarazSMS)
-  const kavenegarKey = process.env.KAVENEGAR_API_KEY;
+export interface SmsResult {
+  success: boolean;
+  messageId?: number;
+  cost?: number;
+  error?: string;
+  devCode?: string;
+}
 
-  if (kavenegarKey) {
-    try {
-      const template = process.env.KAVENEGAR_OTP_TEMPLATE || 'honarhub-otp';
-      const url = `https://api.kavenegar.com/v1/${kavenegarKey}/verify/lookup.json?receptor=${normalized}&token=${code}&template=${template}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.return?.status === 200) {
-        return { success: true };
-      }
-      console.error('[SMS] Kavenegar error:', data);
-    } catch (err) {
-      console.error('[SMS] Error calling SMS provider:', err);
-    }
+/**
+ * Sends Verification OTP via SMS.ir Fast-Send (ارسال اعتبارسنجی سریع)
+ * Official Endpoint: POST https://api.sms.ir/v1/send/verify
+ * Headers: x-api-key, Content-Type: application/json
+ */
+export async function sendSmsIrVerify(options: {
+  mobile: string;
+  code: string;
+  apiKey: string;
+  templateId: string | number;
+  paramName?: string;
+}): Promise<SmsResult> {
+  const normalized = normalizePhoneNumber(options.mobile);
+  if (!isValidIranianMobile(normalized)) {
+    return { success: false, error: 'شماره تلفن همراه نامعتبر است.' };
   }
 
-  // Fallback in development or when SMS provider is not yet set up
+  const templateIdNum = Number(options.templateId);
+  if (isNaN(templateIdNum) || templateIdNum <= 0) {
+    return { success: false, error: 'شناسه قالب (Template ID) نامعتبر است.' };
+  }
+
+  const paramName = (options.paramName || 'Code').trim();
+
+  try {
+    const res = await fetch('https://api.sms.ir/v1/send/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-api-key': options.apiKey.trim()
+      },
+      body: JSON.stringify({
+        mobile: normalized,
+        templateId: templateIdNum,
+        parameters: [
+          {
+            name: paramName,
+            value: options.code.toString().trim()
+          }
+        ]
+      })
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (res.ok && data?.status === 1) {
+      return {
+        success: true,
+        messageId: data.data?.messageId,
+        cost: data.data?.cost
+      };
+    }
+
+    let errorMsg = data?.message;
+    if (res.status === 401) {
+      errorMsg = 'کلید API پیامک (x-api-key) نامعتبر یا منقضی شده است.';
+    } else if (res.status === 400 && !errorMsg) {
+      errorMsg = 'شناسه قالب یا نام پارامتر در سامانه sms.ir همخوانی ندارد.';
+    } else if (!errorMsg) {
+      errorMsg = `خطای سامانه پیامک (${res.status})`;
+    }
+
+    console.error('[SMS.ir Error]', { status: res.status, data });
+    return { success: false, error: errorMsg };
+  } catch (err: any) {
+    console.error('[SMS.ir Network Error]', err);
+    return { success: false, error: err.message || 'خطا در برقراری ارتباط با سرور پیامک.' };
+  }
+}
+
+/**
+ * Live test function for Admin Settings to verify SMS.ir credentials
+ */
+export async function testSmsIrConnection(options: {
+  mobile: string;
+  apiKey: string;
+  templateId: string | number;
+  paramName?: string;
+  code?: string;
+  testCode?: string;
+}): Promise<SmsResult> {
+  const code = options.testCode || options.code || Math.floor(10000 + Math.random() * 90000).toString();
+  return sendSmsIrVerify({
+    mobile: options.mobile,
+    code,
+    apiKey: options.apiKey,
+    templateId: options.templateId,
+    paramName: options.paramName
+  });
+}
+
+/**
+ * Sends OTP via SMS.ir (automatically loads SiteSettings from DB or process.env)
+ */
+export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult> {
+  const normalized = normalizePhoneNumber(phone);
+
+  let apiKey: string | null = null;
+  let templateId: string | null = null;
+  let paramName: string = 'Code';
+  let isMobileOtpActive = true;
+
+  try {
+    const { default: prisma } = await import('@/lib/prisma');
+    const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+    if (settings) {
+      isMobileOtpActive = settings.isMobileOtpActive;
+      apiKey = settings.smsApiKey || process.env.SMSIR_API_KEY || null;
+      templateId = settings.smsTemplateId || process.env.SMSIR_TEMPLATE_ID || null;
+      paramName = settings.smsOtpParamName || 'Code';
+    }
+  } catch (err) {
+    console.warn('[SMS] Could not load SiteSettings for SMS config, checking env...', err);
+  }
+
+  if (!apiKey) apiKey = process.env.SMSIR_API_KEY || null;
+  if (!templateId) templateId = process.env.SMSIR_TEMPLATE_ID || null;
+
+  if (!isMobileOtpActive) {
+    return {
+      success: false,
+      error: 'ارسال رمز یکبار مصرف پیامکی موقتاً توسط مدیریت غیرفعال شده است.'
+    };
+  }
+
+  // If live credentials are provided in SiteSettings or env:
+  if (apiKey && templateId) {
+    const result = await sendSmsIrVerify({
+      mobile: normalized,
+      code,
+      apiKey,
+      templateId,
+      paramName
+    });
+    return result;
+  }
+
+  // Fallback in development or when SMS credentials are not yet entered
   console.log('====================================================');
-  console.log(`[SMS-DEV] Verification OTP for ${normalized}: [ ${code} ]`);
+  console.log(`[SMS-DEV MOCK] Verification OTP for ${normalized}: [ ${code} ]`);
   console.log('====================================================');
 
-  return { success: true };
+  return { success: true, devCode: code };
 }
 
 export async function sendSmsNotification(phone: string, text: string): Promise<{ success: boolean; message?: string }> {
   const normalized = normalizePhoneNumber(phone);
   if (!normalized) return { success: false, message: 'Invalid phone' };
 
-  const kavenegarKey = process.env.KAVENEGAR_API_KEY;
+  try {
+    const { default: prisma } = await import('@/lib/prisma');
+    const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+    const apiKey = settings?.smsApiKey || process.env.SMSIR_API_KEY;
+    const lineNumber = settings?.smsLineNumber || process.env.SMSIR_LINE_NUMBER;
 
-  if (kavenegarKey) {
-    try {
-      const sender = process.env.KAVENEGAR_SENDER || '10008663';
-      const url = `https://api.kavenegar.com/v1/${kavenegarKey}/sms/send.json?receptor=${normalized}&sender=${sender}&message=${encodeURIComponent(text)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.return?.status === 200) {
+    if (apiKey && lineNumber) {
+      const res = await fetch('https://api.sms.ir/v1/send/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey.trim()
+        },
+        body: JSON.stringify({
+          lineNumber: lineNumber.trim(),
+          messageText: text,
+          mobiles: [normalized]
+        })
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.status === 1) {
         return { success: true };
       }
-      console.error('[SMS] Kavenegar notification error:', data);
-    } catch (err) {
-      console.error('[SMS] Error calling SMS provider:', err);
+      console.error('[SMS.ir Bulk Notification Error]', data);
     }
+  } catch (err) {
+    console.error('[SMS] Error calling SMS.ir bulk provider:', err);
   }
 
   // Fallback log

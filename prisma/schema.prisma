@@ -327,12 +327,25 @@ model StockNotification {
 }
 
 model SiteSettings {
-  id                  String     @id @default("default")
-  featuredSpecialtyId  String?
-  featuredSpecialty   Specialty? @relation(fields: [featuredSpecialtyId], references: [id])
-  dynamicRows         Json       @default("[]")
-  artistAiEnabled     Boolean    @default(true)
-  updatedAt           DateTime   @updatedAt
+  id                       String     @id @default("default")
+  featuredSpecialtyId       String?
+  featuredSpecialty        Specialty? @relation(fields: [featuredSpecialtyId], references: [id])
+  dynamicRows              Json       @default("[]")
+  artistAiEnabled          Boolean    @default(true)
+
+  // SMS & OTP (sms.ir) Settings
+  isMobileOtpActive        Boolean    @default(true)
+  smsProvider              String     @default("sms.ir")
+  smsApiKey                String?
+  smsTemplateId            String?
+  smsOtpParamName          String     @default("Code")
+  smsLineNumber            String?
+  otpResendIntervalSeconds Int        @default(60)
+  otpMaxPerHourPerPhone    Int        @default(5)
+  otpMaxPerTenMinPerIp     Int        @default(10)
+  otpLockoutMinutes        Int        @default(15)
+
+  updatedAt                DateTime   @updatedAt
 }
 
 model PasswordResetToken {
@@ -397,4 +410,18 @@ model ProductQuestion {
 
   @@index([productId])
   @@index([userId])
+}
+
+model OtpRequestLog {
+  id         String   @id @default(cuid())
+  ip         String
+  target     String   // شماره موبایل یا ایمیل
+  type       String   // PHONE_OTP, REGISTER_OTP, PASSWORD_RESET, etc.
+  status     String   // "SENT", "BLOCKED_COOLDOWN", "BLOCKED_PHONE_CAP", "BLOCKED_IP_FLOOD", "FAILED_GATEWAY", "DISABLED"
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  @@index([ip, createdAt])
+  @@index([target, createdAt])
+  @@index([status, createdAt])
 }
