@@ -18,8 +18,31 @@ export default function ArtistProfilePage() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const errorRef = useRef<HTMLDivElement>(null);
+  const validationErrorRef = useRef<HTMLDivElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const isFormDirtyRef = useRef<boolean>(false);
+  const lastSentEmailRef = useRef<string>('');
+  const lastSentPhoneRef = useRef<string>('');
   const [successMsg, setSuccessMsg] = useState('');
   const [generalAlertDismissed, setGeneralAlertDismissed] = useState(false);
+
+  const scrollToError = (targetElement?: HTMLElement | null) => {
+    setTimeout(() => {
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (errorRef.current) {
+        errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // Ensure the scrollable container (<main> or window) smoothly scrolls to top if viewing global alert
+      const mainEl = document.querySelector('main');
+      if (mainEl && (!targetElement || targetElement === errorRef.current)) {
+        mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 60);
+  };
 
   const extractGeneralMsg = (feedback: any) => {
     if (!feedback) return null;
@@ -116,7 +139,7 @@ export default function ArtistProfilePage() {
           try { edits = JSON.parse(edits); } catch { edits = {}; }
         }
         setPendingMode(true);
-        if (!preserveFormData) {
+        if (!preserveFormData && !isFormDirtyRef.current) {
           setName(edits.name || data.user?.name || '');
           setBrandName(edits.brandName || data.brandName || '');
           setProvince(edits.province || data.province || 'تهران');
@@ -132,7 +155,7 @@ export default function ArtistProfilePage() {
       } else {
         setPendingMode(false);
         setSuccessMsg('');
-        if (!preserveFormData) {
+        if (!preserveFormData && !isFormDirtyRef.current) {
           setName(data.user?.name || '');
           setBrandName(data.brandName || '');
           setProvince(data.province || 'تهران');
@@ -227,17 +250,21 @@ export default function ArtistProfilePage() {
         }
       }
 
-      // If review completed (hasPendingEdits is false), exit pendingMode and refresh profile data
-      if (detail.hasPendingEdits === false) {
+      // If review completed (hasPendingEdits is false) and we were in pendingMode, exit pendingMode and refresh profile data
+      if (pendingModeRef.current && detail.hasPendingEdits === false) {
         setPendingMode(false);
         setSuccessMsg('');
+        isFormDirtyRef.current = false;
         fetchProfile(true);
       }
     };
 
     const handleFocus = () => {
-      // Check and refresh live profile metadata without wiping unsaved form inputs
-      fetchProfile(true, true);
+      // ONLY check/refresh live profile metadata if currently in pendingMode (waiting for admin review)
+      // Never refresh or wipe while the artist is actively editing the form
+      if (pendingModeRef.current && !isFormDirtyRef.current) {
+        fetchProfile(true, true);
+      }
     };
 
     window.addEventListener('artist-status-updated', handleStatusUpdate);
@@ -293,6 +320,7 @@ export default function ArtistProfilePage() {
   };
 
   const handleCropComplete = (croppedBase64: string) => {
+    isFormDirtyRef.current = true;
     setImagePreview(croppedBase64);
     setCropModalOpen(false);
     setRawImageForCrop(null);
@@ -346,10 +374,17 @@ export default function ArtistProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطای پردازش هوش مصنوعی');
 
-      if (data.name) setName(data.name);
-      if (data.bio) setBio(data.bio);
+      if (data.name) {
+        setName(data.name);
+        isFormDirtyRef.current = true;
+      }
+      if (data.bio) {
+        setBio(data.bio);
+        isFormDirtyRef.current = true;
+      }
       if (data.specialties) {
         setBio(prev => prev + '\n\nتخصص‌های پیشنهادی هوش مصنوعی: ' + data.specialties);
+        isFormDirtyRef.current = true;
       }
       setSuccessMsg('اطلاعات با موفقیت از فایل استخراج شد.');
     } catch (err: any) {
@@ -378,9 +413,28 @@ export default function ArtistProfilePage() {
   // --- Send Phone OTP (For verifying edits) ---
   const handleSendPhoneOtp = async () => {
     if (!phoneNumber || !phoneNumber.trim()) {
-      setErrorMsg('لطفاً ابتدا شماره موبایل را وارد کنید.');
+      const msg = 'لطفاً ابتدا شماره موبایل را وارد کنید.';
+      setErrorMsg(msg);
+      setFieldErrors(prev => ({ ...prev, phoneNumber: msg }));
+      scrollToError(phoneInputRef.current || errorRef.current);
       return;
     }
+
+    const normPhone = normalizePhoneNumber(phoneNumber);
+    if (!isValidIranianMobile(normPhone)) {
+      const msg = 'شماره موبایل اشتباه است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).';
+      setErrorMsg(msg);
+      setFieldErrors(prev => ({ ...prev, phoneNumber: msg }));
+      scrollToError(phoneInputRef.current || errorRef.current);
+      return;
+    }
+
+    // If modal was closed but timer is still ticking for this exact phone number, reopen modal
+    if (phoneOtpTimer > 0 && lastSentPhoneRef.current === normPhone) {
+      setShowPhoneOtpModal(true);
+      return;
+    }
+
     setPhoneOtpLoading(true);
     setPhoneOtpError('');
     setErrorMsg('');
@@ -388,24 +442,20 @@ export default function ArtistProfilePage() {
       const res = await fetch('/api/auth/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneNumber, type: 'PHONE_OTP' })
+        body: JSON.stringify({ phone: normPhone, type: 'PHONE_OTP' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا در ارسال پیامک');
       
+      lastSentPhoneRef.current = normPhone;
       setPhoneOtpTimer(data.expiresIn || 120);
       if (data.devCode) setDevCode(data.devCode);
       setShowPhoneOtpModal(true);
     } catch (err: any) {
-      setErrorMsg(err.message || 'خطا در ارسال پیامک کد تایید');
-      // Scroll smoothly so the user sees the rate-limit or SMS error clearly
-      setTimeout(() => {
-        if (errorRef.current) {
-          errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }, 50);
+      const msg = err.message || 'خطا در ارسال پیامک کد تایید';
+      setErrorMsg(msg);
+      setFieldErrors(prev => ({ ...prev, phoneNumber: msg }));
+      scrollToError(phoneInputRef.current || errorRef.current);
     } finally {
       setPhoneOtpLoading(false);
     }
@@ -441,26 +491,34 @@ export default function ArtistProfilePage() {
 
   // --- Send Email OTP (Optional for email verification) ---
   const handleSendEmailOtp = async () => {
-    if (!email || !email.trim()) {
-      setErrorMsg('لطفاً آدرس ایمیل خود را وارد کنید.');
-      setTimeout(() => {
-        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 50);
+    const emailTrimmed = email ? email.trim().toLowerCase() : '';
+
+    // If modal was closed but timer is still ticking for this exact email, reopen modal
+    if (emailOtpTimer > 0 && lastSentEmailRef.current && lastSentEmailRef.current === emailTrimmed) {
+      setShowEmailOtpModal(true);
       return;
     }
 
-    const emailTrimmed = email.trim().toLowerCase();
+    if (!emailTrimmed) {
+      const msg = 'لطفاً آدرس ایمیل خود را وارد کنید.';
+      setErrorMsg(msg);
+      setFieldErrors(prev => ({ ...prev, email: msg }));
+      scrollToError(emailInputRef.current || errorRef.current);
+      return;
+    }
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
-      setErrorMsg('فرمت ایمیل نامعتبر است. لطفاً یک آدرس ایمیل معتبر (مانند you@example.com) وارد نمایید.');
-      setTimeout(() => {
-        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 50);
+      const msg = 'فرمت ایمیل نامعتبر است. لطفاً یک آدرس ایمیل معتبر (مانند you@example.com) وارد نمایید.';
+      setErrorMsg(msg);
+      setFieldErrors(prev => ({ ...prev, email: msg }));
+      scrollToError(emailInputRef.current || errorRef.current);
       return;
     }
 
     setEmailOtpLoading(true);
     setEmailOtpError('');
     setErrorMsg('');
+    setFieldErrors(prev => ({ ...prev, email: '' }));
     try {
       const res = await fetch('/api/auth/otp/send', {
         method: 'POST',
@@ -470,14 +528,15 @@ export default function ArtistProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا در ارسال ایمیل تایید');
 
+      lastSentEmailRef.current = emailTrimmed;
       setEmailOtpTimer(data.expiresIn || 120);
       if (data.devCode) setDevCode(data.devCode);
       setShowEmailOtpModal(true);
     } catch (err: any) {
-      setErrorMsg(err.message || 'خطا در ارسال کد تایید به ایمیل');
-      setTimeout(() => {
-        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 50);
+      const msg = err.message || 'خطا در ارسال کد تایید به ایمیل';
+      setErrorMsg(msg);
+      setFieldErrors(prev => ({ ...prev, email: msg }));
+      scrollToError(emailInputRef.current || errorRef.current);
     } finally {
       setEmailOtpLoading(false);
     }
@@ -571,9 +630,7 @@ export default function ArtistProfilePage() {
     if (errors.length > 0) {
       setFieldErrors(fErrors);
       setValidationErrors(errors);
-      setTimeout(() => {
-        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 50);
+      scrollToError(validationErrorRef.current || errorRef.current);
       return;
     }
 
@@ -618,6 +675,7 @@ export default function ArtistProfilePage() {
       if (!res.ok) throw new Error(data.error || 'خطا در ثبت پروفایل');
 
       setPendingMode(true);
+      isFormDirtyRef.current = false;
       setPortfolioUrl(formattedUrl);
       setSuccessMsg('اطلاعات پروفایل شما با موفقیت ارسال شد و در انتظار تایید ادمین قرار گرفت.');
       setArtist({ 
@@ -635,12 +693,12 @@ export default function ArtistProfilePage() {
       }));
 
       router.refresh();
+      const mainContainer = document.querySelector('main');
+      if (mainContainer) mainContainer.scrollTo({ top: 0, behavior: 'smooth' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       setErrorMsg(err.message || 'مشکلی در ثبت اطلاعات پیش آمد.');
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 50);
+      scrollToError(errorRef.current);
     } finally {
       setSubmitLoading(false);
     }
@@ -909,7 +967,7 @@ export default function ArtistProfilePage() {
 
         {/* Validation Errors Box (Shown prominently above form with smooth scroll) */}
         {validationErrors.length > 0 && (
-          <div ref={errorRef} className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in">
+          <div ref={validationErrorRef} className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in">
             <div className="flex items-center gap-2 text-red-900 font-black text-sm mb-2.5">
               <span className="text-lg">⚠️</span>
               <span>لطفاً موارد الزامی زیر را بررسی و تکمیل نمایید:</span>
@@ -987,6 +1045,7 @@ export default function ArtistProfilePage() {
                   type="text" 
                   value={name} 
                   onChange={e => {
+                    isFormDirtyRef.current = true;
                     setName(e.target.value);
                     if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: '' }));
                   }} 
@@ -1011,7 +1070,10 @@ export default function ArtistProfilePage() {
                 <input 
                   type="text" 
                   value={brandName} 
-                  onChange={e => setBrandName(e.target.value)} 
+                  onChange={e => {
+                    isFormDirtyRef.current = true;
+                    setBrandName(e.target.value);
+                  }} 
                   className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-sm text-slate-900 disabled:bg-slate-100 disabled:text-slate-600" 
                   placeholder="مثال: گالری سفال مینا" 
                 />
@@ -1032,10 +1094,12 @@ export default function ArtistProfilePage() {
 
                 <div className="relative">
                   <input 
+                    ref={phoneInputRef}
                     type="tel" 
                     dir="ltr"
                     value={phoneNumber} 
                     onChange={e => {
+                      isFormDirtyRef.current = true;
                       setPhoneNumber(e.target.value);
                       if (fieldErrors.phoneNumber) setFieldErrors(prev => ({ ...prev, phoneNumber: '' }));
                     }} 
@@ -1077,10 +1141,15 @@ export default function ArtistProfilePage() {
 
                 <div className="relative flex items-center gap-2">
                   <input 
+                    ref={emailInputRef}
                     type="email" 
                     dir="ltr"
                     value={email} 
-                    onChange={e => setEmail(e.target.value)} 
+                    onChange={e => {
+                      isFormDirtyRef.current = true;
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' }));
+                    }} 
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -1092,7 +1161,9 @@ export default function ArtistProfilePage() {
                     readOnly={isSsoUser || pendingMode} 
                     disabled={isSsoUser || pendingMode} 
                     className={`flex-1 px-4 py-3 rounded-xl border text-sm text-left outline-none transition-all ${
-                      isSsoUser || pendingMode
+                      fieldErrors.email
+                        ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100'
+                        : isSsoUser || pendingMode
                         ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                         : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
                     }`} 
@@ -1106,10 +1177,16 @@ export default function ArtistProfilePage() {
                       disabled={emailOtpLoading}
                       className="px-3 py-3 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold whitespace-nowrap transition-colors"
                     >
-                      {emailOtpLoading ? 'ارسال...' : 'تایید ایمیل'}
+                      {emailOtpLoading ? 'ارسال...' : emailOtpTimer > 0 && lastSentEmailRef.current === email.trim().toLowerCase() ? `ورود کد (${emailOtpTimer}s)` : 'تایید ایمیل'}
                     </button>
                   )}
                 </div>
+                {fieldErrors.email && (
+                  <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>{fieldErrors.email}</span>
+                  </p>
+                )}
               </div>
 
               {/* 6. Workshop Location: Province & City */}
@@ -1120,6 +1197,7 @@ export default function ArtistProfilePage() {
                 <select
                   value={province}
                   onChange={(e) => {
+                    isFormDirtyRef.current = true;
                     const sel = e.target.value;
                     setProvince(sel);
                     const pData = IRAN_PROVINCES.find(p => p.name === sel);
@@ -1153,6 +1231,7 @@ export default function ArtistProfilePage() {
                 <select
                   value={city}
                   onChange={(e) => {
+                    isFormDirtyRef.current = true;
                     setCity(e.target.value);
                     if (fieldErrors.city) setFieldErrors(prev => ({ ...prev, city: '' }));
                   }}
@@ -1184,7 +1263,10 @@ export default function ArtistProfilePage() {
                 <input 
                   type="text" 
                   value={portfolioUrl} 
-                  onChange={e => setPortfolioUrl(e.target.value)} 
+                  onChange={e => {
+                    isFormDirtyRef.current = true;
+                    setPortfolioUrl(e.target.value);
+                  }} 
                   onBlur={() => setPortfolioUrl(formatUrl(portfolioUrl))} 
                   className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none text-left text-sm text-slate-900 font-mono disabled:bg-slate-100 disabled:text-slate-600" 
                   dir="ltr" 
@@ -1197,7 +1279,13 @@ export default function ArtistProfilePage() {
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
                   شبکه‌های اجتماعی <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
                 </label>
-                <SocialLinksInput socialLinks={socialLinks} onChange={setSocialLinks} />
+                <SocialLinksInput 
+                  socialLinks={socialLinks} 
+                  onChange={links => {
+                    isFormDirtyRef.current = true;
+                    setSocialLinks(links);
+                  }} 
+                />
               </div>
               
               {/* 9. Specialties (Optional) */}
@@ -1205,7 +1293,13 @@ export default function ArtistProfilePage() {
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
                   تخصص‌ها و رشته‌های هنری <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
                 </label>
-                <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
+                <SpecialtyTagInput 
+                  selectedSpecialties={specialties} 
+                  onChange={specs => {
+                    isFormDirtyRef.current = true;
+                    setSpecialties(specs);
+                  }} 
+                />
               </div>
 
               {/* 10. Bio / About you (Required *) */}
@@ -1216,6 +1310,7 @@ export default function ArtistProfilePage() {
                 <textarea 
                   value={bio} 
                   onChange={e => {
+                    isFormDirtyRef.current = true;
                     setBio(e.target.value);
                     if (fieldErrors.bio) setFieldErrors(prev => ({ ...prev, bio: '' }));
                   }} 
