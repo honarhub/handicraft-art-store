@@ -587,6 +587,9 @@ function ArtistLoginContent() {
                     </label>
                     <input
                       type="text"
+                      id="login-identifier"
+                      name="username"
+                      autoComplete="username"
                       dir="ltr"
                       placeholder="09123456789 یا name@example.com"
                       value={loginIdentifier}
@@ -623,6 +626,19 @@ function ArtistLoginContent() {
               {/* STEP 2A: Password Input */}
               {loginStep === 'password' && (
                 <form onSubmit={handlePasswordLogin} className="space-y-4">
+                  {/* Hidden username so browser pairs saved password with the identifier */}
+                  <input
+                    type="text"
+                    name="username"
+                    id="login-username-hidden"
+                    autoComplete="username"
+                    value={loginIdentifier}
+                    readOnly
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                  />
+
                   {/* Account Summary Header */}
                   <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl flex items-center justify-between text-xs">
                     <div>
@@ -658,6 +674,8 @@ function ArtistLoginContent() {
                     <div className="relative">
                       <input
                         type={showLoginPassword ? 'text' : 'password'}
+                        id="login-password"
+                        name="password"
                         dir="ltr"
                         autoComplete="current-password"
                         placeholder="••••••••"
@@ -854,6 +872,9 @@ function ArtistLoginContent() {
                       </label>
                       <input
                         type={regMethod === 'phone' ? 'tel' : 'email'}
+                        id="register-identifier"
+                        name="username"
+                        autoComplete="username"
                         dir="ltr"
                         placeholder={regMethod === 'phone' ? '09123456789' : 'name@example.com'}
                         value={regIdentifier}
@@ -861,32 +882,6 @@ function ArtistLoginContent() {
                         required
                         className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-wider text-slate-900 bg-slate-50/50"
                       />
-                    </div>
-
-                    {/* Referral Code (Mandatory) */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <label className="block text-xs font-bold text-slate-700">
-                          کد معرف (الزامی)
-                        </label>
-                        {refFromUrl && (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            ✓ از لینک دعوت
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        dir="ltr"
-                        placeholder="مثال: HNR-8942 یا ART-5120"
-                        value={regReferralCode}
-                        onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
-                        required
-                        className="w-full px-4 py-2.5 border-2 border-emerald-400 bg-emerald-50/40 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono font-black text-sm tracking-widest text-emerald-950 uppercase"
-                      />
-                      <p className="text-[11px] text-slate-400 mt-1 mr-1">
-                        عضویت در پلتفرم هنرهاب فعلاً تنها با کد دعوت سایر هنرمندان یا ادمین امکان‌پذیر است.
-                      </p>
                     </div>
 
                     {/* Password */}
@@ -897,8 +892,10 @@ function ArtistLoginContent() {
                       <div className="relative">
                         <input
                           type={showRegPassword ? 'text' : 'password'}
-                          dir="ltr"
+                          id="register-password"
+                          name="password"
                           autoComplete="new-password"
+                          dir="ltr"
                           placeholder="••••••••"
                           value={regPassword}
                           onChange={(e) => setRegPassword(e.target.value)}
@@ -937,8 +934,10 @@ function ArtistLoginContent() {
                       <div className="relative">
                         <input
                           type={showRegPassword ? 'text' : 'password'}
-                          dir="ltr"
+                          id="register-confirm-password"
+                          name="confirmPassword"
                           autoComplete="new-password"
+                          dir="ltr"
                           placeholder="••••••••"
                           value={regConfirmPassword}
                           onChange={(e) => setRegConfirmPassword(e.target.value)}
@@ -969,6 +968,38 @@ function ArtistLoginContent() {
                       </div>
                     </div>
 
+                    {/* Referral Code (Mandatory) */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          کد معرف (الزامی)
+                        </label>
+                        {refFromUrl && (
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            ✓ از لینک دعوت
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        id="register-referral-code"
+                        name="referralCode"
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-form-type="other"
+                        dir="ltr"
+                        placeholder="مثال: HNR-8942 یا ART-5120"
+                        value={regReferralCode}
+                        onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
+                        required
+                        className="w-full px-4 py-2.5 border-2 border-emerald-400 bg-emerald-50/40 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono font-black text-sm tracking-widest text-emerald-950 uppercase"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1 mr-1">
+                        عضویت در پلتفرم هنرهاب فعلاً تنها با کد دعوت سایر هنرمندان یا ادمین امکان‌پذیر است.
+                      </p>
+                    </div>
+
                     <button
                       type="submit"
                       disabled={regLoading}
@@ -990,6 +1021,28 @@ function ArtistLoginContent() {
               {/* STEP 2 of Register: OTP Code */}
               {regStep === 'otp' && (
                 <form onSubmit={handleCompleteRegistration} className="space-y-4">
+                  {/* Hidden inputs to preserve credential association for browser password managers */}
+                  <input
+                    type="text"
+                    name="username"
+                    autoComplete="username"
+                    value={regIdentifier}
+                    readOnly
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                  />
+                  <input
+                    type="password"
+                    name="password"
+                    autoComplete="new-password"
+                    value={regPassword}
+                    readOnly
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                  />
+
                   <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs text-emerald-950 flex items-center justify-between">
                     <div>
                       <span className="text-emerald-700 block text-[10px]">کد تایید ارسال شده به:</span>
@@ -1016,6 +1069,9 @@ function ArtistLoginContent() {
                     </label>
                     <input
                       type="text"
+                      id="register-otp"
+                      name="oneTimeCode"
+                      autoComplete="one-time-code"
                       dir="ltr"
                       maxLength={5}
                       placeholder="• • • • •"
@@ -1092,6 +1148,9 @@ function ArtistLoginContent() {
                   </label>
                   <input
                     type="text"
+                    id="forgot-identifier"
+                    name="username"
+                    autoComplete="username"
                     dir="ltr"
                     placeholder="09123456789 یا email@example.com"
                     value={forgotTarget}
@@ -1123,12 +1182,25 @@ function ArtistLoginContent() {
               </form>
             ) : (
               <form onSubmit={handleForgotReset} className="space-y-4">
+                <input
+                  type="text"
+                  name="username"
+                  autoComplete="username"
+                  value={forgotTarget}
+                  readOnly
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                />
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     کد ۵ رقمی ارسال‌شده
                   </label>
                   <input
                     type="text"
+                    id="forgot-code"
+                    name="oneTimeCode"
+                    autoComplete="one-time-code"
                     dir="ltr"
                     maxLength={5}
                     placeholder="• • • • •"
@@ -1145,6 +1217,9 @@ function ArtistLoginContent() {
                   </label>
                   <input
                     type="password"
+                    id="forgot-new-password"
+                    name="password"
+                    autoComplete="new-password"
                     dir="ltr"
                     placeholder="••••••••"
                     value={forgotNewPassword}
