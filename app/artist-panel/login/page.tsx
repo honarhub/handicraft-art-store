@@ -206,6 +206,18 @@ function ArtistLoginContent() {
         setErrorMsg(res.error || 'اطلاعات ورود اشتباه است.');
         setLoginLoading(false);
       } else {
+        if (typeof window !== 'undefined' && 'PasswordCredential' in window && (navigator as any).credentials?.store) {
+          try {
+            const cred = new (window as any).PasswordCredential({
+              id: loginIdentifier.trim(),
+              password: loginPassword,
+              name: loginIdentifier.trim()
+            });
+            await (navigator as any).credentials.store(cred);
+          } catch {
+            // Ignore if browser unsupported or rejected
+          }
+        }
         router.push('/artist-panel/dashboard');
       }
     } catch {
@@ -285,6 +297,12 @@ function ArtistLoginContent() {
       setRegIdentifier(loginIdentifier);
       setRegMethod(loginMethod);
     }
+    // Reset login sensitive inputs
+    setLoginPassword('');
+    setShowLoginPassword(false);
+    setLoginStep('identifier');
+    setLoginOtpCode('');
+
     setRegStep('form');
     setRegOtpCode('');
     setMainMode('register');
@@ -406,6 +424,18 @@ function ArtistLoginContent() {
       const loginRes = await signIn('credentials', loginPayload);
 
       if (!loginRes?.error) {
+        if (typeof window !== 'undefined' && 'PasswordCredential' in window && (navigator as any).credentials?.store) {
+          try {
+            const cred = new (window as any).PasswordCredential({
+              id: regIdentifier.trim(),
+              password: regPassword,
+              name: regIdentifier.trim()
+            });
+            await (navigator as any).credentials.store(cred);
+          } catch {
+            // Ignore if browser unsupported or rejected
+          }
+        }
         router.push('/artist-panel/onboarding');
       } else {
         router.push('/artist-panel/dashboard');
@@ -521,7 +551,11 @@ function ArtistLoginContent() {
                 setSuccessMsg('');
                 setIsUnregisteredError(false);
                 setUnregisteredEmail(null);
+                setRegPassword('');
+                setRegConfirmPassword('');
+                setShowRegPassword(false);
                 setRegStep('form');
+                setRegOtpCode('');
                 if (searchParams.get('error')) {
                   router.replace('/artist-panel/login', { scroll: false });
                 }
@@ -542,6 +576,10 @@ function ArtistLoginContent() {
                 setErrorMsg('');
                 setSuccessMsg('');
                 setIsUnregisteredError(false);
+                setLoginPassword('');
+                setShowLoginPassword(false);
+                setLoginStep('identifier');
+                setLoginOtpCode('');
                 if (searchParams.get('error')) {
                   router.replace('/artist-panel/login', { scroll: false });
                 }
@@ -610,590 +648,589 @@ function ArtistLoginContent() {
           {/* ======================================================== */}
           {/* VIEW A: LOGIN MODE                                        */}
           {/* ======================================================== */}
-          {mainMode === 'login' && (
-            <div className="space-y-5">
-              {/* STEP 1: Enter Unified Identifier (Phone or Email) */}
-              {loginStep === 'identifier' && (
-                <form onSubmit={handleCheckUserAndProceed} noValidate className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      شماره موبایل یا ایمیل
-                    </label>
-                    <input
-                      type="text"
-                      id="login-identifier"
-                      name="username"
-                      autoComplete="username"
-                      dir="ltr"
-                      placeholder="09123456789 یا name@example.com"
-                      value={loginIdentifier}
-                      onChange={(e) => {
-                        setLoginIdentifier(e.target.value);
-                        setErrorMsg('');
-                        setIsUnregisteredError(false);
-                        setUnregisteredEmail(null);
-                      }}
-                      autoFocus
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-wider text-slate-900 bg-slate-50/50"
-                    />
-                    <p className="text-[11px] text-slate-400 mt-1.5 mr-1">
-                      شماره تلفن همراه یا آدرس ایمیل ثبت‌شده خود را وارد کنید.
-                    </p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loginLoading}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
-                  >
-                    {loginLoading ? (
-                      <span>در حال بررسی...</span>
-                    ) : (
-                      <>
-                        <span>ورود به هنرهاب</span>
-                        <span>←</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              )}
-
-              {/* STEP 2A: Password Input */}
-              {loginStep === 'password' && (
-                <form onSubmit={handlePasswordLogin} className="space-y-4">
-                  {/* Hidden username so browser pairs saved password with the identifier */}
+          <div className={mainMode === 'login' ? 'space-y-5' : 'hidden'} aria-hidden={mainMode !== 'login'}>
+            {/* STEP 1: Enter Unified Identifier (Phone or Email) */}
+            <div className={loginStep === 'identifier' ? 'block' : 'hidden'}>
+              <form onSubmit={handleCheckUserAndProceed} noValidate className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    شماره موبایل یا ایمیل
+                  </label>
                   <input
                     type="text"
+                    id="login-identifier"
                     name="username"
-                    id="login-username-hidden"
                     autoComplete="username"
+                    dir="ltr"
+                    placeholder="09123456789 یا name@example.com"
                     value={loginIdentifier}
-                    readOnly
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                    onChange={(e) => {
+                      setLoginIdentifier(e.target.value);
+                      setErrorMsg('');
+                      setIsUnregisteredError(false);
+                      setUnregisteredEmail(null);
+                    }}
+                    autoFocus
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-wider text-slate-900 bg-slate-50/50"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1.5 mr-1">
+                    شماره تلفن همراه یا آدرس ایمیل ثبت‌شده خود را وارد کنید.
+                  </p>
+                </div>
 
-                  {/* Account Summary Header */}
-                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">حساب کاربری:</span>
-                      <span className="font-mono font-bold text-slate-800 select-all" dir="ltr">
-                        {loginIdentifier}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { setLoginStep('identifier'); setLoginPassword(''); }}
-                      className="text-teal-700 hover:text-teal-900 font-bold underline text-[11px]"
-                    >
-                      تغییر
-                    </button>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <label className="block text-xs font-bold text-slate-700">رمز عبور</label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowForgotModal(true);
-                          setForgotTarget(loginIdentifier);
-                        }}
-                        className="text-xs text-teal-600 hover:text-teal-800 font-bold"
-                      >
-                        فراموشی رمز عبور؟
-                      </button>
-                    </div>
-
-                    <div className="relative">
-                      <input
-                        type={showLoginPassword ? 'text' : 'password'}
-                        id="login-password"
-                        name="password"
-                        dir="ltr"
-                        autoComplete="current-password"
-                        placeholder="••••••••"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        required
-                        autoFocus
-                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-widest text-slate-900 bg-slate-50/50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                        title={showLoginPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
-                        aria-label={showLoginPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
-                      >
-                        {showLoginPassword ? (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                            <line x1="2" y1="2" x2="22" y2="22" />
-                          </svg>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loginLoading}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
-                  >
-                    {loginLoading ? 'در حال بررسی...' : 'ورود به حساب کاربری'}
-                  </button>
-
-                  {/* Alternative OTP login for mobile */}
-                  {loginMethod === 'phone' && (
-                    <div className="pt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={handleSwitchToLoginOtp}
-                        disabled={loginLoading}
-                        className="text-xs font-bold text-teal-700 hover:text-teal-900 py-1 transition-colors"
-                      >
-                        📱 ورود با رمز یکبار مصرف پیامکی (بدون رمز عبور)
-                      </button>
-                    </div>
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                >
+                  {loginLoading ? (
+                    <span>در حال بررسی...</span>
+                  ) : (
+                    <>
+                      <span>ورود به هنرهاب</span>
+                      <span>←</span>
+                    </>
                   )}
-                </form>
-              )}
+                </button>
+              </form>
+            </div>
 
-              {/* STEP 2B: OTP Verification Screen */}
-              {loginStep === 'otp' && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">کد تایید برای:</span>
-                      <span className="font-mono font-bold text-slate-800" dir="ltr">
-                        {loginIdentifier}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { setLoginStep('password'); setLoginOtpCode(''); }}
-                      className="text-teal-700 hover:text-teal-900 font-bold underline text-[11px]"
-                    >
-                      ورود با رمز عبور
-                    </button>
-                  </div>
+            {/* STEP 2A: Password Input */}
+            <div className={loginStep === 'password' ? 'block' : 'hidden'}>
+              <form onSubmit={handlePasswordLogin} noValidate className="space-y-4">
+                {/* Hidden username so browser pairs saved password with the identifier */}
+                <input
+                  type="text"
+                  name="username"
+                  id="login-username-hidden"
+                  autoComplete="username"
+                  value={loginIdentifier}
+                  readOnly
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                />
 
-                  {loginDevCode && (
-                    <div className="bg-amber-50 text-amber-900 text-xs font-mono font-bold p-3 rounded-xl border border-amber-200 text-center">
-                      کد تایید تستی: <span className="text-lg text-emerald-700 select-all">{loginDevCode}</span>
-                    </div>
-                  )}
-
+                {/* Account Summary Header */}
+                <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl flex items-center justify-between text-xs">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
-                      کد تایید ۵ رقمی را وارد کنید
-                    </label>
-                    <input
-                      type="text"
-                      dir="ltr"
-                      maxLength={5}
-                      placeholder="• • • • •"
-                      value={loginOtpCode}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 5);
-                        setLoginOtpCode(val);
-                        if (val.length === 5) {
-                          handleVerifyLoginOtp(val);
-                        }
-                      }}
-                      autoFocus
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-2xl tracking-[0.5em] text-slate-900 bg-slate-50/50"
-                    />
+                    <span className="text-slate-400 block text-[10px]">حساب کاربری:</span>
+                    <span className="font-mono font-bold text-slate-800 select-all" dir="ltr">
+                      {loginIdentifier}
+                    </span>
                   </div>
-
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                    {loginTimer > 0 ? (
-                      <span>ارسال مجدد کد تا {loginTimer} ثانیه دیگر</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSwitchToLoginOtp}
-                        className="text-teal-600 hover:text-teal-700 font-bold"
-                      >
-                        ارسال مجدد کد تایید
-                      </button>
-                    )}
-                  </div>
-
                   <button
                     type="button"
-                    onClick={() => handleVerifyLoginOtp(loginOtpCode)}
-                    disabled={loginLoading || loginOtpCode.length !== 5}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm"
+                    onClick={() => { setLoginStep('identifier'); setLoginPassword(''); }}
+                    className="text-teal-700 hover:text-teal-900 font-bold underline text-[11px]"
                   >
-                    {loginLoading ? 'در حال بررسی...' : 'تایید و ورود'}
+                    تغییر
                   </button>
                 </div>
-              )}
 
-              {/* GOOGLE SSO DIVIDER & BUTTON */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-slate-400 font-medium">یا ورود سریع با گوگل</span>
-                </div>
-              </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">رمز عبور</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotModal(true);
+                        setForgotTarget(loginIdentifier);
+                      }}
+                      className="text-xs text-teal-600 hover:text-teal-800 font-bold"
+                    >
+                      فراموشی رمز عبور؟
+                    </button>
+                  </div>
 
-              <button
-                type="button"
-                onClick={() => signIn('google', { callbackUrl: '/artist-panel/dashboard' })}
-                className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                <span>ورود با حساب گوگل</span>
-              </button>
+                  <div className="relative">
+                    <input
+                      type={showLoginPassword ? 'text' : 'password'}
+                      id="login-password"
+                      name="password"
+                      dir="ltr"
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                      autoFocus
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-widest text-slate-900 bg-slate-50/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                      title={showLoginPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                      aria-label={showLoginPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                    >
+                      {showLoginPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                >
+                  {loginLoading ? 'در حال بررسی...' : 'ورود به حساب کاربری'}
+                </button>
+
+                {/* Alternative OTP login for mobile */}
+                {loginMethod === 'phone' && (
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={handleSwitchToLoginOtp}
+                      disabled={loginLoading}
+                      className="text-xs font-bold text-teal-700 hover:text-teal-900 py-1 transition-colors"
+                    >
+                      📱 ورود با رمز یکبار مصرف پیامکی (بدون رمز عبور)
+                    </button>
+                  </div>
+                )}
+              </form>
             </div>
-          )}
+
+            {/* STEP 2B: OTP Verification Screen */}
+            <div className={loginStep === 'otp' ? 'block' : 'hidden'}>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-2xl text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">کد تایید برای:</span>
+                    <span className="font-mono font-bold text-slate-800" dir="ltr">
+                      {loginIdentifier}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setLoginStep('password'); setLoginOtpCode(''); }}
+                    className="text-teal-700 hover:text-teal-900 font-bold underline text-[11px]"
+                  >
+                    ورود با رمز عبور
+                  </button>
+                </div>
+
+                {loginDevCode && (
+                  <div className="bg-amber-50 text-amber-900 text-xs font-mono font-bold p-3 rounded-xl border border-amber-200 text-center">
+                    کد تایید تستی: <span className="text-lg text-emerald-700 select-all">{loginDevCode}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
+                    کد تایید ۵ رقمی را وارد کنید
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    maxLength={5}
+                    placeholder="• • • • •"
+                    value={loginOtpCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 5);
+                      setLoginOtpCode(val);
+                      if (val.length === 5) {
+                        handleVerifyLoginOtp(val);
+                      }
+                    }}
+                    autoFocus
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-2xl tracking-[0.5em] text-slate-900 bg-slate-50/50"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  {loginTimer > 0 ? (
+                    <span>ارسال مجدد کد تا {loginTimer} ثانیه دیگر</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSwitchToLoginOtp}
+                      className="text-teal-600 hover:text-teal-700 font-bold"
+                    >
+                      ارسال مجدد کد تایید
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleVerifyLoginOtp(loginOtpCode)}
+                  disabled={loginLoading || loginOtpCode.length !== 5}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm"
+                >
+                  {loginLoading ? 'در حال بررسی...' : 'تایید و ورود'}
+                </button>
+              </div>
+            </div>
+
+            {/* GOOGLE SSO DIVIDER & BUTTON */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-3 text-slate-400 font-medium">یا ورود سریع با گوگل</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => signIn('google', { callbackUrl: '/artist-panel/dashboard' })}
+              className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              <span>ورود با حساب گوگل</span>
+            </button>
+          </div>
 
           {/* ======================================================== */}
           {/* VIEW B: REGISTER MODE                                     */}
           {/* ======================================================== */}
-          {mainMode === 'register' && (
-            <div className="space-y-5">
-              {regStep === 'form' && (
-                <>
-                  {/* Register Sub-method */}
-                  <div className="flex border-b border-slate-100 pb-3 mb-2 gap-4 text-xs font-bold">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRegMethod('phone');
-                        if (regIdentifier.includes('@')) setRegIdentifier('');
-                        setErrorMsg('');
-                      }}
-                      className={`pb-1 transition-all ${
-                        regMethod === 'phone'
-                          ? 'text-emerald-700 border-b-2 border-emerald-600'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      📱 ثبت‌نام با شماره موبایل
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRegMethod('email');
-                        if (!regIdentifier.includes('@') && regIdentifier.startsWith('09')) setRegIdentifier('');
-                        setErrorMsg('');
-                      }}
-                      className={`pb-1 transition-all ${
-                        regMethod === 'email'
-                          ? 'text-emerald-700 border-b-2 border-emerald-600'
-                          : 'text-slate-400 hover:text-slate-600'
-                      }`}
-                    >
-                      ✉️ ثبت‌نام با ایمیل
-                    </button>
-                  </div>
+          <div className={mainMode === 'register' ? 'space-y-5' : 'hidden'} aria-hidden={mainMode !== 'register'}>
+            <div className={regStep === 'form' ? 'block' : 'hidden'}>
+              {/* Register Sub-method */}
+              <div className="flex border-b border-slate-100 pb-3 mb-2 gap-4 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegMethod('phone');
+                    if (regIdentifier.includes('@')) setRegIdentifier('');
+                    setErrorMsg('');
+                  }}
+                  className={`pb-1 transition-all ${
+                    regMethod === 'phone'
+                      ? 'text-emerald-700 border-b-2 border-emerald-600'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  📱 ثبت‌نام با شماره موبایل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegMethod('email');
+                    if (!regIdentifier.includes('@') && regIdentifier.startsWith('09')) setRegIdentifier('');
+                    setErrorMsg('');
+                  }}
+                  className={`pb-1 transition-all ${
+                    regMethod === 'email'
+                      ? 'text-emerald-700 border-b-2 border-emerald-600'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  ✉️ ثبت‌نام با ایمیل
+                </button>
+              </div>
 
-                  <form onSubmit={handleRegisterFormSubmit} className="space-y-4">
-                    {/* Identifier */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        {regMethod === 'phone' ? 'شماره تلفن همراه' : 'آدرس ایمیل'}
-                      </label>
-                      <input
-                        type={regMethod === 'phone' ? 'tel' : 'email'}
-                        id="register-identifier"
-                        name="username"
-                        autoComplete="username"
-                        dir="ltr"
-                        placeholder={regMethod === 'phone' ? '09123456789' : 'name@example.com'}
-                        value={regIdentifier}
-                        onChange={(e) => setRegIdentifier(e.target.value)}
-                        required
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-wider text-slate-900 bg-slate-50/50"
-                      />
-                    </div>
-
-                    {/* Password */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        تعیین رمز عبور (حداقل ۶ کاراکتر)
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showRegPassword ? 'text' : 'password'}
-                          id="register-password"
-                          name="password"
-                          autoComplete="new-password"
-                          dir="ltr"
-                          placeholder="••••••••"
-                          value={regPassword}
-                          onChange={(e) => setRegPassword(e.target.value)}
-                          required
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowRegPassword(!showRegPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                          title={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
-                          aria-label={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
-                        >
-                          {showRegPassword ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                              <line x1="2" y1="2" x2="22" y2="22" />
-                            </svg>
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Confirm Password */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        تکرار رمز عبور
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showRegPassword ? 'text' : 'password'}
-                          id="register-confirm-password"
-                          name="confirmPassword"
-                          autoComplete="new-password"
-                          dir="ltr"
-                          placeholder="••••••••"
-                          value={regConfirmPassword}
-                          onChange={(e) => setRegConfirmPassword(e.target.value)}
-                          required
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowRegPassword(!showRegPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                          title={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
-                          aria-label={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
-                        >
-                          {showRegPassword ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                              <line x1="2" y1="2" x2="22" y2="22" />
-                            </svg>
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                              <circle cx="12" cy="12" r="3" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Referral Code (Mandatory) */}
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <label className="block text-xs font-bold text-slate-700">
-                          کد معرف (الزامی)
-                        </label>
-                        {refFromUrl && (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                            ✓ از لینک دعوت
-                          </span>
-                        )}
-                      </div>
-                      <input
-                        type="text"
-                        id="register-referral-code"
-                        name="referralCode"
-                        autoComplete="off"
-                        data-lpignore="true"
-                        data-1p-ignore="true"
-                        data-form-type="other"
-                        dir="ltr"
-                        placeholder="مثال: HNR-8942 یا ART-5120"
-                        value={regReferralCode}
-                        onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
-                        required
-                        className="w-full px-4 py-2.5 border-2 border-emerald-400 bg-emerald-50/40 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono font-black text-sm tracking-widest text-emerald-950 uppercase"
-                      />
-                      <p className="text-[11px] text-slate-400 mt-1 mr-1">
-                        عضویت در پلتفرم هنرهاب فعلاً تنها با کد دعوت سایر هنرمندان یا ادمین امکان‌پذیر است.
-                      </p>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={regLoading}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm mt-3 flex items-center justify-center gap-2"
-                    >
-                      {regLoading ? (
-                        <span>در حال اعتبارسنجی...</span>
-                      ) : (
-                        <>
-                          <span>دریافت کد تایید و ادامه</span>
-                          <span>←</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </>
-              )}
-
-              {/* STEP 2 of Register: OTP Code */}
-              {regStep === 'otp' && (
-                <form onSubmit={handleCompleteRegistration} className="space-y-4">
-                  {/* Hidden inputs to preserve credential association for browser password managers */}
+              <form onSubmit={handleRegisterFormSubmit} noValidate className="space-y-4">
+                {/* Identifier */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {regMethod === 'phone' ? 'شماره تلفن همراه' : 'آدرس ایمیل'}
+                  </label>
                   <input
-                    type="text"
+                    type={regMethod === 'phone' ? 'tel' : 'email'}
+                    id="register-identifier"
                     name="username"
                     autoComplete="username"
+                    dir="ltr"
+                    placeholder={regMethod === 'phone' ? '09123456789' : 'name@example.com'}
                     value={regIdentifier}
-                    readOnly
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                    onChange={(e) => setRegIdentifier(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-wider text-slate-900 bg-slate-50/50"
                   />
-                  <input
-                    type="password"
-                    name="password"
-                    autoComplete="new-password"
-                    value={regPassword}
-                    readOnly
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className="sr-only pointer-events-none opacity-0 absolute -z-10"
-                  />
+                </div>
 
-                  <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl text-xs text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div>
-                      <span className="text-emerald-700 block text-[11px] font-medium">کد تایید ارسال شده به:</span>
-                      <span className="font-mono font-bold text-sm" dir="ltr">{regIdentifier}</span>
-                    </div>
+                {/* Password */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    تعیین رمز عبور (حداقل ۶ کاراکتر)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      id="register-password"
+                      name="password"
+                      autoComplete="new-password"
+                      dir="ltr"
+                      placeholder="••••••••"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      required
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
+                    />
                     <button
                       type="button"
-                      onClick={() => {
-                        setRegStep('form');
-                        setRegOtpCode('');
-                        setErrorMsg('');
-                      }}
-                      className="text-emerald-800 hover:text-emerald-950 underline font-black text-xs cursor-pointer"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                      title={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                      aria-label={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
                     >
-                      ویرایش و تغییر اطلاعات
+                      {showRegPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
                     </button>
                   </div>
+                </div>
 
-                  {regDevCode && (
-                    <div className="bg-amber-50 text-amber-900 text-xs font-mono font-bold p-3 rounded-xl border border-amber-200 text-center">
-                      کد تایید تستی: <span className="text-lg text-emerald-700 select-all">{regDevCode}</span>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
-                      کد ۵ رقمی تایید را وارد کنید
-                    </label>
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    تکرار رمز عبور
+                  </label>
+                  <div className="relative">
                     <input
-                      type="text"
-                      id="register-otp"
-                      name="oneTimeCode"
-                      autoComplete="one-time-code"
+                      type={showRegPassword ? 'text' : 'password'}
+                      id="register-confirm-password"
+                      name="confirmPassword"
+                      autoComplete="new-password"
                       dir="ltr"
-                      maxLength={5}
-                      placeholder="• • • • •"
-                      value={regOtpCode}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 5);
-                        setRegOtpCode(val);
-                        if (regMethod === 'email' && val.length === 5 && !regLoading) {
-                          handleCompleteRegistration(undefined, val);
-                        }
-                      }}
-                      autoFocus
+                      placeholder="••••••••"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
                       required
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-2xl tracking-[0.5em] text-slate-900 bg-slate-50/50"
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                      title={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                      aria-label={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                    >
+                      {showRegPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                    {regTimer > 0 ? (
-                      <span>امکان ارسال مجدد تا {regTimer} ثانیه</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleRegisterFormSubmit}
-                        className="text-teal-600 hover:text-teal-700 font-bold cursor-pointer"
-                      >
-                        ارسال مجدد کد تایید
-                      </button>
+                {/* Referral Code (Mandatory) */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">
+                      کد معرف (الزامی)
+                    </label>
+                    {refFromUrl && (
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        ✓ از لینک دعوت
+                      </span>
                     )}
                   </div>
+                  <input
+                    type="text"
+                    id="register-referral-code"
+                    name="referralCode"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-form-type="other"
+                    dir="ltr"
+                    placeholder="مثال: HNR-8942 یا ART-5120"
+                    value={regReferralCode}
+                    onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
+                    required
+                    className="w-full px-4 py-2.5 border-2 border-emerald-400 bg-emerald-50/40 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono font-black text-sm tracking-widest text-emerald-950 uppercase"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1 mr-1">
+                    عضویت در پلتفرم هنرهاب فعلاً تنها با کد دعوت سایر هنرمندان یا ادمین امکان‌پذیر است.
+                  </p>
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={regLoading || regOtpCode.length !== 5}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm cursor-pointer"
-                  >
-                    {regLoading ? 'در حال ثبت‌نام و ساخت حساب...' : 'تکمیل ثبت‌نام و ورود به هنرهاب'}
-                  </button>
-
-                  <div className="flex items-center gap-2.5 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRegStep('form');
-                        setRegOtpCode('');
-                        setErrorMsg('');
-                      }}
-                      className="flex-1 py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
+                <button
+                  type="submit"
+                  disabled={regLoading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm mt-3 flex items-center justify-center gap-2"
+                >
+                  {regLoading ? (
+                    <span>در حال اعتبارسنجی...</span>
+                  ) : (
+                    <>
+                      <span>دریافت کد تایید و ادامه</span>
                       <span>←</span>
-                      <span>مرحله قبل (ویرایش اطلاعات)</span>
-                    </button>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* STEP 2 of Register: OTP Code */}
+            <div className={regStep === 'otp' ? 'block' : 'hidden'}>
+              <form onSubmit={handleCompleteRegistration} noValidate className="space-y-4">
+                {/* Hidden inputs to preserve credential association for browser password managers */}
+                <input
+                  type="text"
+                  name="username"
+                  id="register-otp-username-hidden"
+                  autoComplete="username"
+                  value={regIdentifier}
+                  readOnly
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                />
+                <input
+                  type="password"
+                  name="password"
+                  id="register-otp-password-hidden"
+                  autoComplete="new-password"
+                  value={regPassword}
+                  readOnly
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  className="sr-only pointer-events-none opacity-0 absolute -z-10"
+                />
+
+                <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl text-xs text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                    <span className="text-emerald-700 block text-[11px] font-medium">کد تایید ارسال شده به:</span>
+                    <span className="font-mono font-bold text-sm" dir="ltr">{regIdentifier}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegStep('form');
+                      setRegOtpCode('');
+                      setErrorMsg('');
+                    }}
+                    className="text-emerald-800 hover:text-emerald-950 underline font-black text-xs cursor-pointer"
+                  >
+                    ویرایش و تغییر اطلاعات
+                  </button>
+                </div>
+
+                {regDevCode && (
+                  <div className="bg-amber-50 text-amber-900 text-xs font-mono font-bold p-3 rounded-xl border border-amber-200 text-center">
+                    کد تایید تستی: <span className="text-lg text-emerald-700 select-all">{regDevCode}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
+                    کد ۵ رقمی تایید را وارد کنید
+                  </label>
+                  <input
+                    type="text"
+                    id="register-otp"
+                    name="oneTimeCode"
+                    autoComplete="one-time-code"
+                    dir="ltr"
+                    maxLength={5}
+                    placeholder="• • • • •"
+                    value={regOtpCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 5);
+                      setRegOtpCode(val);
+                      if (regMethod === 'email' && val.length === 5 && !regLoading) {
+                        handleCompleteRegistration(undefined, val);
+                      }
+                    }}
+                    autoFocus
+                    required
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-2xl tracking-[0.5em] text-slate-900 bg-slate-50/50"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                  {regTimer > 0 ? (
+                    <span>امکان ارسال مجدد تا {regTimer} ثانیه</span>
+                  ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        setMainMode('login');
-                        setRegStep('form');
-                        setRegOtpCode('');
-                        setErrorMsg('');
-                        setIsUnregisteredError(false);
-                        setUnregisteredEmail(null);
-                        if (searchParams.get('error')) {
-                          router.replace('/artist-panel/login', { scroll: false });
-                        }
-                      }}
-                      className="py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      onClick={handleRegisterFormSubmit}
+                      className="text-teal-600 hover:text-teal-700 font-bold cursor-pointer"
                     >
-                      <span>🔐</span>
-                      <span>ورود به هنرهاب</span>
+                      ارسال مجدد کد تایید
                     </button>
-                  </div>
-                </form>
-              )}
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={regLoading || regOtpCode.length !== 5}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm cursor-pointer"
+                >
+                  {regLoading ? 'در حال ثبت‌نام و ساخت حساب...' : 'تکمیل ثبت‌نام و ورود به هنرهاب'}
+                </button>
+
+                <div className="flex items-center gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRegStep('form');
+                      setRegOtpCode('');
+                      setErrorMsg('');
+                    }}
+                    className="flex-1 py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>←</span>
+                    <span>مرحله قبل (ویرایش اطلاعات)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMainMode('login');
+                      setRegPassword('');
+                      setRegConfirmPassword('');
+                      setShowRegPassword(false);
+                      setRegStep('form');
+                      setRegOtpCode('');
+                      setErrorMsg('');
+                      setIsUnregisteredError(false);
+                      setUnregisteredEmail(null);
+                      if (searchParams.get('error')) {
+                        router.replace('/artist-panel/login', { scroll: false });
+                      }
+                    }}
+                    className="py-2.5 px-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  >
+                    <span>🔐</span>
+                    <span>ورود به هنرهاب</span>
+                  </button>
+                </div>
+              </form>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
