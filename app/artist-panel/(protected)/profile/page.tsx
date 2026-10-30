@@ -87,7 +87,7 @@ export default function ArtistProfilePage() {
   // Global site setting for artist AI
   const [artistAiEnabled, setArtistAiEnabled] = useState(true);
 
-  const fetchProfile = async (silent = false) => {
+  const fetchProfile = async (silent = false, preserveFormData = false) => {
     try {
       if (!silent) setLoading(true);
       const [res, settingsRes] = await Promise.all([
@@ -116,31 +116,35 @@ export default function ArtistProfilePage() {
           try { edits = JSON.parse(edits); } catch { edits = {}; }
         }
         setPendingMode(true);
-        setName(edits.name || data.user?.name || '');
-        setBrandName(edits.brandName || data.brandName || '');
-        setProvince(edits.province || data.province || 'تهران');
-        setCity(edits.city || data.city || 'تهران');
-        setBio(edits.bio || data.bio || '');
-        setPortfolioUrl(edits.portfolioUrl || data.portfolioUrl || '');
-        setImagePreview(edits.image || data.user?.image || null);
-        setSpecialties(edits.specialties || data.specialties || []);
-        setSocialLinks(edits.socialLinks || data.socialLinks || {});
-        setPhoneNumber(edits.phoneNumber || data.user?.phoneNumber || '');
-        setEmail(edits.email || data.user?.email || '');
+        if (!preserveFormData) {
+          setName(edits.name || data.user?.name || '');
+          setBrandName(edits.brandName || data.brandName || '');
+          setProvince(edits.province || data.province || 'تهران');
+          setCity(edits.city || data.city || 'تهران');
+          setBio(edits.bio || data.bio || '');
+          setPortfolioUrl(edits.portfolioUrl || data.portfolioUrl || '');
+          setImagePreview(edits.image || data.user?.image || null);
+          setSpecialties(edits.specialties || data.specialties || []);
+          setSocialLinks(edits.socialLinks || data.socialLinks || {});
+          setPhoneNumber(edits.phoneNumber || data.user?.phoneNumber || '');
+          setEmail(edits.email || data.user?.email || '');
+        }
       } else {
         setPendingMode(false);
         setSuccessMsg('');
-        setName(data.user?.name || '');
-        setBrandName(data.brandName || '');
-        setProvince(data.province || 'تهران');
-        setCity(data.city || 'تهران');
-        setBio(data.bio || '');
-        setPortfolioUrl(data.portfolioUrl || '');
-        setImagePreview(data.user?.image || null);
-        setSpecialties(data.specialties || []);
-        setSocialLinks(data.socialLinks || {});
-        setPhoneNumber(data.user?.phoneNumber || '');
-        setEmail(data.user?.email || '');
+        if (!preserveFormData) {
+          setName(data.user?.name || '');
+          setBrandName(data.brandName || '');
+          setProvince(data.province || 'تهران');
+          setCity(data.city || 'تهران');
+          setBio(data.bio || '');
+          setPortfolioUrl(data.portfolioUrl || '');
+          setImagePreview(data.user?.image || null);
+          setSpecialties(data.specialties || []);
+          setSocialLinks(data.socialLinks || {});
+          setPhoneNumber(data.user?.phoneNumber || '');
+          setEmail(data.user?.email || '');
+        }
 
         if (data.adminFeedback) {
           try {
@@ -232,8 +236,8 @@ export default function ArtistProfilePage() {
     };
 
     const handleFocus = () => {
-      // Check and refresh live profile upon returning to tab
-      fetchProfile(true);
+      // Check and refresh live profile metadata without wiping unsaved form inputs
+      fetchProfile(true, true);
     };
 
     window.addEventListener('artist-status-updated', handleStatusUpdate);
@@ -439,15 +443,29 @@ export default function ArtistProfilePage() {
   const handleSendEmailOtp = async () => {
     if (!email || !email.trim()) {
       setErrorMsg('لطفاً آدرس ایمیل خود را وارد کنید.');
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
       return;
     }
+
+    const emailTrimmed = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+      setErrorMsg('فرمت ایمیل نامعتبر است. لطفاً یک آدرس ایمیل معتبر (مانند you@example.com) وارد نمایید.');
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+      return;
+    }
+
     setEmailOtpLoading(true);
     setEmailOtpError('');
+    setErrorMsg('');
     try {
       const res = await fetch('/api/auth/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), type: 'EMAIL_OTP' })
+        body: JSON.stringify({ email: emailTrimmed, type: 'EMAIL_OTP' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا در ارسال ایمیل تایید');
@@ -457,6 +475,9 @@ export default function ArtistProfilePage() {
       setShowEmailOtpModal(true);
     } catch (err: any) {
       setErrorMsg(err.message || 'خطا در ارسال کد تایید به ایمیل');
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
     } finally {
       setEmailOtpLoading(false);
     }
@@ -1060,6 +1081,14 @@ export default function ArtistProfilePage() {
                     dir="ltr"
                     value={email} 
                     onChange={e => setEmail(e.target.value)} 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (!isEmailVerified && !pendingMode && email && email.includes('@')) {
+                          handleSendEmailOtp();
+                        }
+                      }
+                    }}
                     readOnly={isSsoUser || pendingMode} 
                     disabled={isSsoUser || pendingMode} 
                     className={`flex-1 px-4 py-3 rounded-xl border text-sm text-left outline-none transition-all ${

@@ -7,13 +7,21 @@ interface AvatarCropModalProps {
   imageSrc: string | null;
   onClose: () => void;
   onCropComplete: (croppedBase64: string) => void;
+  shape?: 'circle' | 'rect';
+  aspectRatio?: number; // e.g. 1.58 for National ID card
+  title?: string;
+  description?: string;
 }
 
 export default function AvatarCropModal({
   isOpen,
   imageSrc,
   onClose,
-  onCropComplete
+  onCropComplete,
+  shape = 'circle',
+  aspectRatio = 1.58,
+  title,
+  description
 }: AvatarCropModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageObj, setImageObj] = useState<HTMLImageElement | null>(null);
@@ -32,8 +40,9 @@ export default function AvatarCropModal({
   // Preview canvas ref for live mini-preview
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Viewport diameter in pixels
-  const CROP_SIZE = 260;
+  // Viewport dimensions in pixels
+  const CROP_WIDTH = shape === 'circle' ? 260 : 330;
+  const CROP_HEIGHT = shape === 'circle' ? 260 : Math.round(330 / aspectRatio);
 
   // Load image whenever imageSrc changes
   useEffect(() => {
@@ -48,9 +57,9 @@ export default function AvatarCropModal({
     img.onload = () => {
       setImageObj(img);
 
-      // Calculate initial minimum zoom so the image covers the entire crop circle
-      const scaleX = CROP_SIZE / img.width;
-      const scaleY = CROP_SIZE / img.height;
+      // Calculate initial minimum zoom so the image covers the entire crop box
+      const scaleX = CROP_WIDTH / img.width;
+      const scaleY = CROP_HEIGHT / img.height;
       const initialCoverScale = Math.max(scaleX, scaleY);
 
       setMinZoom(initialCoverScale);
@@ -58,7 +67,7 @@ export default function AvatarCropModal({
       setOffset({ x: 0, y: 0 });
       setRotation(0);
     };
-  }, [imageSrc]);
+  }, [imageSrc, CROP_WIDTH, CROP_HEIGHT]);
 
   // Handle pointer down (mouse or touch)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -111,20 +120,28 @@ export default function AvatarCropModal({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const size = canvas.width;
-    ctx.clearRect(0, 0, size, size);
+    const previewWidth = shape === 'circle' ? 80 : 100;
+    const previewHeight = shape === 'circle' ? 80 : Math.round(100 / (aspectRatio || 1.58));
 
-    // Circular clip path for mini preview
+    canvas.width = previewWidth;
+    canvas.height = previewHeight;
+    ctx.clearRect(0, 0, previewWidth, previewHeight);
+
+    // Clip path for mini preview (circle or rounded rect)
     ctx.save();
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    if (shape === 'circle') {
+      ctx.arc(previewWidth / 2, previewHeight / 2, previewWidth / 2, 0, Math.PI * 2);
+    } else {
+      ctx.rect(0, 0, previewWidth, previewHeight);
+    }
     ctx.closePath();
     ctx.clip();
 
     // Scale ratio between live preview canvas and crop viewport
-    const scaleRatio = size / CROP_SIZE;
+    const scaleRatio = previewWidth / CROP_WIDTH;
 
-    ctx.translate(size / 2, size / 2);
+    ctx.translate(previewWidth / 2, previewHeight / 2);
     ctx.translate(offset.x * scaleRatio, offset.y * scaleRatio);
     ctx.rotate((rotation * Math.PI) / 180);
 
@@ -140,7 +157,7 @@ export default function AvatarCropModal({
     );
 
     ctx.restore();
-  }, [imageObj, offset, zoom, rotation, CROP_SIZE]);
+  }, [imageObj, offset, zoom, rotation, CROP_WIDTH, shape, aspectRatio]);
 
   useEffect(() => {
     renderPreview();
@@ -162,20 +179,22 @@ export default function AvatarCropModal({
   const handleConfirmCrop = () => {
     if (!imageObj) return;
 
-    const outputSize = 512;
+    const outputWidth = shape === 'circle' ? 512 : 800;
+    const outputHeight = shape === 'circle' ? 512 : Math.round(800 / (aspectRatio || 1.58));
+
     const canvas = document.createElement('canvas');
-    canvas.width = outputSize;
-    canvas.height = outputSize;
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // Scale factors relative to modal crop circle
-    const scaleRatio = outputSize / CROP_SIZE;
+    // Scale factors relative to modal crop viewport
+    const scaleRatio = outputWidth / CROP_WIDTH;
 
-    ctx.translate(outputSize / 2, outputSize / 2);
+    ctx.translate(outputWidth / 2, outputHeight / 2);
     ctx.translate(offset.x * scaleRatio, offset.y * scaleRatio);
     ctx.rotate((rotation * Math.PI) / 180);
 
@@ -207,14 +226,16 @@ export default function AvatarCropModal({
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl shrink-0">
-              🖼️
+              {shape === 'rect' ? '🪪' : '🖼️'}
             </span>
             <div>
               <h3 className="font-black text-slate-800 text-base">
-                تنظیم کادربندی عکس پروفایل
+                {title || (shape === 'circle' ? 'تنظیم کادربندی عکس پروفایل' : 'تنظیم کادربندی تصویر')}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                عکس را جابجا کنید تا به بهترین شکل در دایره پروفایل قرار گیرد
+                {description || (shape === 'circle' 
+                  ? 'عکس را جابجا کنید تا به بهترین شکل در دایره پروفایل قرار گیرد'
+                  : 'عکس را جابجا کنید تا به بهترین شکل در کادر مستطیل قرار گیرد')}
               </p>
             </div>
           </div>
@@ -235,8 +256,10 @@ export default function AvatarCropModal({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onWheel={handleWheel}
-            style={{ width: CROP_SIZE, height: CROP_SIZE }}
-            className="relative cursor-grab active:cursor-grabbing overflow-hidden rounded-full ring-4 ring-teal-500/80 shadow-[0_0_50px_rgba(0,0,0,0.8)] touch-none flex items-center justify-center bg-slate-950"
+            style={{ width: CROP_WIDTH, height: CROP_HEIGHT }}
+            className={`relative cursor-grab active:cursor-grabbing overflow-hidden ${
+              shape === 'circle' ? 'rounded-full' : 'rounded-2xl'
+            } ring-4 ring-teal-500/80 shadow-[0_0_50px_rgba(0,0,0,0.8)] touch-none flex items-center justify-center bg-slate-950`}
           >
             {/* Image being dragged/zoomed/rotated */}
             {imageObj && (
@@ -339,22 +362,22 @@ export default function AvatarCropModal({
               </button>
             </div>
 
-            {/* Live Circular Miniature Preview */}
+            {/* Live Miniature Preview */}
             <div className="flex items-center gap-2.5">
               <div className="text-left">
                 <span className="block text-[11px] font-bold text-slate-600">
                   پیش‌نمایش نهایی
                 </span>
                 <span className="block text-[10px] text-slate-400">
-                  نمایش در سایت
+                  {shape === 'circle' ? 'نمایش در پروفایل' : 'کیفیت نهایی'}
                 </span>
               </div>
-              <div className="w-11 h-11 rounded-full border-2 border-teal-500 p-0.5 bg-white shadow-sm overflow-hidden shrink-0">
+              <div className={`${
+                shape === 'circle' ? 'w-11 h-11 rounded-full' : 'w-16 h-10 rounded-lg'
+              } border-2 border-teal-500 p-0.5 bg-white shadow-sm overflow-hidden shrink-0 flex items-center justify-center`}>
                 <canvas
                   ref={previewCanvasRef}
-                  width={80}
-                  height={80}
-                  className="w-full h-full rounded-full object-cover"
+                  className={`w-full h-full ${shape === 'circle' ? 'rounded-full' : 'rounded-md'} object-cover`}
                 />
               </div>
             </div>

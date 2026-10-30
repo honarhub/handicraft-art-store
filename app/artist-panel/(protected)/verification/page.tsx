@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isValidIranianNationalId, isValidIranianSheba, hasProfilePendingEdits } from '@/lib/sms';
+import AvatarCropModal from '@/app/components/AvatarCropModal';
 
 const toPersianDigits = (num: number | string) =>
   String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
@@ -159,12 +160,36 @@ export default function ArtistVerificationPage() {
     fetchProfile();
   }, []);
 
+  // National Card crop modal states
+  const [cardCropModalOpen, setCardCropModalOpen] = useState(false);
+  const [rawCardImageForCrop, setRawCardImageForCrop] = useState<string | null>(null);
+
   const handleCardImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setKycError('لطفاً یک فایل تصویری معتبر انتخاب نمایید.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setKycError('حجم تصویر کارت ملی نباید بیشتر از ۵ مگابایت باشد.');
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => setNationalCardImage(reader.result as string);
+    reader.onload = () => {
+      setRawCardImageForCrop(reader.result as string);
+      setCardCropModalOpen(true);
+      setKycError('');
+    };
     reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCardCropComplete = (croppedBase64: string) => {
+    setNationalCardImage(croppedBase64);
+    setCardCropModalOpen(false);
+    setRawCardImageForCrop(null);
+    setKycError('');
   };
 
   // Derive Level 3 Granular Approval/Rejection states
@@ -627,14 +652,29 @@ export default function ArtistVerificationPage() {
                     )}
                   </div>
 
-                  {/* Upload Button */}
+                  {/* Upload and Re-crop Buttons */}
                   {!isCardApproved && (
                     <div className="space-y-1.5">
-                      <label className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-colors shadow-xs">
-                        <span>📷</span>
-                        <span>{nationalCardImage ? 'تغییر تصویر کارت ملی' : 'انتخاب تصویر کارت ملی'}</span>
-                        <input type="file" accept="image/*" onChange={handleCardImageUpload} className="hidden" />
-                      </label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-colors shadow-xs">
+                          <span>📷</span>
+                          <span>{nationalCardImage ? 'انتخاب تصویر جدید' : 'انتخاب تصویر کارت ملی'}</span>
+                          <input type="file" accept="image/*" onChange={handleCardImageUpload} className="hidden" />
+                        </label>
+                        {nationalCardImage && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRawCardImageForCrop(nationalCardImage);
+                              setCardCropModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors border border-slate-200 cursor-pointer"
+                          >
+                            <span>✂️</span>
+                            <span>تنظیم مجدد کادر</span>
+                          </button>
+                        )}
+                      </div>
                       <p className="text-[11px] text-slate-400">
                         تصویر باید واضح، خوانا و بدون بازتاب نور شدید باشد (حداکثر ۵ مگابایت).
                       </p>
@@ -981,6 +1021,21 @@ export default function ArtistVerificationPage() {
         </div>
 
       </div>
+
+      {/* National Card Rectangular Crop Modal */}
+      <AvatarCropModal
+        isOpen={cardCropModalOpen}
+        imageSrc={rawCardImageForCrop}
+        shape="rect"
+        aspectRatio={1.58}
+        title="تنظیم کادربندی تصویر کارت ملی"
+        description="کارت ملی را به گونه‌ای تنظیم کنید که تمام سطح و نوشته‌های کارت درون کادر مستطیل قرار گیرد"
+        onClose={() => {
+          setCardCropModalOpen(false);
+          setRawCardImageForCrop(null);
+        }}
+        onCropComplete={handleCardCropComplete}
+      />
 
     </div>
   );
