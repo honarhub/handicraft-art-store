@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 export interface SmsSettingsProps {
   initialSettings: {
     isMobileOtpActive?: boolean;
+    smsIsSandbox?: boolean;
     smsApiKey?: string | null;
     smsTemplateId?: string | null;
     smsOtpParamName?: string;
@@ -21,6 +22,7 @@ export interface SmsSettingsProps {
 export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettingsProps) {
   // Form states
   const [isMobileOtpActive, setIsMobileOtpActive] = useState(initialSettings.isMobileOtpActive ?? true);
+  const [smsIsSandbox, setSmsIsSandbox] = useState(initialSettings.smsIsSandbox ?? false);
   const [smsApiKey, setSmsApiKey] = useState(initialSettings.smsApiKey || '');
   const [showApiKey, setShowApiKey] = useState(false);
   const [smsTemplateId, setSmsTemplateId] = useState(initialSettings.smsTemplateId || '');
@@ -45,6 +47,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   React.useEffect(() => {
     if (initialSettings) {
       if (initialSettings.isMobileOtpActive !== undefined) setIsMobileOtpActive(initialSettings.isMobileOtpActive);
+      if (initialSettings.smsIsSandbox !== undefined) setSmsIsSandbox(Boolean(initialSettings.smsIsSandbox));
       if (initialSettings.smsApiKey !== undefined) setSmsApiKey(initialSettings.smsApiKey || '');
       if (initialSettings.smsTemplateId !== undefined) setSmsTemplateId(initialSettings.smsTemplateId || '');
       if (initialSettings.smsOtpParamName !== undefined) setSmsOtpParamName(initialSettings.smsOtpParamName || 'Code');
@@ -65,6 +68,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
     try {
       await onSave({
         isMobileOtpActive,
+        smsIsSandbox,
         smsApiKey,
         smsTemplateId,
         smsOtpParamName,
@@ -146,9 +150,13 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                 {isMobileOtpActive ? 'سرویس فعال' : 'سرویس متوقف'}
               </span>
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                isConfigured ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
+                !isConfigured
+                  ? 'bg-slate-100 text-slate-600'
+                  : smsIsSandbox
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-emerald-100 text-emerald-800'
               }`}>
-                {isConfigured ? '⚡ اتصال زنده SMS.ir' : '🧪 حالت تستی (کنسول سرور)'}
+                {!isConfigured ? '🧪 شبیه‌ساز آفلاین (Mock)' : smsIsSandbox ? '🟡 سندباکس SMS.ir' : '⚡ عملیاتی زنده'}
               </span>
             </div>
             <p className="text-slate-500 text-xs sm:text-sm mt-1.5 leading-relaxed">
@@ -189,6 +197,56 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
 
       {/* Main Settings Form */}
       <form onSubmit={handleSaveSmsSettings} className="mt-6 space-y-6">
+        {/* Environment Mode Selector */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <label className="block text-xs font-black text-slate-800 mb-2">
+            محیط وب‌سرویس پیامک:
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setSmsIsSandbox(false)}
+              className={`p-3 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
+                !smsIsSandbox
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-sm ring-2 ring-emerald-500/20'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              <span className="text-2xl shrink-0 mt-0.5">🚀</span>
+              <div>
+                <div className="font-bold text-xs flex items-center gap-1.5">
+                  <span>محیط عملیاتی (Production)</span>
+                  {!smsIsSandbox && <span className="bg-emerald-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  پیامک واقعی به تلفن همراه کاربر ارسال می‌شود. هیچ کدی روی کنسول یا صفحه نمایش داده نمی‌شود.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSmsIsSandbox(true)}
+              className={`p-3 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
+                smsIsSandbox
+                  ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              <span className="text-2xl shrink-0 mt-0.5">🧪</span>
+              <div>
+                <div className="font-bold text-xs flex items-center gap-1.5">
+                  <span>محیط سندباکس تستی (SMS.ir Sandbox)</span>
+                  {smsIsSandbox && <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  وب‌سرویس sms.ir واقعی فراخوانی و اعتبارسنجی می‌شود اما پیامک مخابراتی ارسال نمی‌شود. کد دریافتی صرفاً روی لوکال‌هاست نمایش داده می‌شود.
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* API Key */}
           <div className="md:col-span-2">

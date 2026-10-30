@@ -336,6 +336,7 @@ model SiteSettings {
   // SMS & OTP (sms.ir) Settings
   isMobileOtpActive        Boolean    @default(true)
   smsProvider              String     @default("sms.ir")
+  smsIsSandbox             Boolean    @default(false)
   smsApiKey                String?
   smsTemplateId            String?
   smsOtpParamName          String     @default("Code")

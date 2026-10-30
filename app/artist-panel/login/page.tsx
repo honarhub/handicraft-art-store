@@ -23,6 +23,7 @@ function ArtistLoginContent() {
   const [loginOtpCode, setLoginOtpCode] = useState('');
   const [loginTimer, setLoginTimer] = useState(0);
   const [loginDevCode, setLoginDevCode] = useState<string | null>(null);
+  const [loginMode, setLoginMode] = useState<'MOCK' | 'SANDBOX' | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [isUnregisteredError, setIsUnregisteredError] = useState(false);
   const [unregisteredEmail, setUnregisteredEmail] = useState<string | null>(null);
@@ -38,6 +39,7 @@ function ArtistLoginContent() {
   const [regOtpCode, setRegOtpCode] = useState('');
   const [regTimer, setRegTimer] = useState(0);
   const [regDevCode, setRegDevCode] = useState<string | null>(null);
+  const [regMode, setRegMode] = useState<'MOCK' | 'SANDBOX' | null>(null);
   const [regLoading, setRegLoading] = useState(false);
   const [refFromUrl, setRefFromUrl] = useState(false);
 
@@ -269,8 +271,14 @@ function ArtistLoginContent() {
 
       setLoginStep('otp');
       setLoginTimer(data.expiresIn || 120);
-      if (data.devCode) setLoginDevCode(data.devCode);
-      setSuccessMsg('کد تایید ۵ رقمی برای شماره شما پیامک شد.');
+      if (data.devCode) {
+        setLoginDevCode(data.devCode);
+        setLoginMode(data.mode || 'MOCK');
+      } else {
+        setLoginDevCode(null);
+        setLoginMode(null);
+      }
+      setSuccessMsg(data.mode === 'SANDBOX' ? 'وب‌سرویس sms.ir درخواست را تایید کرد (حالت سندباکس).' : 'کد تایید ۵ رقمی ارسال شد.');
     } catch {
       setErrorMsg('خطا در برقراری ارتباط.');
     } finally {
@@ -390,8 +398,14 @@ function ArtistLoginContent() {
 
       setRegStep('otp');
       setRegTimer(data.expiresIn || 120);
-      if (data.devCode) setRegDevCode(data.devCode);
-      setSuccessMsg(`کد تایید ۵ رقمی به ${isEmail ? 'ایمیل' : 'شماره موبایل'} شما ارسال شد.`);
+      if (data.devCode) {
+        setRegDevCode(data.devCode);
+        setRegMode(data.mode || 'MOCK');
+      } else {
+        setRegDevCode(null);
+        setRegMode(null);
+      }
+      setSuccessMsg(data.mode === 'SANDBOX' ? 'وب‌سرویس sms.ir درخواست را تایید کرد (حالت سندباکس).' : `کد تایید ۵ رقمی به ${isEmail ? 'ایمیل' : 'شماره موبایل'} شما ارسال شد.`);
     } catch {
       setErrorMsg('خطا در اتصال به سرور.');
     } finally {
@@ -554,9 +568,14 @@ function ArtistLoginContent() {
         setForgotError(data.error || 'خطا در ارسال کد بازیابی.');
       } else {
         setForgotStep('reset');
-        setForgotMsg('کد ۵ رقمی بازیابی ارسال شد.');
         if (data.devCode) {
-          setForgotMsg(`کد بازیابی ارسال شد (کد تستی: ${data.devCode})`);
+          if (data.mode === 'SANDBOX') {
+            setForgotMsg(`کد بازیابی ارسال شد (تایید سندباکس sms.ir: ${data.devCode})`);
+          } else {
+            setForgotMsg(`کد بازیابی ارسال شد (کد شبیه‌ساز لوکال: ${data.devCode})`);
+          }
+        } else {
+          setForgotMsg('کد ۵ رقمی بازیابی به شماره موبایل شما پیامک شد.');
         }
       }
     } catch {
@@ -966,8 +985,25 @@ function ArtistLoginContent() {
                 </div>
 
                 {loginDevCode && (
-                  <div className="bg-amber-50 text-amber-900 text-xs font-mono font-bold p-3 rounded-xl border border-amber-200 text-center">
-                    کد تایید تستی: <span className="text-lg text-emerald-700 select-all">{loginDevCode}</span>
+                  <div className={`text-xs font-mono font-bold p-3 rounded-xl border text-center ${
+                    loginMode === 'SANDBOX'
+                      ? 'bg-sky-50 text-sky-900 border-sky-200'
+                      : 'bg-amber-50 text-amber-900 border-amber-200'
+                  }`}>
+                    {loginMode === 'SANDBOX' ? (
+                      <div>
+                        <span>🌐 تاییدشده توسط سندباکس sms.ir: </span>
+                        <span className="text-lg text-sky-700 select-all font-black">{loginDevCode}</span>
+                        <span className="block text-[10px] text-sky-600 mt-0.5 font-sans">
+                          (وب‌سرویس sms.ir درخواست را تایید کرد، اما در سندباکس پیامک مخابراتی به گوشی ارسال نمی‌شود)
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span>🔑 کد تایید شبیه‌ساز لوکال (Mock): </span>
+                        <span className="text-lg text-emerald-700 select-all font-black">{loginDevCode}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1288,8 +1324,25 @@ function ArtistLoginContent() {
                 </div>
 
                 {regDevCode && (
-                  <div className="bg-amber-50 text-amber-900 text-xs font-mono font-bold p-3 rounded-xl border border-amber-200 text-center">
-                    کد تایید تستی: <span className="text-lg text-emerald-700 select-all">{regDevCode}</span>
+                  <div className={`text-xs font-mono font-bold p-3 rounded-xl border text-center ${
+                    regMode === 'SANDBOX'
+                      ? 'bg-sky-50 text-sky-900 border-sky-200'
+                      : 'bg-amber-50 text-amber-900 border-amber-200'
+                  }`}>
+                    {regMode === 'SANDBOX' ? (
+                      <div>
+                        <span>🌐 تاییدشده توسط سندباکس sms.ir: </span>
+                        <span className="text-lg text-sky-700 select-all font-black">{regDevCode}</span>
+                        <span className="block text-[10px] text-sky-600 mt-0.5 font-sans">
+                          (وب‌سرویس sms.ir درخواست را تایید کرد، اما در سندباکس پیامک مخابراتی به گوشی ارسال نمی‌شود)
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <span>🔑 کد تایید شبیه‌ساز لوکال (Mock): </span>
+                        <span className="text-lg text-emerald-700 select-all font-black">{regDevCode}</span>
+                      </div>
+                    )}
                   </div>
                 )}
 

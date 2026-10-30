@@ -27,6 +27,20 @@ export function getClientIp(req: Request): string {
 }
 
 /**
+ * Checks whether the incoming HTTP request is running locally (localhost) vs on a live domain
+ */
+export function isLocalhostRequest(req: Request): boolean {
+  const host = req.headers.get('host') || '';
+  const hostname = host.split(':')[0].toLowerCase();
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname.endsWith('.local')
+  );
+}
+
+/**
  * Multi-layer security & anti-abuse checks for OTP requests:
  * 1. Mobile OTP Kill Switch
  * 2. Multi-target / Rapid-fire IP flooding protection

@@ -39,6 +39,7 @@ export async function PATCH(request: Request) {
       artistAiEnabled,
       isMobileOtpActive,
       smsProvider,
+      smsIsSandbox,
       smsApiKey,
       smsTemplateId,
       smsOtpParamName,
@@ -55,6 +56,7 @@ export async function PATCH(request: Request) {
     if (artistAiEnabled !== undefined) updateData.artistAiEnabled = Boolean(artistAiEnabled);
     if (isMobileOtpActive !== undefined) updateData.isMobileOtpActive = Boolean(isMobileOtpActive);
     if (smsProvider !== undefined) updateData.smsProvider = smsProvider;
+    if (smsIsSandbox !== undefined) updateData.smsIsSandbox = Boolean(smsIsSandbox);
     if (smsApiKey !== undefined) updateData.smsApiKey = smsApiKey ? smsApiKey.trim() : null;
     if (smsTemplateId !== undefined) updateData.smsTemplateId = smsTemplateId ? smsTemplateId.toString().trim() : null;
     if (smsOtpParamName !== undefined) updateData.smsOtpParamName = (smsOtpParamName || 'Code').trim();

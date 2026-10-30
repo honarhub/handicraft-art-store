@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sms';
-import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure } from '@/lib/otp-security';
+import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure, isLocalhostRequest } from '@/lib/otp-security';
 
 export async function POST(req: Request) {
   try {
@@ -128,8 +128,11 @@ export async function POST(req: Request) {
       }
     });
 
+    const isLocalhost = isLocalhostRequest(req);
+
     // Send SMS if mobile
-    let smsDevCode: string | undefined;
+    let smsMode: 'MOCK' | 'SANDBOX' | 'PRODUCTION' = 'PRODUCTION';
+    let devCodeToReturn: string | undefined = undefined;
 
     if (!isEmail) {
       const smsRes = await sendSmsOtp(normalizedTarget, code);
@@ -139,11 +142,35 @@ export async function POST(req: Request) {
           error: smsRes.error || 'خطا در ارسال پیامک از طریق سامانه. لطفاً بعداً تلاش نمایید یا با پشتیبانی تماس بگیرید.'
         }, { status: 502 });
       }
-      smsDevCode = smsRes.devCode;
+
+      smsMode = smsRes.mode || 'PRODUCTION';
+
+      if (isLocalhost) {
+        if (smsMode === 'MOCK') {
+          console.log('====================================================');
+          console.log(`[SMS-MOCK] Localhost Mock OTP for ${normalizedTarget}: [ ${code} ]`);
+          console.log('====================================================');
+          devCodeToReturn = code;
+        } else if (smsMode === 'SANDBOX') {
+          console.log('====================================================');
+          console.log(`[SMS.IR-SANDBOX] Verified by SMS.ir (ID: ${smsRes.messageId}, Cost: ${smsRes.cost ?? 0}). Code: [ ${code} ]`);
+          console.log('====================================================');
+          devCodeToReturn = code;
+        } else if (smsMode === 'PRODUCTION') {
+          console.log(`[SMS.IR-PRODUCTION] Live SMS dispatched to ${normalizedTarget} (MessageID: ${smsRes.messageId})`);
+        }
+      } else {
+        // NOT localhost (live domain): Strictly production, never log code, never return devCode
+        if (smsMode === 'PRODUCTION') {
+          console.log(`[SMS.IR-PRODUCTION] Live SMS dispatched to ${normalizedTarget} (MessageID: ${smsRes.messageId})`);
+        }
+      }
     } else {
-      console.log(`[EMAIL OTP] Code for ${normalizedTarget}: ${code}`);
-      if (process.env.NODE_ENV !== 'production') {
-        smsDevCode = code;
+      // Email handling
+      if (isLocalhost) {
+        console.log(`[EMAIL-DEV] Code for ${normalizedTarget}: ${code}`);
+        devCodeToReturn = code;
+        smsMode = 'MOCK';
       }
     }
 
@@ -152,10 +179,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: isEmail ? 'کد تایید به ایمیل شما ارسال شد.' : 'کد تایید با موفقیت پیامک شد.',
+      message: isEmail ? 'کد تایید به ایمیل شما ارسال شد.' : 'کد تایید با موفقیت ارسال شد.',
       expiresIn: intervalSec,
       target: normalizedTarget,
-      ...(smsDevCode ? { devCode: smsDevCode } : {})
+      mode: isLocalhost ? smsMode : 'PRODUCTION',
+      ...(devCodeToReturn ? { devCode: devCodeToReturn } : {})
     });
   } catch (error: any) {
     console.error('[API /api/auth/otp/send] Error:', error);

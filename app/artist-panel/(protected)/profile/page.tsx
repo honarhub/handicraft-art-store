@@ -99,6 +99,7 @@ export default function ArtistProfilePage() {
   const [phoneOtpTimer, setPhoneOtpTimer] = useState(0);
   const [phoneOtpError, setPhoneOtpError] = useState('');
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [devMode, setDevMode] = useState<'MOCK' | 'SANDBOX' | null>(null);
 
   // Email OTP Modal States (Optional for email verification)
   const [showEmailOtpModal, setShowEmailOtpModal] = useState(false);
@@ -449,7 +450,13 @@ export default function ArtistProfilePage() {
       
       lastSentPhoneRef.current = normPhone;
       setPhoneOtpTimer(data.expiresIn || 120);
-      if (data.devCode) setDevCode(data.devCode);
+      if (data.devCode) {
+        setDevCode(data.devCode);
+        setDevMode(data.mode || 'MOCK');
+      } else {
+        setDevCode(null);
+        setDevMode(null);
+      }
       setShowPhoneOtpModal(true);
     } catch (err: any) {
       const msg = err.message || 'خطا در ارسال پیامک کد تایید';
@@ -1375,8 +1382,12 @@ export default function ArtistProfilePage() {
             </p>
 
             {devCode && (
-              <div className="mb-4 p-2.5 bg-amber-50 text-amber-800 text-xs font-mono font-bold rounded-xl border border-amber-200">
-                کد آزمایشی سرور: {devCode}
+              <div className={`mb-4 p-2.5 text-xs font-mono font-bold rounded-xl border ${
+                devMode === 'SANDBOX'
+                  ? 'bg-sky-50 text-sky-900 border-sky-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}>
+                {devMode === 'SANDBOX' ? `تایید سندباکس sms.ir: ${devCode}` : `کد آزمایشی سرور (Mock): ${devCode}`}
               </div>
             )}
 

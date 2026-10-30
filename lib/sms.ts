@@ -42,6 +42,7 @@ export interface SmsResult {
   cost?: number;
   error?: string;
   devCode?: string;
+  mode?: 'MOCK' | 'SANDBOX' | 'PRODUCTION';
 }
 
 /**
@@ -146,12 +147,14 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
   let templateId: string | null = null;
   let paramName: string = 'Code';
   let isMobileOtpActive = true;
+  let smsIsSandbox = false;
 
   try {
     const { default: prisma } = await import('@/lib/prisma');
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
     if (settings) {
       isMobileOtpActive = settings.isMobileOtpActive;
+      smsIsSandbox = Boolean(settings.smsIsSandbox);
       apiKey = settings.smsApiKey || process.env.SMSIR_API_KEY || null;
       templateId = settings.smsTemplateId || process.env.SMSIR_TEMPLATE_ID || null;
       paramName = settings.smsOtpParamName || 'Code';
@@ -170,7 +173,7 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
     };
   }
 
-  // If live credentials are provided in SiteSettings or env:
+  // 1. Live credentials provided (calls real sms.ir endpoint)
   if (apiKey && templateId) {
     const result = await sendSmsIrVerify({
       mobile: normalized,
@@ -179,15 +182,38 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
       templateId,
       paramName
     });
-    return result;
+
+    if (!result.success) {
+      return result;
+    }
+
+    // Determine if the key or response indicates Sandbox
+    const isSandboxKey =
+      smsIsSandbox ||
+      apiKey.toLowerCase().includes('sandbox') ||
+      apiKey.toLowerCase().includes('test') ||
+      result.cost === 0;
+
+    if (isSandboxKey) {
+      return {
+        ...result,
+        mode: 'SANDBOX',
+        devCode: code
+      };
+    }
+
+    return {
+      ...result,
+      mode: 'PRODUCTION'
+    };
   }
 
-  // Fallback in development or when SMS credentials are not yet entered
-  console.log('====================================================');
-  console.log(`[SMS-DEV MOCK] Verification OTP for ${normalized}: [ ${code} ]`);
-  console.log('====================================================');
-
-  return { success: true, devCode: code };
+  // 2. Fallback when API Key or Template ID is empty (MOCK mode)
+  return {
+    success: true,
+    mode: 'MOCK',
+    devCode: code
+  };
 }
 
 export async function sendSmsNotification(phone: string, text: string): Promise<{ success: boolean; message?: string }> {

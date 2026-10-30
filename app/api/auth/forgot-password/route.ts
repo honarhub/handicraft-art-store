@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sms';
-import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure } from '@/lib/otp-security';
+import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure, isLocalhostRequest } from '@/lib/otp-security';
 
 export async function POST(req: Request) {
   try {
@@ -78,7 +78,9 @@ export async function POST(req: Request) {
         }
       });
 
-      let smsDevCode: string | undefined;
+      const isLocalhost = isLocalhostRequest(req);
+      let smsMode: 'MOCK' | 'SANDBOX' | 'PRODUCTION' = 'PRODUCTION';
+      let devCodeToReturn: string | undefined = undefined;
 
       if (isMobile) {
         const smsRes = await sendSmsOtp(normalizedTarget, otpCode);
@@ -88,12 +90,34 @@ export async function POST(req: Request) {
             error: smsRes.error || 'خطا در ارسال پیامک از طریق سامانه. لطفاً بعداً تلاش نمایید.'
           }, { status: 502 });
         }
-        smsDevCode = smsRes.devCode;
+        smsMode = smsRes.mode || 'PRODUCTION';
+
+        if (isLocalhost) {
+          if (smsMode === 'MOCK') {
+            console.log('====================================================');
+            console.log(`[FORGOT-SMS-MOCK] Localhost OTP for ${normalizedTarget}: [ ${otpCode} ]`);
+            console.log('====================================================');
+            devCodeToReturn = otpCode;
+          } else if (smsMode === 'SANDBOX') {
+            console.log('====================================================');
+            console.log(`[FORGOT-SMS.IR-SANDBOX] Verified by SMS.ir (ID: ${smsRes.messageId}, Cost: ${smsRes.cost ?? 0}). Code: [ ${otpCode} ]`);
+            console.log('====================================================');
+            devCodeToReturn = otpCode;
+          } else if (smsMode === 'PRODUCTION') {
+            console.log(`[FORGOT-SMS.IR-PRODUCTION] Live SMS sent to ${normalizedTarget} (MessageID: ${smsRes.messageId})`);
+          }
+        } else {
+          // NOT localhost (live domain)
+          if (smsMode === 'PRODUCTION') {
+            console.log(`[FORGOT-SMS.IR-PRODUCTION] Live SMS sent to ${normalizedTarget} (MessageID: ${smsRes.messageId})`);
+          }
+        }
       } else {
-        // For email, log in dev or send email
-        console.log(`[EMAIL-RESET] Password reset code for ${normalizedTarget}: [ ${otpCode} ]`);
-        if (process.env.NODE_ENV !== 'production') {
-          smsDevCode = otpCode;
+        // For email
+        if (isLocalhost) {
+          console.log(`[EMAIL-RESET-DEV] Code for ${normalizedTarget}: [ ${otpCode} ]`);
+          devCodeToReturn = otpCode;
+          smsMode = 'MOCK';
         }
       }
 
@@ -103,7 +127,8 @@ export async function POST(req: Request) {
         success: true,
         message: 'کد بازیابی ارسال شد.',
         target: normalizedTarget,
-        ...(smsDevCode ? { devCode: smsDevCode } : {})
+        mode: isLocalhost ? smsMode : 'PRODUCTION',
+        ...(devCodeToReturn ? { devCode: devCodeToReturn } : {})
       });
     }
 
