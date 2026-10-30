@@ -520,7 +520,14 @@ export default function AdminArtistsPage() {
                 : 'bg-red-50 hover:bg-red-100 text-red-800 border border-red-300'
             }`}
           >
-            <span>🗑️ درخواست‌های حذف حساب</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span>درخواست‌های حذف حساب</span>
             <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-red-600 text-white animate-pulse">
               {deletionRequests.length}
             </span>
@@ -679,10 +686,16 @@ export default function AdminArtistsPage() {
                         </a>
                         <button 
                           onClick={() => handleRejectRegistration(artist.id)} 
-                          className="bg-red-100 hover:bg-red-200 text-red-800 p-2 rounded-xl text-xs font-bold transition-colors"
+                          className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-xl text-xs font-bold transition-colors"
                           title="رد و حذف کاربر"
                         >
-                          ✕
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
                         </button>
                       </div>
                     </td>
@@ -1011,14 +1024,20 @@ export default function AdminArtistsPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                       </button>
 
-                      {/* Delete Button (Red X as requested) */}
+                      {/* Delete Button (Standard Trash Icon as in Blog) */}
                       {artist.status !== 'DELETED' && (
                         <button 
                           onClick={() => handleSoftDelete(artist.id, artist.name)} 
                           title="حذف هنرمند" 
-                          className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors font-black text-sm flex items-center justify-center border border-transparent hover:border-red-100"
+                          className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors border border-transparent hover:border-red-100"
                         >
-                          ✕
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
                         </button>
                       )}
                     </div>

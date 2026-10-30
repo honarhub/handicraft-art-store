@@ -369,7 +369,6 @@ export default function ArtistVerificationPage() {
 
         {/* 3 Medals */}
         <div className="flex flex-col items-center gap-2 bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-2xl shadow-inner shrink-0">
-          <span className="text-[11px] font-bold text-slate-300">مدال‌های کسب‌شده:</span>
           <div className="flex items-center gap-3">
             <MedalStarBadge level={1} active={level >= 1} />
             <MedalStarBadge level={2} active={level >= 2} />
