@@ -1089,12 +1089,10 @@ function ArtistLoginContent() {
                     {regMethod === 'phone' ? 'شماره تلفن همراه' : 'آدرس ایمیل'}
                   </label>
                   <input
-                    key={regMethod}
                     type={regMethod === 'phone' ? 'tel' : 'email'}
-                    id={regMethod === 'phone' ? 'register-phone' : 'register-email'}
-                    name={regMethod === 'phone' ? 'tel' : 'email'}
-                    autoComplete={regMethod === 'phone' ? 'tel' : 'email'}
-                    inputMode={regMethod === 'phone' ? 'tel' : 'email'}
+                    id="register-identifier"
+                    name="username"
+                    autoComplete="username"
                     dir="ltr"
                     placeholder={regMethod === 'phone' ? '09123456789' : 'name@example.com'}
                     value={regIdentifier}
