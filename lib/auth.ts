@@ -268,7 +268,8 @@ export const authOptions: NextAuthOptions = {
           }
         } else {
           if (!isAdmin) {
-            return '/artist-panel/login?error=not_registered';
+            const redirectEmail = encodeURIComponent(googleEmail);
+            return `/artist-panel/login?error=not_registered&email=${redirectEmail}`;
           }
           user.role = 'ADMIN';
         }

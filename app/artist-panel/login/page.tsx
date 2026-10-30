@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 
 function ArtistLoginContent() {
   const router = useRouter();
@@ -24,6 +25,7 @@ function ArtistLoginContent() {
   const [loginDevCode, setLoginDevCode] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   const [isUnregisteredError, setIsUnregisteredError] = useState(false);
+  const [unregisteredEmail, setUnregisteredEmail] = useState<string | null>(null);
 
   // --- REGISTER STATES ---
   const [regMethod, setRegMethod] = useState<'phone' | 'email'>('phone');
@@ -68,8 +70,12 @@ function ArtistLoginContent() {
     }
 
     if (err === 'not_registered') {
-      setErrorMsg('این حساب کاربری در سیستم ثبت نشده است. لطفاً ابتدا از تب «ثبت‌نام» با کد معرف، حساب خود را ایجاد کنید.');
+      setErrorMsg('این حساب کاربری در سیستم ثبت نشده است. لطفاً ابتدا «ثبت‌نام» نمایید.');
       setIsUnregisteredError(true);
+      const emailParam = searchParams.get('email');
+      if (emailParam) {
+        setUnregisteredEmail(decodeURIComponent(emailParam));
+      }
     } else if (err === 'deleted') {
       signOut({ redirect: false });
       setErrorMsg('حساب کاربری هنرمندی شما توسط ادمین حذف شده است و از سیستم خارج شدید.');
@@ -108,14 +114,37 @@ function ArtistLoginContent() {
   // 1. LOGIN FLOW
   // ==========================================
 
-  // Step 1: Check user existence
+  // Step 1: Check user existence with unified identifier (phone or email)
   const handleCheckUserAndProceed = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginIdentifier.trim()) {
-      setErrorMsg(loginMethod === 'phone' ? 'شماره موبایل را وارد کنید.' : 'ایمیل را وارد کنید.');
+    const raw = loginIdentifier.trim();
+    if (!raw) {
+      setErrorMsg('شماره موبایل یا ایمیل را وارد کنید.');
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let detectedType: 'phone' | 'email';
+    let normalizedIdentifier = raw;
+
+    if (raw.includes('@')) {
+      if (!emailRegex.test(raw)) {
+        setErrorMsg('شماره موبایل یا ایمیل صحیح دریافت نشد لطفا با دقت وارد نماید.');
+        return;
+      }
+      detectedType = 'email';
+      normalizedIdentifier = raw.toLowerCase();
+    } else {
+      if (!isValidIranianMobile(raw)) {
+        setErrorMsg('شماره موبایل یا ایمیل صحیح دریافت نشد لطفا با دقت وارد نماید.');
+        return;
+      }
+      detectedType = 'phone';
+      normalizedIdentifier = normalizePhoneNumber(raw);
+    }
+
+    setLoginMethod(detectedType);
+    setLoginIdentifier(normalizedIdentifier);
     setLoginLoading(true);
     setErrorMsg('');
     setIsUnregisteredError(false);
@@ -124,14 +153,14 @@ function ArtistLoginContent() {
       const res = await fetch('/api/auth/check-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: loginIdentifier.trim() })
+        body: JSON.stringify({ identifier: normalizedIdentifier })
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.exists) {
         setIsUnregisteredError(true);
-        setErrorMsg(data.message || 'این شماره موبایل یا ایمیل در سیستم تعریف نشده است و باید ثبت‌نام انجام دهید.');
+        setErrorMsg('این حساب کاربری در سیستم ثبت نشده است. لطفاً ابتدا «ثبت‌نام» نمایید.');
         setLoginLoading(false);
         return;
       }
@@ -246,10 +275,15 @@ function ArtistLoginContent() {
     }
   };
 
-  // Switch to register tab with prefilled identifier
+  // Switch to register tab with prefilled identifier (from SSO email or login input)
   const handleGoToRegister = () => {
-    setRegIdentifier(loginIdentifier);
-    setRegMethod(loginMethod);
+    if (unregisteredEmail) {
+      setRegIdentifier(unregisteredEmail);
+      setRegMethod('email');
+    } else if (loginIdentifier) {
+      setRegIdentifier(loginIdentifier);
+      setRegMethod(loginMethod);
+    }
     setMainMode('register');
     setErrorMsg('');
     setIsUnregisteredError(false);
@@ -518,9 +552,13 @@ function ArtistLoginContent() {
                   <button
                     type="button"
                     onClick={handleGoToRegister}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                   >
-                    <span>ثبت‌نام در هنرهاب با همین مشخصات</span>
+                    <span>
+                      {unregisteredEmail
+                        ? `ثبت‌نام با این مشخصات (${unregisteredEmail})`
+                        : 'ثبت‌نام در هنرهاب با همین مشخصات'}
+                    </span>
                     <span>←</span>
                   </button>
                 </div>
@@ -540,55 +578,28 @@ function ArtistLoginContent() {
           {/* ======================================================== */}
           {mainMode === 'login' && (
             <div className="space-y-5">
-              {/* Login Sub-methods */}
+              {/* STEP 1: Enter Unified Identifier (Phone or Email) */}
               {loginStep === 'identifier' && (
-                <div className="flex border-b border-slate-100 pb-3 mb-2 gap-4 text-xs font-bold">
-                  <button
-                    type="button"
-                    onClick={() => { setLoginMethod('phone'); setErrorMsg(''); }}
-                    className={`pb-1 transition-all ${
-                      loginMethod === 'phone'
-                        ? 'text-emerald-700 border-b-2 border-emerald-600'
-                        : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    📱 شماره موبایل
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setLoginMethod('email'); setErrorMsg(''); }}
-                    className={`pb-1 transition-all ${
-                      loginMethod === 'email'
-                        ? 'text-emerald-700 border-b-2 border-emerald-600'
-                        : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    ✉️ ایمیل
-                  </button>
-                </div>
-              )}
-
-              {/* STEP 1: Enter Identifier */}
-              {loginStep === 'identifier' && (
-                <form onSubmit={handleCheckUserAndProceed} className="space-y-4">
+                <form onSubmit={handleCheckUserAndProceed} noValidate className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      {loginMethod === 'phone' ? 'شماره تلفن همراه' : 'آدرس ایمیل'}
+                      شماره موبایل یا ایمیل
                     </label>
                     <input
-                      type={loginMethod === 'phone' ? 'tel' : 'email'}
+                      type="text"
                       dir="ltr"
-                      placeholder={loginMethod === 'phone' ? '09123456789' : 'name@example.com'}
+                      placeholder="09123456789 یا name@example.com"
                       value={loginIdentifier}
-                      onChange={(e) => setLoginIdentifier(e.target.value)}
-                      required
+                      onChange={(e) => {
+                        setLoginIdentifier(e.target.value);
+                        setErrorMsg('');
+                        setIsUnregisteredError(false);
+                      }}
                       autoFocus
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-wider text-slate-900 bg-slate-50/50"
                     />
                     <p className="text-[11px] text-slate-400 mt-1.5 mr-1">
-                      {loginMethod === 'phone'
-                        ? 'شماره موبایل ثبت‌شده خود را با ۰ وارد نمایید.'
-                        : 'ایمیلی که قبلاً با آن ثبت‌نام کرده‌اید را وارد کنید.'}
+                      شماره تلفن همراه یا آدرس ایمیل ثبت‌شده خود را وارد کنید.
                     </p>
                   </div>
 
@@ -659,9 +670,23 @@ function ArtistLoginContent() {
                       <button
                         type="button"
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                        title={showLoginPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                        aria-label={showLoginPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
                       >
-                        {showLoginPassword ? '🙈' : '👁️'}
+                        {showLoginPassword ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                            <line x1="2" y1="2" x2="22" y2="22" />
+                          </svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -883,9 +908,23 @@ function ArtistLoginContent() {
                         <button
                           type="button"
                           onClick={() => setShowRegPassword(!showRegPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                          title={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                          aria-label={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
                         >
-                          {showRegPassword ? '🙈' : '👁️'}
+                          {showRegPassword ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                              <line x1="2" y1="2" x2="22" y2="22" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -895,16 +934,39 @@ function ArtistLoginContent() {
                       <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         تکرار رمز عبور
                       </label>
-                      <input
-                        type={showRegPassword ? 'text' : 'password'}
-                        dir="ltr"
-                        autoComplete="new-password"
-                        placeholder="••••••••"
-                        value={regConfirmPassword}
-                        onChange={(e) => setRegConfirmPassword(e.target.value)}
-                        required
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showRegPassword ? 'text' : 'password'}
+                          dir="ltr"
+                          autoComplete="new-password"
+                          placeholder="••••••••"
+                          value={regConfirmPassword}
+                          onChange={(e) => setRegConfirmPassword(e.target.value)}
+                          required
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-widest text-slate-900 bg-slate-50/50"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegPassword(!showRegPassword)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                          title={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                          aria-label={showRegPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                        >
+                          {showRegPassword ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                              <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                              <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                              <line x1="2" y1="2" x2="22" y2="22" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <button
