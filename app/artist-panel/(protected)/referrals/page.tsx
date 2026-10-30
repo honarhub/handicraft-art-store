@@ -28,6 +28,9 @@ interface ShareModalData {
   text: string;
 }
 
+const toPersianDigits = (num: number | string) =>
+  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+
 export default function ArtistReferralsPage() {
   const [codes, setCodes] = useState<ReferralCodeItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,11 +158,11 @@ export default function ArtistReferralsPage() {
           <div className="flex md:flex-col gap-3 shrink-0">
             <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/15 text-center">
               <span className="text-xs text-teal-200 block mb-0.5">کدهای قابل استفاده</span>
-              <span className="text-2xl font-black text-emerald-300">{activeCodes.length} از ۳</span>
+              <span className="text-2xl font-black text-emerald-300">{toPersianDigits(activeCodes.length)} از ۳</span>
             </div>
             <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/15 text-center">
               <span className="text-xs text-teal-200 block mb-0.5">استفاده شده</span>
-              <span className="text-2xl font-black text-slate-300">{usedCodes.length}</span>
+              <span className="text-2xl font-black text-slate-300">{toPersianDigits(usedCodes.length)}</span>
             </div>
           </div>
         </div>
@@ -214,7 +217,7 @@ export default function ArtistReferralsPage() {
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-200 text-slate-600">
-                          کد #{index + 1}
+                          کد #{toPersianDigits(index + 1)}
                         </span>
                         <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-300 text-slate-700 flex items-center gap-1">
                           <span>❌</span>
@@ -260,7 +263,7 @@ export default function ArtistReferralsPage() {
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-200/80 text-emerald-900">
-                        کد #{index + 1}
+                        کد #{toPersianDigits(index + 1)}
                       </span>
                       <span className="text-xs font-black px-3 py-1 rounded-full bg-emerald-600 text-white shadow-sm flex items-center gap-1 animate-pulse">
                         <span>✓</span>

@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 
+const toPersianDigits = (num: number | string) =>
+  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+
 export default async function ArtistDashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect('/artist-panel/login');
@@ -47,7 +50,7 @@ export default async function ArtistDashboardPage() {
           <div className="w-14 h-14 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center text-2xl">📦</div>
           <div>
             <p className="text-sm text-slate-500 font-medium">آثار تایید شده شما</p>
-            <p className="text-2xl font-black text-slate-800">{productsCount}</p>
+            <p className="text-2xl font-black text-slate-800">{toPersianDigits(productsCount)}</p>
           </div>
         </div>
         
@@ -55,7 +58,7 @@ export default async function ArtistDashboardPage() {
           <div className="w-14 h-14 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-2xl">⏳</div>
           <div>
             <p className="text-sm text-slate-500 font-medium">در انتظار تایید ادمین</p>
-            <p className="text-2xl font-black text-slate-800">{pendingCount}</p>
+            <p className="text-2xl font-black text-slate-800">{toPersianDigits(pendingCount)}</p>
           </div>
         </div>
 
