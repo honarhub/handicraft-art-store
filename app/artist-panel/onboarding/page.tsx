@@ -7,6 +7,9 @@ import Link from 'next/link';
 import { IRAN_PROVINCES } from '@/lib/provinces';
 import { isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
 
+const toPersianDigits = (num: number | string) =>
+  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+
 export default function ArtistOnboardingPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -275,7 +278,7 @@ export default function ArtistOnboardingPage() {
             {/* Star with Level badge */}
             <span className="inline-flex items-center gap-1.5 bg-amber-400 text-slate-950 font-black px-3 py-1 rounded-full text-xs sm:text-sm shadow-md">
               <span>⭐</span>
-              <span>سطح {verificationLevel} از ۳</span>
+              <span>سطح {toPersianDigits(verificationLevel)} از ۳</span>
             </span>
           </div>
 

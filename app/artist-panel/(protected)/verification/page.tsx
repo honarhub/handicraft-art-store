@@ -5,23 +5,75 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isValidIranianNationalId, isValidIranianSheba, hasProfilePendingEdits } from '@/lib/sms';
 
+const toPersianDigits = (num: number | string) =>
+  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+
+const PAGE_MEDAL_THEMES: Record<number, {
+  ribbon1: string;
+  ribbon2: string;
+  stroke: string;
+  starFill: string;
+  gradientId: string;
+  stops: { offset?: number; color: string }[];
+}> = {
+  1: {
+    ribbon1: '#F59E0B',
+    ribbon2: '#D97706',
+    stroke: '#B45309',
+    starFill: '#78350F',
+    gradientId: 'pageMedalYellowGradient',
+    stops: [
+      { color: '#FDE047' },
+      { offset: 0.5, color: '#FBBF24' },
+      { offset: 1.0, color: '#D97706' },
+    ],
+  },
+  2: {
+    ribbon1: '#3B82F6',
+    ribbon2: '#2563EB',
+    stroke: '#1D4ED8',
+    starFill: '#1E3A8A',
+    gradientId: 'pageMedalBlueGradient',
+    stops: [
+      { color: '#93C5FD' },
+      { offset: 0.5, color: '#60A5FA' },
+      { offset: 1.0, color: '#2563EB' },
+    ],
+  },
+  3: {
+    ribbon1: '#10B981',
+    ribbon2: '#059669',
+    stroke: '#047857',
+    starFill: '#064E3B',
+    gradientId: 'pageMedalGreenGradient',
+    stops: [
+      { color: '#6EE7B7' },
+      { offset: 0.5, color: '#34D399' },
+      { offset: 1.0, color: '#059669' },
+    ],
+  },
+};
+
 function MedalStarBadge({ level, active }: { level: number; active: boolean }) {
+  const theme = PAGE_MEDAL_THEMES[level] || PAGE_MEDAL_THEMES[1];
+  const persianLevel = toPersianDigits(level);
+
   if (active) {
     return (
       <span
-        title={`مدال سطح ${level}: کسب شده`}
+        title={`مدال سطح ${persianLevel}: کسب شده`}
         className="inline-flex items-center justify-center drop-shadow-md"
       >
         <svg width="28" height="34" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M7 2L12 8L17 2V9L12 13L7 9V2Z" fill="#F59E0B" />
-          <path d="M7 2L12 8V13L7 9V2Z" fill="#D97706" opacity="0.7" />
-          <circle cx="12" cy="18" r="8" fill="url(#goldGradientPage)" stroke="#B45309" strokeWidth="1.5" />
-          <path d="M12 13.5L13.2 16.2L16.2 16.5L13.9 18.5L14.6 21.4L12 19.8L9.4 21.4L10.1 18.5L7.8 16.5L10.8 16.2L12 13.5Z" fill="#78350F" />
+          <path d="M7 2L12 8L17 2V9L12 13L7 9V2Z" fill={theme.ribbon1} />
+          <path d="M7 2L12 8V13L7 9V2Z" fill={theme.ribbon2} opacity="0.7" />
+          <circle cx="12" cy="18" r="8" fill={`url(#${theme.gradientId})`} stroke={theme.stroke} strokeWidth="1.5" />
+          <path d="M12 13.5L13.2 16.2L16.2 16.5L13.9 18.5L14.6 21.4L12 19.8L9.4 21.4L10.1 18.5L7.8 16.5L10.8 16.2L12 13.5Z" fill={theme.starFill} />
           <defs>
-            <linearGradient id="goldGradientPage" x1="6" y1="12" x2="18" y2="24" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#FDE047" />
-              <stop offset="0.5" stopColor="#FBBF24" />
-              <stop offset="1" stopColor="#D97706" />
+            <linearGradient id={theme.gradientId} x1="6" y1="12" x2="18" y2="24" gradientUnits="userSpaceOnUse">
+              {theme.stops.map((s, idx) => (
+                <stop key={idx} offset={s.offset} stopColor={s.color} />
+              ))}
             </linearGradient>
           </defs>
         </svg>
@@ -31,7 +83,7 @@ function MedalStarBadge({ level, active }: { level: number; active: boolean }) {
 
   return (
     <span
-      title={`مدال سطح ${level}: قفل`}
+      title={`مدال سطح ${persianLevel}: قفل`}
       className="inline-flex items-center justify-center opacity-30 grayscale"
     >
       <svg width="28" height="34" viewBox="0 0 24 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -298,8 +350,8 @@ export default function ArtistVerificationPage() {
             <MedalStarBadge level={2} active={level >= 2} />
             <MedalStarBadge level={3} active={level >= 3} />
           </div>
-          <span className="text-xs font-mono font-black text-amber-400">
-            سطح {level} از ۳
+          <span className={`text-xs font-black ${level >= 3 ? 'text-emerald-400' : level >= 2 ? 'text-blue-400' : 'text-amber-400'}`}>
+            سطح {toPersianDigits(level)} از ۳
           </span>
         </div>
       </div>

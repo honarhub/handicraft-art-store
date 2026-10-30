@@ -9,10 +9,61 @@ interface ArtistSidebarNavProps {
   verificationLevel?: number;
 }
 
+const MEDAL_THEMES: Record<number, {
+  ribbon1: string;
+  ribbon2: string;
+  stroke: string;
+  innerStroke: string;
+  textFill: string;
+  gradientId: string;
+  stops: { offset?: number; color: string }[];
+}> = {
+  1: {
+    ribbon1: '#F59E0B',
+    ribbon2: '#D97706',
+    stroke: '#B45309',
+    innerStroke: '#FEF08A',
+    textFill: '#78350F',
+    gradientId: 'navMedalYellowGradient',
+    stops: [
+      { color: '#FDE047' },
+      { offset: 0.4, color: '#FBBF24' },
+      { offset: 1.0, color: '#D97706' },
+    ],
+  },
+  2: {
+    ribbon1: '#3B82F6',
+    ribbon2: '#2563EB',
+    stroke: '#1D4ED8',
+    innerStroke: '#BFDBFE',
+    textFill: '#1E3A8A',
+    gradientId: 'navMedalBlueGradient',
+    stops: [
+      { color: '#93C5FD' },
+      { offset: 0.4, color: '#60A5FA' },
+      { offset: 1.0, color: '#2563EB' },
+    ],
+  },
+  3: {
+    ribbon1: '#10B981',
+    ribbon2: '#059669',
+    stroke: '#047857',
+    innerStroke: '#A7F3D0',
+    textFill: '#064E3B',
+    gradientId: 'navMedalGreenGradient',
+    stops: [
+      { color: '#6EE7B7' },
+      { offset: 0.4, color: '#34D399' },
+      { offset: 1.0, color: '#059669' },
+    ],
+  },
+};
+
 function NavMedalLevelIcon({ level }: { level: number }) {
-  const currentLvl = level > 0 ? level : 1;
+  const currentLvl = level > 0 ? (level > 3 ? 3 : level) : 1;
   const persianNums: Record<number, string> = { 1: '۱', 2: '۲', 3: '۳' };
   const numText = persianNums[currentLvl] || String(currentLvl);
+  const theme = MEDAL_THEMES[currentLvl] || MEDAL_THEMES[1];
 
   return (
     <span 
@@ -21,18 +72,18 @@ function NavMedalLevelIcon({ level }: { level: number }) {
     >
       <svg width="28" height="34" viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg">
         {/* Ribbon */}
-        <path d="M8 2L14 10L20 2V12L14 16L8 12V2Z" fill="#F59E0B" />
-        <path d="M8 2L14 10V16L8 12V2Z" fill="#D97706" opacity="0.8" />
+        <path d="M8 2L14 10L20 2V12L14 16L8 12V2Z" fill={theme.ribbon1} />
+        <path d="M8 2L14 10V16L8 12V2Z" fill={theme.ribbon2} opacity="0.8" />
         {/* Medallion Coin Outer */}
-        <circle cx="14" cy="21" r="11" fill="url(#navMedalGoldGradient)" stroke="#B45309" strokeWidth="1.5" />
+        <circle cx="14" cy="21" r="11" fill={`url(#${theme.gradientId})`} stroke={theme.stroke} strokeWidth="1.5" />
         {/* Inner ring */}
-        <circle cx="14" cy="21" r="8.5" stroke="#FEF08A" strokeWidth="1" fill="none" opacity="0.8" />
+        <circle cx="14" cy="21" r="8.5" stroke={theme.innerStroke} strokeWidth="1" fill="none" opacity="0.8" />
         {/* Number inside medal */}
         <text
           x="14"
           y="25"
           textAnchor="middle"
-          fill="#78350F"
+          fill={theme.textFill}
           fontSize="13"
           fontWeight="900"
           className="select-none font-bold"
@@ -41,10 +92,10 @@ function NavMedalLevelIcon({ level }: { level: number }) {
           {numText}
         </text>
         <defs>
-          <linearGradient id="navMedalGoldGradient" x1="5" y1="12" x2="23" y2="30" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FDE047" />
-            <stop offset="0.4" stopColor="#FBBF24" />
-            <stop offset="1" stopColor="#D97706" />
+          <linearGradient id={theme.gradientId} x1="5" y1="12" x2="23" y2="30" gradientUnits="userSpaceOnUse">
+            {theme.stops.map((s, idx) => (
+              <stop key={idx} offset={s.offset} stopColor={s.color} />
+            ))}
           </linearGradient>
         </defs>
       </svg>

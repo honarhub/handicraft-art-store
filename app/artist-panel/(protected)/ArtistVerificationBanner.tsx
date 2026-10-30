@@ -12,6 +12,9 @@ interface Props {
   adminFeedback?: string | null;
 }
 
+const toPersianDigits = (num: number | string) =>
+  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+
 export default function ArtistVerificationBanner({
   artistId,
   verificationLevel,
@@ -145,7 +148,7 @@ export default function ArtistVerificationBanner({
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="inline-flex items-center gap-1.5 text-xs font-black bg-blue-500 text-white px-3.5 py-1 rounded-full shadow-sm">
                 <span>⭐</span>
-                <span>احراز هویت: سطح {level} از ۳ (تایید شده)</span>
+                <span>احراز هویت: سطح {toPersianDigits(level)} از ۳ (تایید شده)</span>
               </span>
 
               <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full flex items-center gap-1.5">
@@ -208,7 +211,7 @@ export default function ArtistVerificationBanner({
               <div className="flex flex-wrap items-center gap-2.5">
                 <span className="inline-flex items-center gap-1.5 text-xs font-black bg-amber-400 text-slate-950 px-3 py-1 rounded-full shadow-sm">
                   <span>⭐</span>
-                  <span>سطح {level}</span>
+                  <span>سطح {toPersianDigits(level)}</span>
                 </span>
 
                 <span className="text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1 rounded-full flex items-center gap-1.5">
