@@ -1,0 +1,386 @@
+'use client';
+
+import React, { useState } from 'react';
+
+export interface EmailSettingsProps {
+  initialSettings: {
+    isEmailServiceActive?: boolean;
+    resendApiKey?: string | null;
+    emailFromAddress?: string | null;
+    emailFromName?: string | null;
+  };
+  onSave: (updates: any) => Promise<void>;
+}
+
+export default function EmailSettingsCard({ initialSettings, onSave }: EmailSettingsProps) {
+  const [isEmailServiceActive, setIsEmailServiceActive] = useState(initialSettings.isEmailServiceActive ?? true);
+  const [resendApiKey, setResendApiKey] = useState(initialSettings.resendApiKey || '');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [emailFromAddress, setEmailFromAddress] = useState(initialSettings.emailFromAddress || 'no-reply@honarhub.ir');
+  const [emailFromName, setEmailFromName] = useState(initialSettings.emailFromName || 'هنرهاب');
+
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Live Test states
+  const [testEmail, setTestEmail] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
+
+  // Sync state when initialSettings loads
+  React.useEffect(() => {
+    if (initialSettings) {
+      if (initialSettings.isEmailServiceActive !== undefined) setIsEmailServiceActive(initialSettings.isEmailServiceActive);
+      if (initialSettings.resendApiKey !== undefined) setResendApiKey(initialSettings.resendApiKey || '');
+      if (initialSettings.emailFromAddress !== undefined) setEmailFromAddress(initialSettings.emailFromAddress || 'no-reply@honarhub.ir');
+      if (initialSettings.emailFromName !== undefined) setEmailFromName(initialSettings.emailFromName || 'هنرهاب');
+    }
+  }, [initialSettings]);
+
+  // Standard eye toggle icon
+  const renderEyeIcon = (shown: boolean) => {
+    if (shown) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+          <line x1="2" y1="2" x2="22" y2="22" />
+        </svg>
+      );
+    }
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  };
+
+  const handleSaveEmailSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSaveSuccess(false);
+
+    try {
+      await onSave({
+        isEmailServiceActive,
+        resendApiKey: resendApiKey.trim(),
+        emailFromAddress: emailFromAddress.trim(),
+        emailFromName: emailFromName.trim()
+      });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 4000);
+    } catch {
+      alert('خطا در ذخیره تنظیمات ایمیل');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRunEmailTest = async () => {
+    if (!testEmail.trim() || !testEmail.includes('@')) {
+      alert('لطفاً یک آدرس ایمیل معتبر برای دریافت تست وارد کنید.');
+      return;
+    }
+
+    if (!resendApiKey.trim()) {
+      alert('لطفاً ابتدا کلید اختصاصی Resend API Key را وارد و ذخیره کنید.');
+      return;
+    }
+
+    setTestLoading(true);
+    setTestResult(null);
+
+    try {
+      const res = await fetch('/api/admin/settings/email-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toEmail: testEmail.trim(),
+          apiKey: resendApiKey.trim(),
+          fromEmail: emailFromAddress.trim(),
+          fromName: emailFromName.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestResult({
+          success: true,
+          message: data.message || 'ایمیل تستی با موفقیت ارسال شد.',
+          data: data.data
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: data.error || 'خطا در ارسال ایمیل تستی.'
+        });
+      }
+    } catch {
+      setTestResult({
+        success: false,
+        message: 'خطا در برقراری ارتباط با سرور.'
+      });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const isConfigured = Boolean(resendApiKey.trim());
+
+  return (
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8 mt-8 font-sans" dir="rtl">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+        <div className="flex items-start gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 flex items-center justify-center text-2xl shrink-0">
+            ✉️
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h3 className="text-lg font-black text-slate-800">سامانه ارسال ایمیل (Resend)</h3>
+              <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                isEmailServiceActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {isEmailServiceActive ? 'سرویس فعال' : 'سرویس متوقف'}
+              </span>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                isConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {isConfigured ? '⚡ متصل به Resend API' : '🧪 شبیه‌ساز توسعه (Mock Dev)'}
+              </span>
+            </div>
+            <p className="text-slate-500 text-xs sm:text-sm mt-1.5 leading-relaxed">
+              مدیریت سرویس ایمیل‌های تراکنشی پلتفرم (کدهای یکبار مصرف، بازیابی رمز عبور و اعلان‌های هنرمندان) با استفاده از زیرساخت پیشرفته Resend.
+            </p>
+          </div>
+        </div>
+
+        {/* Emergency Kill-Switch Toggle */}
+        <div className="flex items-center gap-3 shrink-0 self-end sm:self-center bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+          <span className="text-xs font-bold text-slate-700">کلید قطع اضطراری:</span>
+          <button
+            type="button"
+            dir="ltr"
+            onClick={() => setIsEmailServiceActive(!isEmailServiceActive)}
+            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              isEmailServiceActive ? 'bg-emerald-600' : 'bg-red-500'
+            }`}
+            title={isEmailServiceActive ? 'غیرفعال کردن ارسال ایمیل' : 'فعال کردن ارسال ایمیل'}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                isEmailServiceActive ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {!isEmailServiceActive && (
+        <div className="mt-5 p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 font-bold flex items-center gap-2">
+          <span>⚠️</span>
+          <span>
+            سرویس ارسال ایمیل موقتاً توسط مدیریت غیرفعال شده است. درخواست‌های ایمیل تا زمان فعال‌سازی مجدد پردازش نخواهند شد.
+          </span>
+        </div>
+      )}
+
+      {/* Main Settings Form */}
+      <form onSubmit={handleSaveEmailSettings} className="mt-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Resend API Key */}
+          <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                <span>🔑 کلید اختصاصی API رزند (<span className="font-mono text-teal-700" dir="ltr">re_...</span>)</span>
+                {isConfigured && (
+                  <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                    کلید فعال
+                  </span>
+                )}
+              </label>
+              <span className="text-[11px] text-slate-400 font-sans">صادر شده از داشبورد resend.com/api-keys</span>
+            </div>
+            <div className="relative">
+              <input
+                type={showApiKey ? 'text' : 'password'}
+                dir="ltr"
+                value={resendApiKey}
+                onChange={(e) => setResendApiKey(e.target.value)}
+                placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800"
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                title={showApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
+              >
+                {renderEyeIcon(showApiKey)}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              در صورت خالی بودن این کلید روی لوکال‌هاست، سیستم از شبیه‌ساز ماک استفاده کرده و کدها را روی کنسول نمایش می‌دهد.
+            </p>
+          </div>
+
+          {/* Sender Address */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              آدرس ایمیل فرستنده (From Address)
+            </label>
+            <input
+              type="email"
+              dir="ltr"
+              value={emailFromAddress}
+              onChange={(e) => setEmailFromAddress(e.target.value)}
+              placeholder="no-reply@honarhub.ir"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              پیش‌فرض پیشنهادی: <span className="font-mono font-bold text-slate-600">no-reply@honarhub.ir</span> (نیاز به تایید دامنه در Resend دارد).
+            </p>
+          </div>
+
+          {/* Sender Name */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              نام نمایشی فرستنده (Sender Name)
+            </label>
+            <input
+              type="text"
+              value={emailFromName}
+              onChange={(e) => setEmailFromName(e.target.value)}
+              placeholder="هنرهاب"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800 font-bold"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              نامی که در اینباکس ایمیل کاربر به عنوان فرستنده نمایش داده می‌شود (مثال: <span className="font-bold text-slate-600">هنرهاب</span>).
+            </p>
+          </div>
+        </div>
+
+        {/* DNS Configuration Guide Box */}
+        <div className="bg-gradient-to-br from-teal-50/60 to-emerald-50/60 p-5 rounded-2xl border border-teal-200 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🌐</span>
+            <h4 className="text-sm font-black text-slate-800">راهنمای اتصال دامنه اختصاصی (<span dir="ltr" className="font-mono text-teal-800">honarhub.ir</span>) در سرویس Resend</h4>
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            برای اینکه ایمیل‌ها مستقیماً با آدرس <strong className="font-mono" dir="ltr">no-reply@honarhub.ir</strong> ارسال شوند و بدون رفتن به پوشه اسپم مستقیماً در اینباکس قرار گیرند، لازم است دامنه خود را در داشبورد Resend ثبت نمایید:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
+            <div className="bg-white/80 p-3 rounded-xl border border-teal-100">
+              <div className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px]">۱</span>
+                <span>ثبت دامنه در Resend</span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                در پنل Resend به منوی <strong className="font-mono">Domains</strong> رفته و دکمه <strong className="font-mono">Add Domain</strong> را بزنید و نام دامنه <strong className="font-mono">honarhub.ir</strong> را وارد کنید.
+              </p>
+            </div>
+
+            <div className="bg-white/80 p-3 rounded-xl border border-teal-100">
+              <div className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px]">۲</span>
+                <span>افزودن رکوردهای DNS</span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                رکوردهای ارائه شده شامل <strong className="font-mono">DKIM</strong> و <strong className="font-mono">SPF</strong> را در پنل کلودفلر یا ابرآروان دامنه خود اضافه کنید.
+              </p>
+            </div>
+
+            <div className="bg-white/80 p-3 rounded-xl border border-teal-100">
+              <div className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
+                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px]">۳</span>
+                <span>تایید آنی (Verified)</span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                دکمه <strong className="font-mono">Verify Records</strong> را بزنید. پس از سبز شدن وضعیت، سیستم آماده ارسال سراسری با بالاترین نرخ تحویل است.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+            💡 <strong>نکته آزمایشی قبل از تایید دامنه:</strong> تا پیش از ثبت رکوردهای DNS دامنه، Resend به شما اجازه می‌دهد با فرستنده آزمایشی <span className="font-mono font-bold" dir="ltr">onboarding@resend.dev</span> به آدرس ایمیلی که با آن در Resend ثبت‌نام کرده‌اید تست بفرستید.
+          </div>
+        </div>
+
+        {/* Save button */}
+        <div className="flex items-center justify-between pt-2">
+          {saveSuccess ? (
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+              ✓ تنظیمات سرویس ایمیل با موفقیت ذخیره شد
+            </span>
+          ) : <div />}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-md shadow-teal-200 transition-all disabled:opacity-50 text-xs sm:text-sm cursor-pointer"
+          >
+            {saving ? 'در حال ذخیره...' : 'ذخیره تنظیمات ایمیل'}
+          </button>
+        </div>
+      </form>
+
+      {/* Live Test Box */}
+      <div className="mt-8 pt-6 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🧪</span>
+            <h4 className="text-sm font-black text-slate-800">تست زنده ارسال ایمیل با Resend</h4>
+          </div>
+          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 border border-teal-200">
+            فرستنده فعال: {emailFromName} &lt;{emailFromAddress}&gt;
+          </span>
+        </div>
+        <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+          یک آدرس ایمیل وارد کنید تا اتصال وب‌سرویس Resend و قالب گرافیکی HTML به صورت زنده آزمایش شود:
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="email"
+            dir="ltr"
+            placeholder="your-email@example.com"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            className="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800 bg-white"
+          />
+          <button
+            type="button"
+            onClick={handleRunEmailTest}
+            disabled={testLoading || !testEmail.trim()}
+            className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
+          >
+            {testLoading ? 'در حال ارسال ایمیل...' : 'ارسال ایمیل تستی با Resend'}
+          </button>
+        </div>
+
+        {testResult && (
+          <div className={`mt-4 p-4 rounded-2xl border text-xs leading-relaxed ${
+            testResult.success
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : 'bg-red-50 border-red-200 text-red-900'
+          }`}>
+            <div className="flex items-center gap-2 font-black mb-1">
+              <span>{testResult.success ? '✅ نتیجه ارسال موفق بود:' : '❌ خطا در ارسال ایمیل:'}</span>
+              <span>{testResult.message}</span>
+            </div>
+            {testResult.data && (
+              <div className="mt-2 pt-2 border-t border-emerald-200 flex flex-wrap gap-4 text-[11px] font-mono text-emerald-800" dir="ltr">
+                {testResult.data.id && <span>Resend Message ID: {testResult.data.id}</span>}
+                {testResult.data.from && <span>From: {testResult.data.from}</span>}
+                {testResult.data.to && <span>To: {testResult.data.to}</span>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

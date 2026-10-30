@@ -48,7 +48,11 @@ export async function PATCH(request: Request) {
       otpResendIntervalSeconds,
       otpMaxPerHourPerPhone,
       otpMaxPerTenMinPerIp,
-      otpLockoutMinutes
+      otpLockoutMinutes,
+      isEmailServiceActive,
+      resendApiKey,
+      emailFromAddress,
+      emailFromName
     } = body;
 
     const updateData: any = {};
@@ -67,6 +71,10 @@ export async function PATCH(request: Request) {
     if (otpMaxPerHourPerPhone !== undefined) updateData.otpMaxPerHourPerPhone = Math.max(1, Number(otpMaxPerHourPerPhone) || 5);
     if (otpMaxPerTenMinPerIp !== undefined) updateData.otpMaxPerTenMinPerIp = Math.max(1, Number(otpMaxPerTenMinPerIp) || 10);
     if (otpLockoutMinutes !== undefined) updateData.otpLockoutMinutes = Math.max(1, Number(otpLockoutMinutes) || 15);
+    if (isEmailServiceActive !== undefined) updateData.isEmailServiceActive = Boolean(isEmailServiceActive);
+    if (resendApiKey !== undefined) updateData.resendApiKey = resendApiKey ? resendApiKey.trim() : null;
+    if (emailFromAddress !== undefined) updateData.emailFromAddress = emailFromAddress ? emailFromAddress.trim() : 'no-reply@honarhub.ir';
+    if (emailFromName !== undefined) updateData.emailFromName = emailFromName ? emailFromName.trim() : 'هنرهاب';
 
     const settings = await prisma.siteSettings.upsert({
       where: { id: 'default' },

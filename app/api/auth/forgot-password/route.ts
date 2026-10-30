@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sms';
+import { sendPasswordResetEmail } from '@/lib/email';
 import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure, isLocalhostRequest } from '@/lib/otp-security';
 
 export async function POST(req: Request) {
@@ -114,10 +115,23 @@ export async function POST(req: Request) {
         }
       } else {
         // For email
+        const emailRes = await sendPasswordResetEmail(normalizedTarget, otpCode);
+        if (!emailRes.success) {
+          await logOtpFailure(securityCheck.clientIp, normalizedTarget, 'PASSWORD_RESET', emailRes.error || 'خطا در ارسال ایمیل');
+          return NextResponse.json({
+            error: emailRes.error || 'خطا در ارسال ایمیل بازیابی رمز عبور.'
+          }, { status: 502 });
+        }
+
         if (isLocalhost) {
-          console.log(`[EMAIL-RESET-DEV] Code for ${normalizedTarget}: [ ${otpCode} ]`);
-          devCodeToReturn = otpCode;
-          smsMode = 'MOCK';
+          if (emailRes.devCode) {
+            devCodeToReturn = emailRes.devCode;
+            smsMode = 'MOCK';
+          } else {
+            console.log(`[RESEND-RESET-EMAIL] Reset email sent to ${normalizedTarget} (ID: ${emailRes.id})`);
+          }
+        } else if (emailRes.id) {
+          console.log(`[RESEND-RESET-EMAIL] Reset email sent to ${normalizedTarget} (ID: ${emailRes.id})`);
         }
       }
 

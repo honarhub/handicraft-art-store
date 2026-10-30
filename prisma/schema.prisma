@@ -347,6 +347,12 @@ model SiteSettings {
   otpMaxPerTenMinPerIp     Int        @default(10)
   otpLockoutMinutes        Int        @default(15)
 
+  // Email Service (Resend) Settings
+  isEmailServiceActive     Boolean    @default(true)
+  resendApiKey             String?
+  emailFromAddress         String     @default("no-reply@honarhub.ir")
+  emailFromName            String     @default("هنرهاب")
+
   updatedAt                DateTime   @updatedAt
 }
 

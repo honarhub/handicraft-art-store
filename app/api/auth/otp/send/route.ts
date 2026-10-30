@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { normalizePhoneNumber, isValidIranianMobile, sendSmsOtp } from '@/lib/sms';
+import { sendEmailOtp } from '@/lib/email';
 import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure, isLocalhostRequest } from '@/lib/otp-security';
 
 export async function POST(req: Request) {
@@ -166,11 +167,26 @@ export async function POST(req: Request) {
         }
       }
     } else {
-      // Email handling
+      // Email handling via Resend
+      const emailRes = await sendEmailOtp(normalizedTarget, code);
+      if (!emailRes.success) {
+        await logOtpFailure(securityCheck.clientIp, normalizedTarget, targetType, emailRes.error || 'خطا در ارسال ایمیل');
+        return NextResponse.json({
+          error: emailRes.error || 'خطا در ارسال ایمیل اعتبارسنجی. لطفاً بعداً تلاش فرمایید.'
+        }, { status: 502 });
+      }
+
       if (isLocalhost) {
-        console.log(`[EMAIL-DEV] Code for ${normalizedTarget}: ${code}`);
-        devCodeToReturn = code;
-        smsMode = 'MOCK';
+        if (emailRes.devCode) {
+          devCodeToReturn = emailRes.devCode;
+          smsMode = 'MOCK';
+        } else {
+          console.log(`[RESEND-EMAIL] Verification email sent to ${normalizedTarget} (ID: ${emailRes.id})`);
+        }
+      } else {
+        if (emailRes.id) {
+          console.log(`[RESEND-EMAIL] Verification email sent to ${normalizedTarget} (ID: ${emailRes.id})`);
+        }
       }
     }
 

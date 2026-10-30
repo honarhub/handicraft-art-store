@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import ChangePasswordForm from '@/app/components/ChangePasswordForm';
 import AiContentCronSettings from './AiContentCronSettings';
 import SmsSettingsCard from './SmsSettingsCard';
+import EmailSettingsCard from './EmailSettingsCard';
 
 export type RowType = 'SPECIALTY' | 'ARTIST' | 'PRICE_UNDER' | 'PRICE_OVER' | 'CHEAPEST' | 'EXPENSIVE' | 'NEWEST';
 
@@ -75,6 +76,20 @@ export default function AdminSettingsPage() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || 'خطا در ذخیره تنظیمات پیامک');
+    }
+    const updated = await res.json();
+    setSettingsData((prev: any) => ({ ...prev, ...updated }));
+  };
+
+  const handleSaveEmailSettings = async (updates: any) => {
+    const res = await fetch('/api/admin/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'خطا در ذخیره تنظیمات ایمیل');
     }
     const updated = await res.json();
     setSettingsData((prev: any) => ({ ...prev, ...updated }));
@@ -341,6 +356,8 @@ export default function AdminSettingsPage() {
       </div>
       
       <SmsSettingsCard initialSettings={settingsData} onSave={handleSaveSmsSettings} />
+      
+      <EmailSettingsCard initialSettings={settingsData} onSave={handleSaveEmailSettings} />
 
       <AiContentCronSettings />
 
