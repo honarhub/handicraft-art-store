@@ -122,6 +122,21 @@ export default function ArtistProfilePage() {
         setSocialLinks(data.socialLinks || {});
         setPhoneNumber(data.user?.phoneNumber || '');
         setEmail(data.user?.email || '');
+
+        if (data.adminFeedback) {
+          try {
+            const parsed = typeof data.adminFeedback === 'string' ? JSON.parse(data.adminFeedback) : data.adminFeedback;
+            if (typeof parsed === 'object' && parsed !== null) {
+              const errs: Record<string, string> = {};
+              Object.entries(parsed).forEach(([k, v]) => {
+                if (k !== '_generalMessage' && typeof v === 'string') {
+                  errs[k] = v;
+                }
+              });
+              setFieldErrors(errs);
+            }
+          } catch {}
+        }
       }
     } catch (err: any) {
       if (!silent) {
@@ -539,7 +554,7 @@ export default function ArtistProfilePage() {
     if (!artist?.adminFeedback || pendingMode) return null;
     
     try {
-      const parsed = JSON.parse(artist.adminFeedback);
+      const parsed = typeof artist.adminFeedback === 'string' ? JSON.parse(artist.adminFeedback) : artist.adminFeedback;
       if (typeof parsed === 'object' && parsed !== null) {
         const labels: Record<string, string> = {
           name: 'نام و نام خانوادگی',
@@ -554,22 +569,42 @@ export default function ArtistProfilePage() {
         };
 
         const profileEntries = Object.entries(parsed).filter(([k]) => labels[k]);
-        if (profileEntries.length === 0) return null;
+        const generalMsg = parsed._generalMessage;
+
+        if (profileEntries.length === 0 && !generalMsg) return null;
 
         return (
-          <div className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in">
-            <div className="flex items-center gap-2 text-red-900 font-black text-sm mb-2.5">
-              <span className="text-lg">⚠️</span>
-              <span>پیام ناظر پلتفرم جهت اصلاح موارد زیر:</span>
-            </div>
-            <ul className="space-y-2 text-xs sm:text-sm text-red-800 list-disc list-inside">
-              {profileEntries.map(([k, reason]: [string, any]) => (
-                <li key={k} className="leading-relaxed">
-                  <span className="font-bold text-red-950">{labels[k] || k}: </span>
-                  <span>{reason}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="space-y-4 mb-8">
+            {/* General Alert / Message from Admin */}
+            {generalMsg && (
+              <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-3xl animate-in fade-in shadow-xs">
+                <div className="flex items-center gap-2 text-amber-950 font-black text-sm mb-2">
+                  <span className="text-xl">⚠️</span>
+                  <span>پیام و هشدار ناظر پلتفرم:</span>
+                </div>
+                <p className="text-xs sm:text-sm text-amber-950 font-bold leading-relaxed whitespace-pre-wrap">
+                  {generalMsg}
+                </p>
+              </div>
+            )}
+
+            {/* Field Rejections List */}
+            {profileEntries.length > 0 && (
+              <div className="p-5 bg-red-50 border-2 border-red-300 rounded-3xl animate-in fade-in shadow-xs">
+                <div className="flex items-center gap-2 text-red-900 font-black text-sm mb-2.5">
+                  <span className="text-lg">⚠️</span>
+                  <span>پیام ناظر پلتفرم جهت اصلاح موارد زیر:</span>
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-red-800 list-disc list-inside">
+                  {profileEntries.map(([k, reason]: [string, any]) => (
+                    <li key={k} className="leading-relaxed">
+                      <span className="font-bold text-red-950">{labels[k] || k}: </span>
+                      <span>{reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         );
       }
@@ -578,9 +613,12 @@ export default function ArtistProfilePage() {
     }
 
     return (
-      <div className="mb-8 p-5 bg-red-50 border-2 border-red-300 rounded-3xl text-xs sm:text-sm text-red-800 leading-relaxed">
-        <h4 className="font-black text-red-900 mb-1">بازخورد ادمین جهت بازبینی:</h4>
-        <p>{artist.adminFeedback}</p>
+      <div className="mb-8 p-5 bg-amber-50 border-2 border-amber-300 rounded-3xl text-xs sm:text-sm text-amber-950 leading-relaxed shadow-xs">
+        <h4 className="font-black text-amber-900 mb-1 flex items-center gap-2">
+          <span>⚠️</span>
+          <span>پیام و هشدار ناظر پلتفرم:</span>
+        </h4>
+        <p className="font-bold whitespace-pre-wrap">{artist.adminFeedback}</p>
       </div>
     );
   };

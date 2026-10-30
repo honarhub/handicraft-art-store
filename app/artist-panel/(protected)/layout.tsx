@@ -100,6 +100,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
           isApproved={artist.isApproved}
           brandName={artist.brandName}
           hasPendingEdits={hasProfilePendingEdits(artist.pendingEdits)}
+          adminFeedback={artist.adminFeedback}
         />
         {artist.user.mustChangePassword && (
           <div className="bg-red-500 text-white p-4 shadow-sm flex items-center justify-between">

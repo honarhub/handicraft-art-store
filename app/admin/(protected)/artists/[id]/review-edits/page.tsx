@@ -145,6 +145,10 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
   // Decisions for changed fields: key -> { status: 'approve' | 'reject', reason: string }
   const [decisions, setDecisions] = useState<Record<string, { status: 'approve' | 'reject', reason: string }>>({});
 
+  // General optional alert/message to the artist (disabled by default)
+  const [enableGeneralMessage, setEnableGeneralMessage] = useState(false);
+  const [generalMessage, setGeneralMessage] = useState('');
+
   const formatSocials = (links: any) => {
     if (!links || typeof links !== 'object') return '';
     const names: Record<string, string> = { instagram: 'اینستاگرام', twitter: 'ایکس', telegram: 'تلگرام', bale: 'بله' };
@@ -236,6 +240,13 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
             }
           });
 
+          // Special exception for image:
+          // Whether the artist changed it or not, image is ALWAYS reviewable (approvable/rejectable)
+          if (!initialDecisions['image']) {
+            // Not changed by artist: defaults to 'approve', but admin can switch to 'reject'
+            initialDecisions['image'] = { status: 'approve', reason: '' };
+          }
+
           setDecisions(initialDecisions);
         }
         setLoading(false);
@@ -289,18 +300,28 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
       }
     }
 
+    if (enableGeneralMessage && !generalMessage.trim()) {
+      alert('گزینه ارسال پیام کلی به هنرمند فعال است اما متنی وارد نکرده‌اید. لطفاً متن پیام را وارد کرده یا گزینه آن را خاموش نمایید.');
+      return;
+    }
+
     setActionLoading(true);
     setSubmitMsg('');
 
     try {
+      const payload: any = {
+        action: 'granularReview',
+        approvedFields,
+        rejectedFields
+      };
+      if (enableGeneralMessage && generalMessage.trim()) {
+        payload.generalMessage = generalMessage.trim();
+      }
+
       const res = await fetch(`/api/artists/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'granularReview',
-          approvedFields,
-          rejectedFields
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!res.ok) throw new Error('خطا در ثبت بررسی');
@@ -375,6 +396,22 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
     { key: 'portfolioUrl' },
     { key: 'socialLinks' }
   ];
+
+  // Reviewable fields: all changed fields + image (image is ALWAYS reviewable by exception)
+  const reviewableFields = fieldsToCheck.filter(({ key }) => {
+    if (key === 'image') return true;
+    const oldVal = (current as any)[key];
+    const newVal = (pending as any)[key];
+    return (oldVal || '').toString().trim() !== (newVal || '').toString().trim();
+  });
+
+  // Unchanged fields: all unchanged fields EXCEPT image
+  const unchangedFields = fieldsToCheck.filter(({ key }) => {
+    if (key === 'image') return false;
+    const oldVal = (current as any)[key];
+    const newVal = (pending as any)[key];
+    return (oldVal || '').toString().trim() === (newVal || '').toString().trim();
+  });
 
   const changedCount = Object.keys(decisions).length;
 
@@ -471,10 +508,10 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      {/* Review Cards for All Fields: Changed fields on TOP, Unchanged fields on BOTTOM */}
+      {/* Review Cards for All Fields: Reviewable fields on TOP, Unchanged fields on BOTTOM */}
       <div className="space-y-8">
         
-        {/* SECTION 1: Changed Fields (Top) */}
+        {/* SECTION 1: Reviewable Fields (Changed fields + Image) */}
         <div className="space-y-4">
           <div className="flex items-center justify-between pb-2 border-b-2 border-amber-400">
             <div className="flex items-center gap-2">
@@ -483,50 +520,68 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
               </span>
               <h3 className="font-black text-slate-900 text-base sm:text-lg">
-                موارد تغییر یافته و نیازمند بررسی
+                موارد نیازمند بررسی و تایید
               </h3>
             </div>
             <span className="bg-amber-400 text-slate-950 font-black text-xs px-3 py-1 rounded-full shadow-2xs">
-              {fieldsToCheck.filter(f => {
-                const oldVal = (current as any)[f.key];
-                const newVal = (pending as any)[f.key];
-                return (oldVal || '').toString().trim() !== (newVal || '').toString().trim();
-              }).length} مورد تغییر کرده
+              {reviewableFields.length} مورد جهت بررسی
             </span>
           </div>
 
           <div className="space-y-5">
-            {fieldsToCheck
-              .filter(({ key }) => {
-                const oldVal = (current as any)[key];
-                const newVal = (pending as any)[key];
-                return (oldVal || '').toString().trim() !== (newVal || '').toString().trim();
-              })
-              .map(({ key, isImage }) => {
-                const oldVal = (current as any)[key];
-                const newVal = (pending as any)[key];
-                const decision = decisions[key];
+            {reviewableFields.map(({ key, isImage }) => {
+              const oldVal = (current as any)[key];
+              const newVal = (pending as any)[key];
+              const decision = decisions[key];
+              const isImageField = key === 'image';
+              const isFieldChanged = (oldVal || '').toString().trim() !== (newVal || '').toString().trim();
 
-                return (
-                  <div key={key} className={`bg-white rounded-3xl p-6 border shadow-xs transition-all ${
-                    decision?.status === 'approve'
-                      ? 'border-emerald-300 ring-2 ring-emerald-500/10'
-                      : 'border-red-300 ring-2 ring-red-500/10'
-                  }`}>
-                    
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100 mb-4">
-                      <h4 className="font-black text-slate-800 text-base flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                        <span>{getFieldLabel(key)}</span>
+              return (
+                <div key={key} className={`bg-white rounded-3xl p-6 border shadow-xs transition-all ${
+                  decision?.status === 'approve'
+                    ? 'border-emerald-300 ring-2 ring-emerald-500/10'
+                    : 'border-red-300 ring-2 ring-red-500/10'
+                }`}>
+                  
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-4 border-b border-slate-100 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${isFieldChanged ? 'bg-amber-500' : 'bg-blue-500'}`}></span>
+                      <h4 className="font-black text-slate-800 text-base">
+                        {getFieldLabel(key)}
                       </h4>
-
-                      <SplitReviewToggle
-                        status={decision?.status || 'reject'}
-                        onToggle={(newStatus) => setDecisionStatus(key, newStatus)}
-                      />
+                      {isImageField && !isFieldChanged && (
+                        <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                          تصویر فعلی (بدون تغییر توسط هنرمند)
+                        </span>
+                      )}
                     </div>
 
-                    {/* Comparison Grid */}
+                    <SplitReviewToggle
+                      status={decision?.status || (isImageField && !isFieldChanged ? 'approve' : 'reject')}
+                      onToggle={(newStatus) => setDecisionStatus(key, newStatus)}
+                    />
+                  </div>
+
+                  {/* Comparison / Display Grid */}
+                  {isImageField && !isFieldChanged ? (
+                    <div className="p-4 bg-slate-50 text-slate-700 rounded-2xl border border-slate-200 text-xs flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-xs">
+                        {current.image ? (
+                          <img src={current.image} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-3xl text-slate-400">👤</span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <span className="font-bold text-slate-800 text-xs block">
+                          {current.image ? 'تصویر فعلی پروفایل هنرمند (از قبل ثبت شده)' : 'بدون تصویر پروفایل'}
+                        </span>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          هنرمند در این درخواست، عکس جدیدی ارسال نکرده است. با این حال شما می‌توانید این تصویر را تایید کنید یا در صورت عدم تطابق با ضوابط، دکمه «عدم تایید» را زده و دلیل رد را بنویسید تا تصویر حذف شده و هنرمند ملزم به تعویض تصویر شود.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="p-3.5 bg-slate-50 text-slate-700 rounded-2xl border border-slate-200 text-xs">
                         <span className="font-bold text-slate-500 block mb-1.5">مقدار قبلی:</span>
@@ -556,55 +611,47 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
                         )}
                       </div>
                     </div>
+                  )}
 
-                    {/* If Rejected, show reason input box (removed if approved) */}
-                    {decision?.status === 'reject' && (
-                      <div className="mt-4 pt-4 border-t border-red-100 animate-in fade-in">
-                        <label className="block text-xs font-bold text-red-700 mb-1.5">
-                          دلیل عدم تایید این مورد (الزامی جهت نمایش به هنرمند) *:
-                        </label>
-                        <input
-                          type="text"
-                          value={decision?.reason || ''}
-                          onChange={e => handleReasonChange(key, e.target.value)}
-                          placeholder={`مثال: دلیل عدم تایید ${getFieldLabel(key)}...`}
-                          className="w-full px-3.5 py-2.5 bg-red-50/50 border border-red-200 rounded-xl text-xs text-red-900 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200 font-medium"
-                        />
-                      </div>
-                    )}
+                  {/* If Rejected, show reason input box (removed if approved) */}
+                  {decision?.status === 'reject' && (
+                    <div className="mt-4 pt-4 border-t border-red-100 animate-in fade-in">
+                      <label className="block text-xs font-bold text-red-700 mb-1.5">
+                        دلیل عدم تایید این مورد (الزامی جهت نمایش به هنرمند) *:
+                      </label>
+                      <input
+                        type="text"
+                        value={decision?.reason || ''}
+                        onChange={e => handleReasonChange(key, e.target.value)}
+                        placeholder={`مثال: دلیل عدم تایید ${getFieldLabel(key)}...`}
+                        className="w-full px-3.5 py-2.5 bg-red-50/50 border border-red-200 rounded-xl text-xs text-red-900 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200 font-medium"
+                      />
+                    </div>
+                  )}
 
-                  </div>
-                );
-              })}
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* SECTION 2: Unchanged Fields (Bottom) */}
-        <div className="space-y-4 pt-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 text-sm">📁</span>
-              <h3 className="font-bold text-slate-700 text-sm sm:text-base">
-                موارد بدون تغییر
-              </h3>
+        {unchangedFields.length > 0 && (
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-sm">📁</span>
+                <h3 className="font-bold text-slate-700 text-sm sm:text-base">
+                  موارد بدون تغییر
+                </h3>
+              </div>
+              <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
+                {unchangedFields.length} مورد بدون تغییر
+              </span>
             </div>
-            <span className="bg-slate-100 text-slate-600 font-bold text-xs px-2.5 py-0.5 rounded-full">
-              {fieldsToCheck.filter(f => {
-                const oldVal = (current as any)[f.key];
-                const newVal = (pending as any)[f.key];
-                return (oldVal || '').toString().trim() === (newVal || '').toString().trim();
-              }).length} مورد بدون تغییر
-            </span>
-          </div>
 
-          <div className="space-y-4">
-            {fieldsToCheck
-              .filter(({ key }) => {
-                const oldVal = (current as any)[key];
-                const newVal = (pending as any)[key];
-                return (oldVal || '').toString().trim() === (newVal || '').toString().trim();
-              })
-              .map(({ key, isImage }) => {
+            <div className="space-y-4">
+              {unchangedFields.map(({ key, isImage }) => {
                 const val = (current as any)[key];
 
                 return (
@@ -634,9 +681,58 @@ export default function ReviewArtistEditsPage({ params }: { params: Promise<{ id
                   </div>
                 );
               })}
+            </div>
           </div>
+        )}
+
+      </div>
+
+      {/* General Alert / Message Section (Optional & Disabled by default) */}
+      <div className="mt-8 bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">📢</span>
+            <div>
+              <h4 className="font-black text-slate-900 text-sm">
+                ارسال پیام یا توضیح کلی به هنرمند (هشدار مستقل)
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                توضیحی کلی و مستقل از وضعیت پارامترها که در قالب یک هشدار به هنرمند نمایش داده می‌شود.
+              </p>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={enableGeneralMessage}
+              onChange={(e) => {
+                setEnableGeneralMessage(e.target.checked);
+                if (!e.target.checked) setGeneralMessage('');
+              }}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
         </div>
 
+        {enableGeneralMessage && (
+          <div className="pt-3 border-t border-slate-100 animate-in fade-in space-y-2">
+            <label className="block text-xs font-bold text-slate-700">
+              متن هشدار / پیام ناظر به هنرمند *:
+            </label>
+            <textarea
+              rows={3}
+              value={generalMessage}
+              onChange={(e) => setGeneralMessage(e.target.value)}
+              placeholder="توضیحات کلی، تذکرات یا هشداری که می‌خواهید مستقل از پارامترها به هنرمند نشان داده شود را بنویسید..."
+              className="w-full px-4 py-3 bg-amber-50/50 border border-amber-300 rounded-2xl text-xs text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 leading-relaxed font-medium"
+            />
+            <p className="text-[11px] text-amber-700 font-medium">
+              ⚠️ این پیام به صورت یک هشدار مشخص در بالای پنل و صفحه پروفایل هنرمند نمایش داده خواهد شد.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Action Submit Button */}

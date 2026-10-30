@@ -76,7 +76,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (action === 'granularReview') {
       try {
-        const { approvedFields = [], rejectedFields = {}, adminFeedback } = body;
+        const { approvedFields = [], rejectedFields = {}, generalMessage, adminFeedback } = body;
         const artist = await prisma.artistProfile.findUnique({
           where: { id: artistId },
           include: { user: true }
@@ -93,12 +93,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const artistUpdate: any = {};
 
         if (approvedFields.includes('name') && edits.name) userUpdate.name = edits.name;
-        if (approvedFields.includes('image') && edits.image) {
-          let imageUrl = edits.image;
-          if (imageUrl.startsWith('data:image')) {
-            imageUrl = saveUploadImageSync(imageUrl, 'artists', 'artist');
+        if (approvedFields.includes('image')) {
+          if (edits.image) {
+            let imageUrl = edits.image;
+            if (imageUrl.startsWith('data:image')) {
+              imageUrl = saveUploadImageSync(imageUrl, 'artists', 'artist');
+            }
+            userUpdate.image = imageUrl;
           }
-          userUpdate.image = imageUrl;
+        } else if (rejectedFields.image) {
+          // Admin rejected the image (whether newly proposed or existing)
+          userUpdate.image = null;
         }
         if (approvedFields.includes('phoneNumber') && edits.phoneNumber) userUpdate.phoneNumber = edits.phoneNumber;
         if (approvedFields.includes('email') && edits.email) userUpdate.email = edits.email;
@@ -116,9 +121,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         }
 
         const hasRejections = Object.keys(rejectedFields).length > 0;
-        let finalFeedback: string | null = null;
-        if (hasRejections) {
-          finalFeedback = JSON.stringify(rejectedFields);
+        const hasGeneralMsg = Boolean(generalMessage && typeof generalMessage === 'string' && generalMessage.trim().length > 0);
+
+        const feedbackObj: Record<string, any> = { ...rejectedFields };
+        if (hasGeneralMsg) {
+          feedbackObj._generalMessage = generalMessage.trim();
         }
 
         // Full approval if no rejections
@@ -127,12 +134,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           artistUpdate.isApproved = true;
           artistUpdate.isActive = true;
           artistUpdate.verificationLevel = Math.max(artist.verificationLevel || 0, 2);
-          artistUpdate.adminFeedback = null;
+          artistUpdate.adminFeedback = hasGeneralMsg ? JSON.stringify(feedbackObj) : null;
         } else {
           // If artist was already Level 2 or 3, do not downgrade their level on edit rejection.
           // If artist was Level 0/1 requesting Level 2, they stay at Level 1.
           artistUpdate.verificationLevel = (artist.verificationLevel || 0) >= 2 ? artist.verificationLevel : 1;
-          artistUpdate.adminFeedback = finalFeedback || adminFeedback || 'برخی از موارد نیاز به بازبینی و اصلاح دارند.';
+          artistUpdate.adminFeedback = JSON.stringify(feedbackObj);
         }
 
         artistUpdate.pendingEdits = null;
