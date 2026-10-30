@@ -349,6 +349,7 @@ model SiteSettings {
 
   // Email Service (Resend) Settings
   isEmailServiceActive     Boolean    @default(true)
+  emailIsSandbox           Boolean    @default(false)
   resendApiKey             String?
   emailFromAddress         String     @default("no-reply@honarhub.ir")
   emailFromName            String     @default("هنرهاب")

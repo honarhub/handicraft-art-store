@@ -50,6 +50,7 @@ export async function PATCH(request: Request) {
       otpMaxPerTenMinPerIp,
       otpLockoutMinutes,
       isEmailServiceActive,
+      emailIsSandbox,
       resendApiKey,
       emailFromAddress,
       emailFromName
@@ -72,6 +73,7 @@ export async function PATCH(request: Request) {
     if (otpMaxPerTenMinPerIp !== undefined) updateData.otpMaxPerTenMinPerIp = Math.max(1, Number(otpMaxPerTenMinPerIp) || 10);
     if (otpLockoutMinutes !== undefined) updateData.otpLockoutMinutes = Math.max(1, Number(otpLockoutMinutes) || 15);
     if (isEmailServiceActive !== undefined) updateData.isEmailServiceActive = Boolean(isEmailServiceActive);
+    if (emailIsSandbox !== undefined) updateData.emailIsSandbox = Boolean(emailIsSandbox);
     if (resendApiKey !== undefined) updateData.resendApiKey = resendApiKey ? resendApiKey.trim() : null;
     if (emailFromAddress !== undefined) updateData.emailFromAddress = emailFromAddress ? emailFromAddress.trim() : 'no-reply@honarhub.ir';
     if (emailFromName !== undefined) updateData.emailFromName = emailFromName ? emailFromName.trim() : 'هنرهاب';

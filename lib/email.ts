@@ -5,6 +5,7 @@ export interface EmailSendResult {
   id?: string;
   error?: string;
   devCode?: string;
+  mode?: 'SANDBOX' | 'PRODUCTION';
 }
 
 /**
@@ -15,12 +16,14 @@ export async function getEmailConfig() {
   let emailFromAddress = 'no-reply@honarhub.ir';
   let emailFromName = 'هنرهاب';
   let isEmailServiceActive = true;
+  let emailIsSandbox = false;
 
   try {
     const { default: prisma } = await import('@/lib/prisma');
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
     if (settings) {
       isEmailServiceActive = settings.isEmailServiceActive;
+      emailIsSandbox = Boolean(settings.emailIsSandbox);
       resendApiKey = settings.resendApiKey || process.env.RESEND_API_KEY || null;
       emailFromAddress = settings.emailFromAddress || process.env.RESEND_FROM_EMAIL || 'no-reply@honarhub.ir';
       emailFromName = settings.emailFromName || process.env.RESEND_FROM_NAME || 'هنرهاب';
@@ -34,6 +37,7 @@ export async function getEmailConfig() {
 
   return {
     isEmailServiceActive,
+    emailIsSandbox,
     resendApiKey,
     emailFromAddress,
     emailFromName
@@ -201,7 +205,7 @@ export function renderPasswordResetEmailHtml(code: string): string {
 }
 
 /**
- * Sends OTP code via Resend Email Service
+ * Sends OTP code via Resend Email Service or Internal Sandbox Mock
  */
 export async function sendEmailOtp(toEmail: string, code: string): Promise<EmailSendResult> {
   const emailTrimmed = toEmail.trim().toLowerCase();
@@ -214,7 +218,19 @@ export async function sendEmailOtp(toEmail: string, code: string): Promise<Email
     };
   }
 
-  // If live Resend API key is configured
+  // 1. Sandbox / Mock Mode: Does NOT need an API key!
+  if (config.emailIsSandbox) {
+    console.log('====================================================');
+    console.log(`[EMAIL-SANDBOX-MOCK] Simulation OTP for ${emailTrimmed}: [ ${code} ]`);
+    console.log('====================================================');
+    return {
+      success: true,
+      mode: 'SANDBOX',
+      devCode: code
+    };
+  }
+
+  // 2. Production Mode: Requires Resend API Key
   if (config.resendApiKey) {
     try {
       const resend = new Resend(config.resendApiKey.trim());
@@ -241,7 +257,8 @@ export async function sendEmailOtp(toEmail: string, code: string): Promise<Email
       console.log(`[Resend Success] Email sent to ${emailTrimmed} (ID: ${data?.id})`);
       return {
         success: true,
-        id: data?.id
+        id: data?.id,
+        mode: 'PRODUCTION'
       };
     } catch (err: any) {
       console.error('[Resend Network Error]', err);
@@ -259,12 +276,13 @@ export async function sendEmailOtp(toEmail: string, code: string): Promise<Email
 
   return {
     success: true,
+    mode: 'SANDBOX',
     devCode: code
   };
 }
 
 /**
- * Sends Password Reset OTP code via Resend Email Service
+ * Sends Password Reset OTP code via Resend Email Service or Internal Sandbox Mock
  */
 export async function sendPasswordResetEmail(toEmail: string, code: string): Promise<EmailSendResult> {
   const emailTrimmed = toEmail.trim().toLowerCase();
@@ -277,6 +295,19 @@ export async function sendPasswordResetEmail(toEmail: string, code: string): Pro
     };
   }
 
+  // 1. Sandbox / Mock Mode
+  if (config.emailIsSandbox) {
+    console.log('====================================================');
+    console.log(`[EMAIL-RESET-SANDBOX-MOCK] Reset Code for ${emailTrimmed}: [ ${code} ]`);
+    console.log('====================================================');
+    return {
+      success: true,
+      mode: 'SANDBOX',
+      devCode: code
+    };
+  }
+
+  // 2. Production Mode
   if (config.resendApiKey) {
     try {
       const resend = new Resend(config.resendApiKey.trim());
@@ -299,7 +330,8 @@ export async function sendPasswordResetEmail(toEmail: string, code: string): Pro
 
       return {
         success: true,
-        id: data?.id
+        id: data?.id,
+        mode: 'PRODUCTION'
       };
     } catch (err: any) {
       return {
@@ -309,29 +341,52 @@ export async function sendPasswordResetEmail(toEmail: string, code: string): Pro
     }
   }
 
-  // Fallback log
+  // Fallback
   console.log('====================================================');
   console.log(`[EMAIL-RESET-DEV MOCK] Reset Code for ${emailTrimmed}: [ ${code} ]`);
   console.log('====================================================');
 
   return {
     success: true,
+    mode: 'SANDBOX',
     devCode: code
   };
 }
 
 /**
- * Live test tool for Admin Settings to verify Resend credentials
+ * Live test tool for Admin Settings to verify Resend credentials or simulate Sandbox send
  */
-export async function testResendConnection(options: {
-  apiKey: string;
+export async function testEmailService(options: {
+  isSandbox?: boolean;
+  apiKey?: string | null;
   fromEmail: string;
   fromName: string;
   toEmail: string;
 }): Promise<EmailSendResult> {
+  const testCode = Math.floor(10000 + Math.random() * 90000).toString();
+
+  // If Sandbox mode is chosen: no API key required!
+  if (options.isSandbox) {
+    console.log('====================================================');
+    console.log(`[EMAIL-TEST-SANDBOX-MOCK] Simulated test email for ${options.toEmail}: [ ${testCode} ]`);
+    console.log('====================================================');
+    return {
+      success: true,
+      mode: 'SANDBOX',
+      devCode: testCode,
+      id: `mock-sandbox-${Date.now()}`
+    };
+  }
+
+  if (!options.apiKey) {
+    return {
+      success: false,
+      error: 'کلید Resend API Key وارد نشده است. لطفاً برای حالت عملیاتی، کلید اختصاصی خود را وارد نمایید.'
+    };
+  }
+
   const resend = new Resend(options.apiKey.trim());
   const fromField = `${options.fromName.trim()} <${options.fromEmail.trim()}>`;
-  const testCode = Math.floor(10000 + Math.random() * 90000).toString();
 
   try {
     const { data, error } = await resend.emails.send({
@@ -358,7 +413,8 @@ export async function testResendConnection(options: {
 
     return {
       success: true,
-      id: data?.id
+      id: data?.id,
+      mode: 'PRODUCTION'
     };
   } catch (err: any) {
     return {
@@ -367,3 +423,6 @@ export async function testResendConnection(options: {
     };
   }
 }
+
+// Alias for backwards compatibility
+export const testResendConnection = testEmailService;

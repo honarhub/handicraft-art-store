@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { testResendConnection } from '@/lib/email';
+import { testEmailService } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
@@ -14,33 +14,39 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { toEmail, apiKey, fromEmail, fromName } = body;
+    const { toEmail, apiKey, fromEmail, fromName, isSandbox } = body;
 
     if (!toEmail || !toEmail.includes('@')) {
       return NextResponse.json({ error: 'لطفاً یک آدرس ایمیل معتبر برای دریافت تست وارد کنید.' }, { status: 400 });
     }
 
-    // Determine credentials to use
+    // Load settings from DB for fallbacks
+    const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+
+    // Determine sandbox mode (either explicitly passed or from settings)
+    const effectiveIsSandbox = isSandbox !== undefined ? Boolean(isSandbox) : Boolean(settings?.emailIsSandbox);
+
     let keyToUse = apiKey ? apiKey.trim() : null;
     let fromEmailToUse = fromEmail ? fromEmail.trim() : null;
     let fromNameToUse = fromName ? fromName.trim() : 'هنرهاب';
 
-    if (!keyToUse || !fromEmailToUse) {
-      const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
-      if (!keyToUse && settings?.resendApiKey) keyToUse = settings.resendApiKey;
-      if (!fromEmailToUse && settings?.emailFromAddress) fromEmailToUse = settings.emailFromAddress;
-      if (settings?.emailFromName) fromNameToUse = settings.emailFromName;
-    }
-
-    if (!keyToUse) {
-      return NextResponse.json({ error: 'کلید Resend API Key وارد نشده است. لطفاً ابتدا کلید اختصاصی خود را وارد نمایید.' }, { status: 400 });
-    }
+    if (!keyToUse && settings?.resendApiKey) keyToUse = settings.resendApiKey;
+    if (!fromEmailToUse && settings?.emailFromAddress) fromEmailToUse = settings.emailFromAddress;
+    if (settings?.emailFromName) fromNameToUse = settings.emailFromName;
 
     if (!fromEmailToUse) {
       fromEmailToUse = 'no-reply@honarhub.ir';
     }
 
-    const result = await testResendConnection({
+    // If in Production mode, an API key is required
+    if (!effectiveIsSandbox && !keyToUse) {
+      return NextResponse.json({
+        error: 'کلید Resend API Key وارد نشده است. برای آزمایش بدون کلید، محیط را روی «سندباکس (شبیه‌ساز)» قرار دهید.'
+      }, { status: 400 });
+    }
+
+    const result = await testEmailService({
+      isSandbox: effectiveIsSandbox,
       apiKey: keyToUse,
       fromEmail: fromEmailToUse,
       fromName: fromNameToUse,
@@ -48,11 +54,26 @@ export async function POST(req: Request) {
     });
 
     if (result.success) {
+      if (effectiveIsSandbox) {
+        return NextResponse.json({
+          success: true,
+          message: `شبیه‌سازی ارسال ایمیل در محیط سندباکس (Mock) با موفقیت انجام شد. کد آزمایشی: [ ${result.devCode} ]`,
+          data: {
+            id: result.id,
+            mode: 'SANDBOX',
+            testCode: result.devCode,
+            from: `${fromNameToUse} <${fromEmailToUse}>`,
+            to: toEmail.trim()
+          }
+        });
+      }
+
       return NextResponse.json({
         success: true,
-        message: `ایمیل تستی با موفقیت از طریق Resend به آدرس ${toEmail} ارسال شد.`,
+        message: `ایمیل تستی واقعی با موفقیت از طریق Resend به آدرس ${toEmail} ارسال شد.`,
         data: {
           id: result.id,
+          mode: 'PRODUCTION',
           from: `${fromNameToUse} <${fromEmailToUse}>`,
           to: toEmail.trim()
         }

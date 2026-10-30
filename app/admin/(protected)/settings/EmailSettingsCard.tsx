@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 export interface EmailSettingsProps {
   initialSettings: {
     isEmailServiceActive?: boolean;
+    emailIsSandbox?: boolean;
     resendApiKey?: string | null;
     emailFromAddress?: string | null;
     emailFromName?: string | null;
@@ -14,6 +15,7 @@ export interface EmailSettingsProps {
 
 export default function EmailSettingsCard({ initialSettings, onSave }: EmailSettingsProps) {
   const [isEmailServiceActive, setIsEmailServiceActive] = useState(initialSettings.isEmailServiceActive ?? true);
+  const [emailIsSandbox, setEmailIsSandbox] = useState(initialSettings.emailIsSandbox ?? false);
   const [resendApiKey, setResendApiKey] = useState(initialSettings.resendApiKey || '');
   const [showApiKey, setShowApiKey] = useState(false);
   const [emailFromAddress, setEmailFromAddress] = useState(initialSettings.emailFromAddress || 'no-reply@honarhub.ir');
@@ -31,6 +33,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
   React.useEffect(() => {
     if (initialSettings) {
       if (initialSettings.isEmailServiceActive !== undefined) setIsEmailServiceActive(initialSettings.isEmailServiceActive);
+      if (initialSettings.emailIsSandbox !== undefined) setEmailIsSandbox(Boolean(initialSettings.emailIsSandbox));
       if (initialSettings.resendApiKey !== undefined) setResendApiKey(initialSettings.resendApiKey || '');
       if (initialSettings.emailFromAddress !== undefined) setEmailFromAddress(initialSettings.emailFromAddress || 'no-reply@honarhub.ir');
       if (initialSettings.emailFromName !== undefined) setEmailFromName(initialSettings.emailFromName || 'هنرهاب');
@@ -65,6 +68,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
     try {
       await onSave({
         isEmailServiceActive,
+        emailIsSandbox,
         resendApiKey: resendApiKey.trim(),
         emailFromAddress: emailFromAddress.trim(),
         emailFromName: emailFromName.trim()
@@ -84,8 +88,8 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
       return;
     }
 
-    if (!resendApiKey.trim()) {
-      alert('لطفاً ابتدا کلید اختصاصی Resend API Key را وارد و ذخیره کنید.');
+    if (!emailIsSandbox && !resendApiKey.trim()) {
+      alert('در حالت عملیاتی، ابتدا باید کلید اختصاصی Resend API Key را وارد و ذخیره کنید. یا محیط را روی «سندباکس (شبیه‌ساز)» قرار دهید.');
       return;
     }
 
@@ -98,6 +102,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           toEmail: testEmail.trim(),
+          isSandbox: emailIsSandbox,
           apiKey: resendApiKey.trim(),
           fromEmail: emailFromAddress.trim(),
           fromName: emailFromName.trim()
@@ -146,13 +151,21 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
                 {isEmailServiceActive ? 'سرویس فعال' : 'سرویس متوقف'}
               </span>
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                isConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                emailIsSandbox
+                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                  : isConfigured
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
               }`}>
-                {isConfigured ? '⚡ متصل به Resend API' : '🧪 شبیه‌ساز توسعه (Mock Dev)'}
+                {emailIsSandbox
+                  ? '🧪 محیط سندباکس (Mock بدون نیاز به کلید)'
+                  : isConfigured
+                  ? '⚡ عملیاتی زنده Resend'
+                  : '⚠️ فاقد کلید API عملیاتی'}
               </span>
             </div>
             <p className="text-slate-500 text-xs sm:text-sm mt-1.5 leading-relaxed">
-              مدیریت سرویس ایمیل‌های تراکنشی پلتفرم (کدهای یکبار مصرف، بازیابی رمز عبور و اعلان‌های هنرمندان) با استفاده از زیرساخت پیشرفته Resend.
+              مدیریت سرویس ایمیل‌های تراکنشی پلتفرم (کدهای یکبار مصرف، بازیابی رمز عبور و اعلان‌ها) با قابلیت سوییچ بین سندباکس داخلی و زیرساخت Resend.
             </p>
           </div>
         </div>
@@ -189,15 +202,75 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
 
       {/* Main Settings Form */}
       <form onSubmit={handleSaveEmailSettings} className="mt-6 space-y-6">
+        {/* Environment Mode Selector */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <label className="block text-xs font-black text-slate-800 mb-2">
+            محیط وب‌سرویس ایمیل:
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setEmailIsSandbox(false)}
+              className={`p-3.5 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
+                !emailIsSandbox
+                  ? 'bg-teal-50 border-teal-300 text-teal-950 shadow-sm ring-2 ring-teal-500/20'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              <span className="text-2xl shrink-0 mt-0.5">🚀</span>
+              <div>
+                <div className="font-bold text-xs flex items-center gap-1.5">
+                  <span>محیط عملیاتی (Production - Resend)</span>
+                  {!emailIsSandbox && <span className="bg-teal-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  ایمیل واقعی به آدرس کاربر از طریق سرورهای Resend ارسال می‌شود. نیازمند وارد کردن کلید API است.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEmailIsSandbox(true)}
+              className={`p-3.5 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
+                emailIsSandbox
+                  ? 'bg-amber-50 border-amber-300 text-amber-950 shadow-sm ring-2 ring-amber-500/20'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
+            >
+              <span className="text-2xl shrink-0 mt-0.5">🧪</span>
+              <div>
+                <div className="font-bold text-xs flex items-center gap-1.5">
+                  <span>محیط سندباکس و شبیه‌ساز (Sandbox / Mock)</span>
+                  {emailIsSandbox && <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  بدون نیاز به کلید API یا ثبت دامنه! شبیه‌ساز ماک کدهای تایید را ایجاد کرده و روی کنسول لوکال نمایش می‌دهد.
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Resend API Key */}
           <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
                 <span>🔑 کلید اختصاصی API رزند (<span className="font-mono text-teal-700" dir="ltr">re_...</span>)</span>
-                {isConfigured && (
-                  <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
-                    کلید فعال
+                {!emailIsSandbox ? (
+                  isConfigured ? (
+                    <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                      کلید فعال عملیاتی
+                    </span>
+                  ) : (
+                    <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                      نیاز به ورود کلید
+                    </span>
+                  )
+                ) : (
+                  <span className="bg-slate-200 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-sans">
+                    در حالت سندباکس نیازی به کلید نیست
                   </span>
                 )}
               </label>
@@ -209,7 +282,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
                 dir="ltr"
                 value={resendApiKey}
                 onChange={(e) => setResendApiKey(e.target.value)}
-                placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx..."
+                placeholder={emailIsSandbox ? 'در حالت سندباکس خالی رها کنید یا کلید را وارد نمایید...' : 're_xxxxxxxxxxxxxxxxxxxxxxxx...'}
                 className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800"
               />
               <button
@@ -222,7 +295,9 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
               </button>
             </div>
             <p className="text-[11px] text-slate-400 mt-1.5">
-              در صورت خالی بودن این کلید روی لوکال‌هاست، سیستم از شبیه‌ساز ماک استفاده کرده و کدها را روی کنسول نمایش می‌دهد.
+              {emailIsSandbox
+                ? 'در وضعیت فعلی (سندباکس)، کدهای احراز هویت به صورت خودکار شبیه‌سازی می‌شوند و نیازی به API Key نیست.'
+                : 'این کلید برای ارسال واقعی ایمیل‌ها در محیط عملیاتی الزامی است.'}
             </p>
           </div>
 
@@ -240,7 +315,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
               className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              پیش‌فرض پیشنهادی: <span className="font-mono font-bold text-slate-600">no-reply@honarhub.ir</span> (نیاز به تایید دامنه در Resend دارد).
+              پیش‌فرض پیشنهادی: <span className="font-mono font-bold text-slate-600">no-reply@honarhub.ir</span>
             </p>
           </div>
 
@@ -257,7 +332,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
               className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800 font-bold"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              نامی که در اینباکس ایمیل کاربر به عنوان فرستنده نمایش داده می‌شود (مثال: <span className="font-bold text-slate-600">هنرهاب</span>).
+              نامی که در اینباکس ایمیل به عنوان فرستنده نمایش داده می‌شود (مثال: <span className="font-bold text-slate-600">هنرهاب</span>).
             </p>
           </div>
         </div>
@@ -269,7 +344,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
             <h4 className="text-sm font-black text-slate-800">راهنمای اتصال دامنه اختصاصی (<span dir="ltr" className="font-mono text-teal-800">honarhub.ir</span>) در سرویس Resend</h4>
           </div>
           <p className="text-xs text-slate-600 leading-relaxed">
-            برای اینکه ایمیل‌ها مستقیماً با آدرس <strong className="font-mono" dir="ltr">no-reply@honarhub.ir</strong> ارسال شوند و بدون رفتن به پوشه اسپم مستقیماً در اینباکس قرار گیرند، لازم است دامنه خود را در داشبورد Resend ثبت نمایید:
+            برای ارسال ایمیل‌های واقعی در محیط عملیاتی با آدرس <strong className="font-mono" dir="ltr">no-reply@honarhub.ir</strong>، رکوردهای DNS زیر در داشبورد ثبت می‌شوند:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
@@ -305,7 +380,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
           </div>
 
           <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 leading-relaxed">
-            💡 <strong>نکته آزمایشی قبل از تایید دامنه:</strong> تا پیش از ثبت رکوردهای DNS دامنه، Resend به شما اجازه می‌دهد با فرستنده آزمایشی <span className="font-mono font-bold" dir="ltr">onboarding@resend.dev</span> به آدرس ایمیلی که با آن در Resend ثبت‌نام کرده‌اید تست بفرستید.
+            💡 <strong>نکته آزمایشی قبل از تایید دامنه:</strong> تا پیش از ثبت رکوردهای DNS دامنه، Resend به شما اجازه می‌دهد با فرستنده آزمایشی <span className="font-mono font-bold" dir="ltr">onboarding@resend.dev</span> به آدرس ایمیلی که با آن در Resend ثبت‌نام کرده‌اید تست بفرستید. همچنین با انتخاب <strong>محیط سندباکس</strong> در بالا می‌توانید بدون نیاز به هیچ کلیدی فوراً سیستم را امتحان کنید.
           </div>
         </div>
 
@@ -332,14 +407,20 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <span className="text-base">🧪</span>
-            <h4 className="text-sm font-black text-slate-800">تست زنده ارسال ایمیل با Resend</h4>
+            <h4 className="text-sm font-black text-slate-800">تست زنده ارسال ایمیل</h4>
           </div>
-          <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 border border-teal-200">
-            فرستنده فعال: {emailFromName} &lt;{emailFromAddress}&gt;
+          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+            emailIsSandbox
+              ? 'bg-amber-100 text-amber-900 border border-amber-200'
+              : 'bg-teal-100 text-teal-900 border border-teal-200'
+          }`}>
+            حالت تست: {emailIsSandbox ? '🟡 سندباکس و شبیه‌ساز (بدون کلید)' : '🟢 عملیاتی زنده Resend'}
           </span>
         </div>
         <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-          یک آدرس ایمیل وارد کنید تا اتصال وب‌سرویس Resend و قالب گرافیکی HTML به صورت زنده آزمایش شود:
+          {emailIsSandbox
+            ? 'در حالت سندباکس می‌توانید بدون نیاز به کلید، فرآیند را آزمایش کنید و کد تولیدشده را مشاهده فرمایید:'
+            : 'یک آدرس ایمیل وارد کنید تا اتصال وب‌سرویس Resend و قالب گرافیکی HTML به صورت زنده آزمایش شود:'}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -355,9 +436,17 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
             type="button"
             onClick={handleRunEmailTest}
             disabled={testLoading || !testEmail.trim()}
-            className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
+            className={`px-6 py-2.5 font-bold rounded-xl text-xs sm:text-sm transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer ${
+              emailIsSandbox
+                ? 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                : 'bg-teal-600 hover:bg-teal-700 text-white'
+            }`}
           >
-            {testLoading ? 'در حال ارسال ایمیل...' : 'ارسال ایمیل تستی با Resend'}
+            {testLoading
+              ? 'در حال پردازش...'
+              : emailIsSandbox
+              ? 'ارسال تست در محیط سندباکس (Mock)'
+              : 'ارسال ایمیل تستی با Resend'}
           </button>
         </div>
 
@@ -368,12 +457,14 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
               : 'bg-red-50 border-red-200 text-red-900'
           }`}>
             <div className="flex items-center gap-2 font-black mb-1">
-              <span>{testResult.success ? '✅ نتیجه ارسال موفق بود:' : '❌ خطا در ارسال ایمیل:'}</span>
+              <span>{testResult.success ? '✅ نتیجه تست موفق بود:' : '❌ خطا در ارسال تست:'}</span>
               <span>{testResult.message}</span>
             </div>
             {testResult.data && (
               <div className="mt-2 pt-2 border-t border-emerald-200 flex flex-wrap gap-4 text-[11px] font-mono text-emerald-800" dir="ltr">
-                {testResult.data.id && <span>Resend Message ID: {testResult.data.id}</span>}
+                {testResult.data.mode && <span>Mode: {testResult.data.mode}</span>}
+                {testResult.data.testCode && <span>Generated OTP: {testResult.data.testCode}</span>}
+                {testResult.data.id && <span>Message ID: {testResult.data.id}</span>}
                 {testResult.data.from && <span>From: {testResult.data.from}</span>}
                 {testResult.data.to && <span>To: {testResult.data.to}</span>}
               </div>

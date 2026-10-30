@@ -176,10 +176,11 @@ export async function POST(req: Request) {
         }, { status: 502 });
       }
 
+      smsMode = emailRes.mode || 'PRODUCTION';
+
       if (isLocalhost) {
         if (emailRes.devCode) {
           devCodeToReturn = emailRes.devCode;
-          smsMode = 'MOCK';
         } else {
           console.log(`[RESEND-EMAIL] Verification email sent to ${normalizedTarget} (ID: ${emailRes.id})`);
         }
