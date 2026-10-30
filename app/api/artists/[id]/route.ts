@@ -101,10 +101,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             }
             userUpdate.image = imageUrl;
           }
-        } else if (rejectedFields.image) {
-          // Admin rejected the image (whether newly proposed or existing)
-          userUpdate.image = null;
         }
+        // If rejectedFields.image, we do NOT wipe user.image; the artist's existing picture is preserved.
         if (approvedFields.includes('phoneNumber') && edits.phoneNumber) userUpdate.phoneNumber = edits.phoneNumber;
         if (approvedFields.includes('email') && edits.email) userUpdate.email = edits.email;
 
