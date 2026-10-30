@@ -171,7 +171,7 @@ export function renderOtpEmailHtml(code: string): string {
                         </td>
                         <td style="color: #cbd5e1; font-size: 11px;">|</td>
                         <td style="padding: 0 6px;">
-                          <a href="https://honarhub.ir/contact" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                          <a href="https://honarhub.ir/support" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
                             💬 تماس با پشتیبانی
                           </a>
                         </td>
@@ -331,7 +331,7 @@ export function renderPasswordResetEmailHtml(code: string): string {
                         </td>
                         <td style="color: #cbd5e1; font-size: 11px;">|</td>
                         <td style="padding: 0 6px;">
-                          <a href="https://honarhub.ir/contact" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                          <a href="https://honarhub.ir/support" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
                             💬 تماس با پشتیبانی
                           </a>
                         </td>
