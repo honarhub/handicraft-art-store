@@ -123,6 +123,7 @@ function ArtistLoginContent() {
   // Step 1: Check user existence with unified identifier (phone or email)
   const handleCheckUserAndProceed = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSuccessMsg('');
     const raw = loginIdentifier.trim();
     if (!raw) {
       setErrorMsg('شماره موبایل یا ایمیل را وارد کنید.');
@@ -153,6 +154,7 @@ function ArtistLoginContent() {
     setLoginIdentifier(normalizedIdentifier);
     setLoginLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
     setIsUnregisteredError(false);
 
     try {
@@ -191,6 +193,7 @@ function ArtistLoginContent() {
   // Step 2A: Password Login
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSuccessMsg('');
     if (!loginPassword) {
       setErrorMsg('رمز عبور را وارد کنید.');
       return;
@@ -198,6 +201,7 @@ function ArtistLoginContent() {
 
     setLoginLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
 
     try {
       const isPhone = loginMethod === 'phone';
@@ -216,6 +220,7 @@ function ArtistLoginContent() {
       const res = await signIn('credentials', credentials);
 
       if (res?.error) {
+        setSuccessMsg('');
         setErrorMsg(res.error || 'اطلاعات ورود اشتباه است.');
         setLoginLoading(false);
       } else {
@@ -234,6 +239,7 @@ function ArtistLoginContent() {
         router.push('/artist-panel/dashboard');
       }
     } catch {
+      setSuccessMsg('');
       setErrorMsg('مشکلی در ورود رخ داد.');
       setLoginLoading(false);
     }
@@ -243,6 +249,7 @@ function ArtistLoginContent() {
   const handleSwitchToLoginOtp = async () => {
     setLoginLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
     setLoginDevCode(null);
 
     try {
@@ -273,6 +280,7 @@ function ArtistLoginContent() {
 
   // Step 2C: Verify OTP & Login
   const handleVerifyLoginOtp = async (codeToVerify: string) => {
+    setSuccessMsg('');
     if (!codeToVerify || codeToVerify.length !== 5) {
       setErrorMsg('کد تایید ۵ رقمی را کامل وارد کنید.');
       return;
@@ -290,12 +298,14 @@ function ArtistLoginContent() {
       });
 
       if (res?.error) {
+        setSuccessMsg('');
         setErrorMsg(res.error || 'کد تایید نامعتبر است.');
         setLoginLoading(false);
       } else {
         router.push('/artist-panel/dashboard');
       }
     } catch {
+      setSuccessMsg('');
       setErrorMsg('خطایی رخ داد.');
       setLoginLoading(false);
     }
@@ -767,7 +777,7 @@ function ArtistLoginContent() {
             </div>
           )}
 
-          {successMsg && (
+          {successMsg && !errorMsg && (
             <div className="mb-5 bg-emerald-50 text-emerald-800 text-xs sm:text-sm font-bold p-3.5 rounded-2xl border border-emerald-200 text-right leading-relaxed flex items-start gap-2">
               <span className="text-base">✅</span>
               <span>{successMsg}</span>
@@ -796,6 +806,7 @@ function ArtistLoginContent() {
                     onChange={(e) => {
                       setLoginIdentifier(e.target.value);
                       setErrorMsg('');
+                      setSuccessMsg('');
                       setIsUnregisteredError(false);
                       setUnregisteredEmail(null);
                     }}
@@ -878,7 +889,11 @@ function ArtistLoginContent() {
                       autoComplete="current-password"
                       placeholder="••••••••"
                       value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
+                      onChange={(e) => {
+                        setLoginPassword(e.target.value);
+                        setErrorMsg('');
+                        setSuccessMsg('');
+                      }}
                       required
                       autoFocus
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-center font-mono text-base tracking-widest text-slate-900 bg-slate-50/50"
@@ -1074,14 +1089,20 @@ function ArtistLoginContent() {
                     {regMethod === 'phone' ? 'شماره تلفن همراه' : 'آدرس ایمیل'}
                   </label>
                   <input
+                    key={regMethod}
                     type={regMethod === 'phone' ? 'tel' : 'email'}
-                    id="register-identifier"
-                    name="username"
-                    autoComplete="username"
+                    id={regMethod === 'phone' ? 'register-phone' : 'register-email'}
+                    name={regMethod === 'phone' ? 'tel' : 'email'}
+                    autoComplete={regMethod === 'phone' ? 'tel' : 'email'}
+                    inputMode={regMethod === 'phone' ? 'tel' : 'email'}
                     dir="ltr"
                     placeholder={regMethod === 'phone' ? '09123456789' : 'name@example.com'}
                     value={regIdentifier}
-                    onChange={(e) => setRegIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      setRegIdentifier(e.target.value);
+                      setErrorMsg('');
+                      setSuccessMsg('');
+                    }}
                     required
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 text-center font-mono text-sm tracking-wider text-slate-900 bg-slate-50/50"
                   />
