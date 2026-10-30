@@ -78,6 +78,8 @@ export async function POST(req: Request) {
         }
       });
 
+      let smsDevCode: string | undefined;
+
       if (isMobile) {
         const smsRes = await sendSmsOtp(normalizedTarget, otpCode);
         if (!smsRes.success) {
@@ -86,20 +88,22 @@ export async function POST(req: Request) {
             error: smsRes.error || 'خطا در ارسال پیامک از طریق سامانه. لطفاً بعداً تلاش نمایید.'
           }, { status: 502 });
         }
+        smsDevCode = smsRes.devCode;
       } else {
         // For email, log in dev or send email
         console.log(`[EMAIL-RESET] Password reset code for ${normalizedTarget}: [ ${otpCode} ]`);
+        if (process.env.NODE_ENV !== 'production') {
+          smsDevCode = otpCode;
+        }
       }
 
       await logOtpSent(securityCheck.clientIp, normalizedTarget, 'PASSWORD_RESET');
-
-      const isDev = process.env.NODE_ENV !== 'production';
 
       return NextResponse.json({
         success: true,
         message: 'کد بازیابی ارسال شد.',
         target: normalizedTarget,
-        ...(isDev ? { devCode: otpCode } : {})
+        ...(smsDevCode ? { devCode: smsDevCode } : {})
       });
     }
 

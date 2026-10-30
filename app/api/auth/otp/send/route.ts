@@ -129,6 +129,8 @@ export async function POST(req: Request) {
     });
 
     // Send SMS if mobile
+    let smsDevCode: string | undefined;
+
     if (!isEmail) {
       const smsRes = await sendSmsOtp(normalizedTarget, code);
       if (!smsRes.success) {
@@ -137,21 +139,23 @@ export async function POST(req: Request) {
           error: smsRes.error || 'خطا در ارسال پیامک از طریق سامانه. لطفاً بعداً تلاش نمایید یا با پشتیبانی تماس بگیرید.'
         }, { status: 502 });
       }
+      smsDevCode = smsRes.devCode;
     } else {
       console.log(`[EMAIL OTP] Code for ${normalizedTarget}: ${code}`);
+      if (process.env.NODE_ENV !== 'production') {
+        smsDevCode = code;
+      }
     }
 
     // Log successful OTP dispatch
     await logOtpSent(securityCheck.clientIp, normalizedTarget, targetType);
-
-    const isDev = process.env.NODE_ENV !== 'production';
 
     return NextResponse.json({
       success: true,
       message: isEmail ? 'کد تایید به ایمیل شما ارسال شد.' : 'کد تایید با موفقیت پیامک شد.',
       expiresIn: intervalSec,
       target: normalizedTarget,
-      ...(isDev ? { devCode: code } : {})
+      ...(smsDevCode ? { devCode: smsDevCode } : {})
     });
   } catch (error: any) {
     console.error('[API /api/auth/otp/send] Error:', error);
