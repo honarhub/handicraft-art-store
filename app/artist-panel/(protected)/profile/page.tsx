@@ -1391,6 +1391,9 @@ export default function ArtistProfilePage() {
                 type="text"
                 dir="ltr"
                 maxLength={5}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 autoFocus
                 placeholder="• • • • •"
                 value={phoneOtpCode}
@@ -1469,6 +1472,9 @@ export default function ArtistProfilePage() {
                 type="text"
                 dir="ltr"
                 maxLength={5}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 autoFocus
                 placeholder="• • • • •"
                 value={emailOtpCode}

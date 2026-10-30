@@ -979,6 +979,9 @@ function ArtistLoginContent() {
                     type="text"
                     dir="ltr"
                     maxLength={5}
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     placeholder="• • • • •"
                     value={loginOtpCode}
                     onChange={(e) => {
@@ -1299,6 +1302,8 @@ function ArtistLoginContent() {
                     id="register-otp"
                     name="oneTimeCode"
                     autoComplete="one-time-code"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     dir="ltr"
                     maxLength={5}
                     placeholder="• • • • •"
@@ -1474,6 +1479,8 @@ function ArtistLoginContent() {
                     id="forgot-code"
                     name="oneTimeCode"
                     autoComplete="one-time-code"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     dir="ltr"
                     maxLength={5}
                     placeholder="• • • • •"
