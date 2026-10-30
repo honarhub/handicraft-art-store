@@ -104,18 +104,36 @@ export function renderOtpEmailHtml(code: string): string {
                 کد تایید یکبار مصرف شما جهت ورود و احراز هویت در سامانه هنرهاب:
               </p>
 
-              <!-- Prominent, Large OTP Box -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 22px 0;">
+              <!-- Prominent, Large OTP Box with Copy Icon -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 10px 0;">
                 <tr>
                   <td align="center">
-                    <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 16px; padding: 18px 28px; display: inline-block; min-width: 220px; text-align: center;">
-                      <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #064e3b; letter-spacing: 14px; display: inline-block; direction: ltr; line-height: 1;">
-                        ${code}
-                      </span>
+                    <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 16px; padding: 16px 24px; display: inline-block; text-align: center; -webkit-user-select: all; -moz-user-select: all; user-select: all; cursor: pointer;" title="کلیک یا لمس جهت انتخاب و کپی کد">
+                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="direction: ltr; margin: 0 auto;">
+                        <tr>
+                          <td style="vertical-align: middle; padding-right: 14px;">
+                            <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #064e3b; letter-spacing: 14px; display: inline-block; line-height: 1; -webkit-user-select: all; user-select: all;">
+                              ${code}
+                            </span>
+                          </td>
+                          <td style="vertical-align: middle;">
+                            <div style="background-color: #059669; color: #ffffff; border-radius: 10px; padding: 7px 11px; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; gap: 4px; direction: rtl; box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; display: inline-block; margin-left: 4px;">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                              </svg>
+                              <span style="vertical-align: middle;">کپی</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
                     </div>
                   </td>
                 </tr>
               </table>
+              <p style="margin: 0 0 20px 0; font-size: 11px; color: #059669; text-align: center; font-weight: 600;">
+                📋 برای کپی آسان، روی کد کلیک یا لمس کنید تا تمام ارقام خودکار انتخاب شوند
+              </p>
 
               <!-- Compact Expiry & Security Notice -->
               <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px;">
@@ -246,18 +264,36 @@ export function renderPasswordResetEmailHtml(code: string): string {
                 کد تایید یکبار مصرف شما جهت بازنشانی و تغییر رمز عبور در سامانه هنرهاب:
               </p>
 
-              <!-- Prominent, Large OTP Box -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 22px 0;">
+              <!-- Prominent, Large OTP Box with Copy Icon -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 18px 0 10px 0;">
                 <tr>
                   <td align="center">
-                    <div style="background-color: #eff6ff; border: 2px dashed #2563eb; border-radius: 16px; padding: 18px 28px; display: inline-block; min-width: 220px; text-align: center;">
-                      <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #1e40af; letter-spacing: 14px; display: inline-block; direction: ltr; line-height: 1;">
-                        ${code}
-                      </span>
+                    <div style="background-color: #eff6ff; border: 2px dashed #2563eb; border-radius: 16px; padding: 16px 24px; display: inline-block; text-align: center; -webkit-user-select: all; -moz-user-select: all; user-select: all; cursor: pointer;" title="کلیک یا لمس جهت انتخاب و کپی کد">
+                      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="direction: ltr; margin: 0 auto;">
+                        <tr>
+                          <td style="vertical-align: middle; padding-right: 14px;">
+                            <span style="font-family: 'Vazirmatn', 'Courier New', monospace; font-size: 42px; font-weight: 900; color: #1e40af; letter-spacing: 14px; display: inline-block; line-height: 1; -webkit-user-select: all; user-select: all;">
+                              ${code}
+                            </span>
+                          </td>
+                          <td style="vertical-align: middle;">
+                            <div style="background-color: #2563eb; color: #ffffff; border-radius: 10px; padding: 7px 11px; display: inline-flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; gap: 4px; direction: rtl; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; display: inline-block; margin-left: 4px;">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                              </svg>
+                              <span style="vertical-align: middle;">کپی</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
                     </div>
                   </td>
                 </tr>
               </table>
+              <p style="margin: 0 0 20px 0; font-size: 11px; color: #2563eb; text-align: center; font-weight: 600;">
+                📋 برای کپی آسان، روی کد کلیک یا لمس کنید تا تمام ارقام خودکار انتخاب شوند
+              </p>
 
               <!-- Compact Expiry & Security Notice -->
               <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px;">

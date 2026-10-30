@@ -43,20 +43,22 @@ export const authOptions: NextAuthOptions = {
         loginType: { type: "hidden" }
       },
       async authorize(credentials) {
-        // --- 1. Mobile Phone + SMS OTP Login ---
-        if (credentials?.loginType === 'otp' || (credentials?.phone && credentials?.code)) {
-          if (!credentials.phone || !credentials.code) {
-            throw new Error("شماره موبایل و کد تایید الزامی است");
+        // --- 1. Mobile Phone or Email + OTP Login ---
+        if (credentials?.loginType === 'otp' || ((credentials?.phone || credentials?.email) && credentials?.code)) {
+          const isEmail = Boolean(credentials?.email && !credentials?.phone);
+          const rawTarget = isEmail ? credentials.email : credentials.phone;
+          if (!rawTarget || !credentials.code) {
+            throw new Error(isEmail ? "ایمیل و کد تایید الزامی است." : "شماره موبایل و کد تایید الزامی است.");
           }
 
-          const normalized = normalizePhoneNumber(credentials.phone);
+          const normalized = isEmail ? rawTarget.trim().toLowerCase() : normalizePhoneNumber(rawTarget);
           const cleanedCode = credentials.code.trim();
 
           const record = await prisma.verificationCode.findFirst({
             where: {
               target: normalized,
               code: cleanedCode,
-              type: 'PHONE_OTP',
+              type: { in: ['PHONE_OTP', 'EMAIL_OTP', 'REGISTER_OTP'] },
               used: false,
               expiresAt: { gte: new Date() }
             },
@@ -75,12 +77,12 @@ export const authOptions: NextAuthOptions = {
 
           // Find User - MUST exist in DB (no auto-creation on login!)
           const user = await prisma.user.findFirst({
-            where: { phoneNumber: normalized },
+            where: isEmail ? { email: normalized } : { phoneNumber: normalized },
             include: { artistProfile: true }
           });
 
           if (!user) {
-            throw new Error("این شماره موبایل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید.");
+            throw new Error(isEmail ? "این ایمیل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید." : "این شماره موبایل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید.");
           }
 
           if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {

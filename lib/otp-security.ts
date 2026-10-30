@@ -62,7 +62,7 @@ export async function checkAndEnforceOtpLimits(
     settings = await prisma.siteSettings.create({ data: { id: 'default' } });
   }
 
-  // 2. Kill switch check for mobile OTP
+  // 2. Kill switch check for mobile or email OTP
   if (!isEmail && settings.isMobileOtpActive === false) {
     await prisma.otpRequestLog.create({
       data: {
@@ -84,9 +84,29 @@ export async function checkAndEnforceOtpLimits(
     };
   }
 
+  if (isEmail && settings.isEmailServiceActive === false) {
+    await prisma.otpRequestLog.create({
+      data: {
+        ip: clientIp,
+        target: normalizedTarget,
+        type,
+        status: 'DISABLED',
+        reason: 'سرویس ارسال ایمیل توسط مدیریت غیرفعال شده است.'
+      }
+    });
+
+    return {
+      allowed: false,
+      status: 403,
+      error: 'ارسال ایمیل موقتاً توسط مدیریت غیرفعال است. لطفاً از طریق ورود با رمز عبور یا شماره موبایل اقدام فرمایید.',
+      siteSettings: settings,
+      clientIp
+    };
+  }
+
   const now = Date.now();
 
-  // 3. Flood Protection (Anti-Rapid-fire / IP attacks across multiple numbers)
+  // 3. Flood Protection (Anti-Rapid-fire / IP attacks across multiple numbers or emails)
   const tenMinutesAgo = new Date(now - 10 * 60 * 1000);
   const maxPerTenMin = settings.otpMaxPerTenMinPerIp || 10;
   const lockoutMinutes = settings.otpLockoutMinutes || 15;
@@ -141,38 +161,36 @@ export async function checkAndEnforceOtpLimits(
     };
   }
 
-  // 4. Per-Target Hourly Cap (سقف ارسال به یک شماره در ساعت)
-  if (!isEmail) {
-    const oneHourAgo = new Date(now - 60 * 60 * 1000);
-    const maxPerHour = settings.otpMaxPerHourPerPhone || 5;
+  // 4. Per-Target Hourly Cap (سقف ارسال به یک شماره یا ایمیل در ساعت)
+  const oneHourAgo = new Date(now - 60 * 60 * 1000);
+  const maxPerHour = settings.otpMaxPerHourPerPhone || 5;
 
-    const phoneSentCount = await prisma.otpRequestLog.count({
-      where: {
+  const targetSentCount = await prisma.otpRequestLog.count({
+    where: {
+      target: normalizedTarget,
+      status: 'SENT',
+      createdAt: { gte: oneHourAgo }
+    }
+  });
+
+  if (targetSentCount >= maxPerHour) {
+    await prisma.otpRequestLog.create({
+      data: {
+        ip: clientIp,
         target: normalizedTarget,
-        status: 'SENT',
-        createdAt: { gte: oneHourAgo }
+        type,
+        status: isEmail ? 'BLOCKED_EMAIL_CAP' : 'BLOCKED_PHONE_CAP',
+        reason: `بیش از ${maxPerHour} درخواست به این ${isEmail ? 'ایمیل' : 'شماره'} در یک ساعت ارسال شده است.`
       }
     });
 
-    if (phoneSentCount >= maxPerHour) {
-      await prisma.otpRequestLog.create({
-        data: {
-          ip: clientIp,
-          target: normalizedTarget,
-          type,
-          status: 'BLOCKED_PHONE_CAP',
-          reason: `بیش از ${maxPerHour} پیامک به این شماره در یک ساعت ارسال شده است.`
-        }
-      });
-
-      return {
-        allowed: false,
-        status: 429,
-        error: 'تعداد درخواست‌های کد تایید برای این شماره در این ساعت به حد نصاب رسیده است. لطفاً ۱ ساعت دیگر تلاش نمایید.',
-        siteSettings: settings,
-        clientIp
-      };
-    }
+    return {
+      allowed: false,
+      status: 429,
+      error: `تعداد درخواست‌های کد تایید برای این ${isEmail ? 'ایمیل' : 'شماره موبایل'} در این ساعت به حد نصاب رسیده است. لطفاً ۱ ساعت دیگر تلاش نمایید.`,
+      siteSettings: settings,
+      clientIp
+    };
   }
 
   // 5. Cooldown (فاصله زمانی بین پیامک‌های مجدد)

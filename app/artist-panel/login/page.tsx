@@ -247,18 +247,24 @@ function ArtistLoginContent() {
     }
   };
 
-  // Step 2B: Switch to OTP Login for Mobile
+  // Step 2B: Switch to OTP Login for Mobile or Email
   const handleSwitchToLoginOtp = async () => {
     setLoginLoading(true);
     setErrorMsg('');
     setSuccessMsg('');
     setLoginDevCode(null);
 
+    const isPhone = loginMethod === 'phone';
+
     try {
       const res = await fetch('/api/auth/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: loginIdentifier.trim(), type: 'PHONE_OTP' })
+        body: JSON.stringify(
+          isPhone
+            ? { phone: loginIdentifier.trim(), type: 'PHONE_OTP' }
+            : { email: loginIdentifier.trim().toLowerCase(), type: 'EMAIL_OTP' }
+        )
       });
 
       const data = await res.json();
@@ -278,7 +284,12 @@ function ArtistLoginContent() {
         setLoginDevCode(null);
         setLoginMode(null);
       }
-      setSuccessMsg(data.mode === 'SANDBOX' ? 'وب‌سرویس sms.ir درخواست را تایید کرد (حالت سندباکس).' : 'کد تایید ۵ رقمی ارسال شد.');
+
+      if (isPhone) {
+        setSuccessMsg(data.mode === 'SANDBOX' ? 'وب‌سرویس sms.ir درخواست را تایید کرد (حالت سندباکس).' : 'کد تایید ۵ رقمی به شماره موبایل شما پیامک شد.');
+      } else {
+        setSuccessMsg(data.mode === 'SANDBOX' ? 'ارسال ایمیل در محیط سندباکس شبیه‌سازی شد.' : 'کد تایید ۵ رقمی به ایمیل شما ارسال شد.');
+      }
     } catch {
       setErrorMsg('خطا در برقراری ارتباط.');
     } finally {
@@ -298,12 +309,20 @@ function ArtistLoginContent() {
     setErrorMsg('');
 
     try {
-      const res = await signIn('credentials', {
+      const isPhone = loginMethod === 'phone';
+      const credentials: any = {
         redirect: false,
-        phone: loginIdentifier.trim(),
         code: codeToVerify,
         loginType: 'otp'
-      });
+      };
+
+      if (isPhone) {
+        credentials.phone = loginIdentifier.trim();
+      } else {
+        credentials.email = loginIdentifier.trim().toLowerCase();
+      }
+
+      const res = await signIn('credentials', credentials);
 
       if (res?.error) {
         setSuccessMsg('');
@@ -949,19 +968,19 @@ function ArtistLoginContent() {
                   {loginLoading ? 'در حال بررسی...' : 'ورود به حساب کاربری'}
                 </button>
 
-                {/* Alternative OTP login for mobile */}
-                {loginMethod === 'phone' && (
-                  <div className="pt-2 text-center">
-                    <button
-                      type="button"
-                      onClick={handleSwitchToLoginOtp}
-                      disabled={loginLoading}
-                      className="text-xs font-bold text-teal-700 hover:text-teal-900 py-1 transition-colors"
-                    >
-                      📱 ورود با رمز یکبار مصرف پیامکی (بدون رمز عبور)
-                    </button>
-                  </div>
-                )}
+                {/* Alternative OTP login for mobile or email */}
+                <div className="pt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={handleSwitchToLoginOtp}
+                    disabled={loginLoading}
+                    className="text-xs font-bold text-teal-700 hover:text-teal-900 py-1 transition-colors cursor-pointer"
+                  >
+                    {loginMethod === 'phone'
+                      ? '📱 ورود با رمز یکبار مصرف پیامکی (بدون رمز عبور)'
+                      : '✉️ ورود با رمز یکبار مصرف ایمیلی (بدون رمز عبور)'}
+                  </button>
+                </div>
               </form>
             </div>
 
@@ -992,10 +1011,12 @@ function ArtistLoginContent() {
                   }`}>
                     {loginMode === 'SANDBOX' ? (
                       <div>
-                        <span>🌐 تاییدشده توسط سندباکس sms.ir: </span>
+                        <span>{loginMethod === 'phone' ? '🌐 تاییدشده توسط سندباکس sms.ir: ' : '✉️ شبیه‌ساز سندباکس ایمیل: '}</span>
                         <span className="text-lg text-sky-700 select-all font-black">{loginDevCode}</span>
                         <span className="block text-[10px] text-sky-600 mt-0.5 font-sans">
-                          (وب‌سرویس sms.ir درخواست را تایید کرد، اما در سندباکس پیامک مخابراتی به گوشی ارسال نمی‌شود)
+                          {loginMethod === 'phone'
+                            ? '(وب‌سرویس sms.ir درخواست را تایید کرد، اما در سندباکس پیامک مخابراتی به گوشی ارسال نمی‌شود)'
+                            : '(ارسال ایمیل در محیط سندباکس شبیه‌سازی شد و ایمیلی به صندوق واقعی ارسال نگردید)'}
                         </span>
                       </div>
                     ) : (

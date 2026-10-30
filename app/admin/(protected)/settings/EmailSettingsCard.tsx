@@ -337,52 +337,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
           </div>
         </div>
 
-        {/* DNS Configuration Guide Box */}
-        <div className="bg-gradient-to-br from-teal-50/60 to-emerald-50/60 p-5 rounded-2xl border border-teal-200 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🌐</span>
-            <h4 className="text-sm font-black text-slate-800">راهنمای اتصال دامنه اختصاصی (<span dir="ltr" className="font-mono text-teal-800">honarhub.ir</span>) در سرویس Resend</h4>
-          </div>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            برای ارسال ایمیل‌های واقعی در محیط عملیاتی با آدرس <strong className="font-mono" dir="ltr">no-reply@honarhub.ir</strong>، رکوردهای DNS زیر در داشبورد ثبت می‌شوند:
-          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
-            <div className="bg-white/80 p-3 rounded-xl border border-teal-100">
-              <div className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px]">۱</span>
-                <span>ثبت دامنه در Resend</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                در پنل Resend به منوی <strong className="font-mono">Domains</strong> رفته و دکمه <strong className="font-mono">Add Domain</strong> را بزنید و نام دامنه <strong className="font-mono">honarhub.ir</strong> را وارد کنید.
-              </p>
-            </div>
-
-            <div className="bg-white/80 p-3 rounded-xl border border-teal-100">
-              <div className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px]">۲</span>
-                <span>افزودن رکوردهای DNS</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                رکوردهای ارائه شده شامل <strong className="font-mono">DKIM</strong> و <strong className="font-mono">SPF</strong> را در پنل کلودفلر یا ابرآروان دامنه خود اضافه کنید.
-              </p>
-            </div>
-
-            <div className="bg-white/80 p-3 rounded-xl border border-teal-100">
-              <div className="font-bold text-slate-800 mb-1 flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px]">۳</span>
-                <span>تایید آنی (Verified)</span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                دکمه <strong className="font-mono">Verify Records</strong> را بزنید. پس از سبز شدن وضعیت، سیستم آماده ارسال سراسری با بالاترین نرخ تحویل است.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 leading-relaxed">
-            💡 <strong>نکته آزمایشی قبل از تایید دامنه:</strong> تا پیش از ثبت رکوردهای DNS دامنه، Resend به شما اجازه می‌دهد با فرستنده آزمایشی <span className="font-mono font-bold" dir="ltr">onboarding@resend.dev</span> به آدرس ایمیلی که با آن در Resend ثبت‌نام کرده‌اید تست بفرستید. همچنین با انتخاب <strong>محیط سندباکس</strong> در بالا می‌توانید بدون نیاز به هیچ کلیدی فوراً سیستم را امتحان کنید.
-          </div>
-        </div>
 
         {/* Save button */}
         <div className="flex items-center justify-between pt-2">
