@@ -49,9 +49,20 @@ export async function POST(req: Request) {
 
     // 2. Check if user already exists
     const existingUser = await prisma.user.findFirst({
-      where: isEmail ? { email: normalizedTarget } : { phoneNumber: normalizedTarget }
+      where: isEmail ? { email: normalizedTarget } : { phoneNumber: normalizedTarget },
+      include: { artistProfile: true }
     });
     if (existingUser) {
+      if (existingUser.artistProfile?.isDeleted) {
+        return NextResponse.json({ 
+          error: 'حساب کاربری شما قبلاً بایگانی شده است. لطفاً جهت فعال‌سازی مجدد با پشتیبانی در تماس باشید.' 
+        }, { status: 400 });
+      }
+      if (existingUser.artistProfile && !existingUser.artistProfile.isActive) {
+        return NextResponse.json({ 
+          error: 'حساب کاربری شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در تماس باشید.' 
+        }, { status: 400 });
+      }
       return NextResponse.json({ 
         error: 'این شماره موبایل یا ایمیل قبلاً ثبت‌نام شده است. لطفاً وارد شوید.' 
       }, { status: 400 });

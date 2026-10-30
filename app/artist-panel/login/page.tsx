@@ -76,9 +76,12 @@ function ArtistLoginContent() {
       if (emailParam) {
         setUnregisteredEmail(decodeURIComponent(emailParam));
       }
-    } else if (err === 'deleted') {
+    } else if (err === 'archived' || err === 'deleted') {
       signOut({ redirect: false });
-      setErrorMsg('حساب کاربری هنرمندی شما توسط ادمین حذف شده است و از سیستم خارج شدید.');
+      setErrorMsg('حساب کاربری هنرمندی شما بایگانی شده است. لطفاً جهت پیگیری یا فعال‌سازی مجدد با پشتیبانی در تماس باشید.');
+    } else if (err === 'deactivated') {
+      signOut({ redirect: false });
+      setErrorMsg('حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در تماس باشید.');
     } else if (err === 'not_artist') {
       setErrorMsg('حساب کاربری شما دسترسی هنرمند ندارد. لطفاً ابتدا ثبت‌نام کنید.');
     }
@@ -86,7 +89,8 @@ function ArtistLoginContent() {
 
   // Handle redirect if already logged in as artist/admin
   useEffect(() => {
-    if (status === 'authenticated' && searchParams.get('error') !== 'deleted') {
+    const errorParam = searchParams.get('error');
+    if (status === 'authenticated' && !['deleted', 'archived', 'deactivated'].includes(errorParam || '')) {
       if (session?.user?.role === 'ARTIST' || session?.user?.role === 'ADMIN') {
         router.push('/artist-panel/dashboard');
       }
@@ -158,7 +162,14 @@ function ArtistLoginContent() {
 
       const data = await res.json();
 
-      if (!res.ok || !data.exists) {
+      if (!res.ok) {
+        setIsUnregisteredError(false);
+        setErrorMsg(data.message || data.error || 'خطا در بررسی اطلاعات کاربری.');
+        setLoginLoading(false);
+        return;
+      }
+
+      if (!data.exists) {
         setIsUnregisteredError(true);
         setUnregisteredEmail(null);
         setErrorMsg('این حساب کاربری در سیستم ثبت نشده است. لطفاً ابتدا «ثبت‌نام» نمایید.');
@@ -599,7 +610,21 @@ function ArtistLoginContent() {
             <div className="mb-5 bg-red-50 text-red-700 text-xs sm:text-sm font-bold p-4 rounded-2xl border border-red-200 text-right leading-relaxed space-y-2 animate-in fade-in">
               <div className="flex items-start gap-2">
                 <span className="text-base shrink-0">⚠️</span>
-                <span>{errorMsg}</span>
+                <div className="flex-1">
+                  <p>{errorMsg}</p>
+                  {(errorMsg.includes('پشتیبانی') || errorMsg.includes('بایگانی') || errorMsg.includes('غیرفعال')) && (
+                    <div className="mt-2.5 pt-2 border-t border-red-200 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-red-600 font-normal">نیاز به راهنمایی یا بازبینی دارید؟</span>
+                      <a
+                        href={`/support?message=${encodeURIComponent('درخواست پیگیری وضعیت حساب کاربری هنرمند:\nمشخصات حساب: ' + (loginIdentifier || regIdentifier || ''))}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs whitespace-nowrap cursor-pointer"
+                      >
+                        <span>ارتباط با پشتیبانی</span>
+                        <span>←</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
               {isUnregisteredError && (
                 <div className="pt-2 border-t border-red-200 space-y-2">

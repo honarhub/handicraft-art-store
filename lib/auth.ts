@@ -88,7 +88,11 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (user.artistProfile?.isDeleted) {
-            throw new Error("حساب هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی تماس بگیرید.");
+            throw new Error("حساب کاربری هنرمندی شما بایگانی شده است. لطفاً با پشتیبانی در تماس باشید.");
+          }
+
+          if (user.artistProfile && !user.artistProfile.isActive && user.role !== 'ADMIN') {
+            throw new Error("حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً با پشتیبانی در تماس باشید.");
           }
 
           return {
@@ -125,7 +129,11 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (user.artistProfile?.isDeleted) {
-            throw new Error("حساب هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی تماس بگیرید.");
+            throw new Error("حساب کاربری هنرمندی شما بایگانی شده است. لطفاً با پشتیبانی در تماس باشید.");
+          }
+
+          if (user.artistProfile && !user.artistProfile.isActive && user.role !== 'ADMIN') {
+            throw new Error("حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً با پشتیبانی در تماس باشید.");
           }
 
           return {
@@ -184,7 +192,10 @@ export const authOptions: NextAuthOptions = {
             throw new Error("پروفایل هنرمند برای این حساب یافت نشد. لطفاً ابتدا ثبت‌نام کنید.");
           }
           if (artist.isDeleted) {
-            throw new Error("حساب هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی تماس بگیرید.");
+            throw new Error("حساب کاربری هنرمندی شما بایگانی شده است. لطفاً با پشتیبانی در تماس باشید.");
+          }
+          if (!artist.isActive && user.role !== 'ADMIN') {
+            throw new Error("حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً با پشتیبانی در تماس باشید.");
           }
         }
 
@@ -254,6 +265,12 @@ export const authOptions: NextAuthOptions = {
               });
             }
           } else {
+            if (dbUser.artistProfile?.isDeleted) {
+              return '/artist-panel/login?error=archived';
+            }
+            if (dbUser.artistProfile && !dbUser.artistProfile.isActive) {
+              return '/artist-panel/login?error=deactivated';
+            }
             if (!dbUser.artistProfile) {
               await prisma.artistProfile.create({
                 data: {

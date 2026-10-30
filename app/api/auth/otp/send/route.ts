@@ -35,9 +35,20 @@ export async function POST(req: Request) {
     if (type === 'REGISTER_OTP') {
       // 1. Check if user already exists
       const existingUser = await prisma.user.findFirst({
-        where: isEmail ? { email: normalizedTarget } : { phoneNumber: normalizedTarget }
+        where: isEmail ? { email: normalizedTarget } : { phoneNumber: normalizedTarget },
+        include: { artistProfile: true }
       });
       if (existingUser) {
+        if (existingUser.artistProfile?.isDeleted) {
+          return NextResponse.json({ 
+            error: 'حساب کاربری شما قبلاً بایگانی شده است. لطفاً جهت فعال‌سازی مجدد با پشتیبانی در تماس باشید.' 
+          }, { status: 400 });
+        }
+        if (existingUser.artistProfile && !existingUser.artistProfile.isActive) {
+          return NextResponse.json({ 
+            error: 'حساب کاربری شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در تماس باشید.' 
+          }, { status: 400 });
+        }
         return NextResponse.json({ 
           error: 'این حساب قبلاً ثبت‌نام شده است. لطفاً از بخش ورود اقدام نمایید.' 
         }, { status: 400 });
@@ -59,6 +70,26 @@ export async function POST(req: Request) {
 
       if (refRecord.isUsed) {
         return NextResponse.json({ error: 'این کد معرف قبلاً استفاده شده است و دیگر قابل استفاده نمی‌باشد.' }, { status: 400 });
+      }
+    }
+
+    // Special validation for login PHONE_OTP
+    if (targetType === 'PHONE_OTP') {
+      const existingUser = await prisma.user.findFirst({
+        where: { phoneNumber: normalizedTarget },
+        include: { artistProfile: true }
+      });
+      if (existingUser) {
+        if (existingUser.artistProfile?.isDeleted) {
+          return NextResponse.json({ 
+            error: 'حساب کاربری هنرمندی شما بایگانی شده است. لطفاً جهت پیگیری یا فعال‌سازی مجدد با پشتیبانی در تماس باشید.' 
+          }, { status: 400 });
+        }
+        if (existingUser.artistProfile && !existingUser.artistProfile.isActive) {
+          return NextResponse.json({ 
+            error: 'حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در تماس باشید.' 
+          }, { status: 400 });
+        }
       }
     }
 

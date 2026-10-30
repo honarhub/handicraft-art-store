@@ -48,8 +48,17 @@ export async function POST(req: Request) {
     if (user.artistProfile?.isDeleted) {
       return NextResponse.json({
         exists: false,
+        isArchived: true,
         isDeleted: true,
-        message: 'حساب کاربری هنرمندی شما غیرفعال یا حذف شده است. لطفاً با پشتیبانی در ارتباط باشید.'
+        message: 'حساب کاربری هنرمندی شما بایگانی شده است. لطفاً جهت پیگیری یا فعال‌سازی مجدد با پشتیبانی در ارتباط باشید.'
+      }, { status: 403 });
+    }
+
+    if (user.artistProfile && !user.artistProfile.isActive) {
+      return NextResponse.json({
+        exists: false,
+        isDeactivated: true,
+        message: 'حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در ارتباط باشید.'
       }, { status: 403 });
     }
 

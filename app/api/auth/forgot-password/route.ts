@@ -19,7 +19,8 @@ export async function POST(req: Request) {
 
       // Find user
       const user = await prisma.user.findFirst({
-        where: isMobile ? { phoneNumber: normalizedTarget } : { email: normalizedTarget }
+        where: isMobile ? { phoneNumber: normalizedTarget } : { email: normalizedTarget },
+        include: { artistProfile: true }
       });
 
       if (!user) {
@@ -28,6 +29,18 @@ export async function POST(req: Request) {
           success: true, 
           message: 'در صورت ثبت بودن حساب، کد بازیابی ارسال شد.' 
         });
+      }
+
+      if (user.artistProfile?.isDeleted) {
+        return NextResponse.json({ 
+          error: 'حساب کاربری شما بایگانی شده است. لطفاً جهت پیگیری یا فعال‌سازی مجدد با پشتیبانی در تماس باشید.' 
+        }, { status: 400 });
+      }
+
+      if (user.artistProfile && !user.artistProfile.isActive) {
+        return NextResponse.json({ 
+          error: 'حساب کاربری شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در تماس باشید.' 
+        }, { status: 400 });
       }
 
       // Generate 5-digit OTP
