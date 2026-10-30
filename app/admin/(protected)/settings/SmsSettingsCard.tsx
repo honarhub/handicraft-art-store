@@ -7,6 +7,7 @@ export interface SmsSettingsProps {
     isMobileOtpActive?: boolean;
     smsIsSandbox?: boolean;
     smsApiKey?: string | null;
+    smsSandboxApiKey?: string | null;
     smsTemplateId?: string | null;
     smsOtpParamName?: string;
     smsLineNumber?: string | null;
@@ -25,6 +26,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   const [smsIsSandbox, setSmsIsSandbox] = useState(initialSettings.smsIsSandbox ?? false);
   const [smsApiKey, setSmsApiKey] = useState(initialSettings.smsApiKey || '');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [smsSandboxApiKey, setSmsSandboxApiKey] = useState(initialSettings.smsSandboxApiKey || '');
+  const [showSandboxApiKey, setShowSandboxApiKey] = useState(false);
   const [smsTemplateId, setSmsTemplateId] = useState(initialSettings.smsTemplateId || '');
   const [smsOtpParamName, setSmsOtpParamName] = useState(initialSettings.smsOtpParamName || 'Code');
   const [smsLineNumber, setSmsLineNumber] = useState(initialSettings.smsLineNumber || '');
@@ -49,6 +52,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.isMobileOtpActive !== undefined) setIsMobileOtpActive(initialSettings.isMobileOtpActive);
       if (initialSettings.smsIsSandbox !== undefined) setSmsIsSandbox(Boolean(initialSettings.smsIsSandbox));
       if (initialSettings.smsApiKey !== undefined) setSmsApiKey(initialSettings.smsApiKey || '');
+      if (initialSettings.smsSandboxApiKey !== undefined) setSmsSandboxApiKey(initialSettings.smsSandboxApiKey || '');
       if (initialSettings.smsTemplateId !== undefined) setSmsTemplateId(initialSettings.smsTemplateId || '');
       if (initialSettings.smsOtpParamName !== undefined) setSmsOtpParamName(initialSettings.smsOtpParamName || 'Code');
       if (initialSettings.smsLineNumber !== undefined) setSmsLineNumber(initialSettings.smsLineNumber || '');
@@ -58,6 +62,26 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.otpLockoutMinutes !== undefined) setOtpLockoutMinutes(initialSettings.otpLockoutMinutes);
     }
   }, [initialSettings]);
+
+  // Standard eye toggle icon
+  const renderEyeIcon = (shown: boolean) => {
+    if (shown) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+          <line x1="2" y1="2" x2="22" y2="22" />
+        </svg>
+      );
+    }
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  };
 
   // Save handler
   const handleSaveSmsSettings = async (e: React.FormEvent) => {
@@ -70,6 +94,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         isMobileOtpActive,
         smsIsSandbox,
         smsApiKey,
+        smsSandboxApiKey,
         smsTemplateId,
         smsOtpParamName,
         smsLineNumber,
@@ -87,12 +112,19 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
     }
   };
 
-  // Live test SMS
+  // Live test SMS using the active key
   const handleRunTest = async () => {
     if (!testPhone.trim()) {
       alert('لطفاً شماره موبایل تستی را وارد کنید.');
       return;
     }
+
+    const activeKeyToTest = smsIsSandbox ? smsSandboxApiKey.trim() : smsApiKey.trim();
+    if (!activeKeyToTest) {
+      alert(`کلید اختصاصی مربوط به حالت ${smsIsSandbox ? 'سندباکس' : 'عملیاتی'} هنوز وارد نشده است.`);
+      return;
+    }
+
     setTestLoading(true);
     setTestResult(null);
 
@@ -102,7 +134,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: testPhone.trim(),
-          apiKey: smsApiKey.trim(),
+          apiKey: activeKeyToTest,
           templateId: smsTemplateId.trim(),
           paramName: smsOtpParamName.trim()
         })
@@ -248,30 +280,75 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* API Key */}
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              کلید اختصاصی API پنل sms.ir (<span className="font-mono text-emerald-700" dir="ltr">x-api-key</span>)
-            </label>
+          {/* Production API Key */}
+          <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                <span>🚀 کلید API عملیاتی (<span className="font-mono text-emerald-700" dir="ltr">x-api-key</span>)</span>
+                {!smsIsSandbox && (
+                  <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                    کلید فعال فعلی
+                  </span>
+                )}
+              </label>
+              <span className="text-[11px] text-slate-400 font-sans">مخصوص ارسال پیامک واقعی به کاربران</span>
+            </div>
             <div className="relative">
               <input
                 type={showApiKey ? 'text' : 'password'}
                 dir="ltr"
                 value={smsApiKey}
                 onChange={(e) => setSmsApiKey(e.target.value)}
-                placeholder="مثال: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-                className="w-full pl-12 pr-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
+                placeholder="کلید عملیاتی اصلی صادر شده از sms.ir..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
               />
               <button
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer text-xs font-bold"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                title={showApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
               >
-                {showApiKey ? 'مخفی‌سازی' : 'نمایش'}
+                {renderEyeIcon(showApiKey)}
               </button>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              کلید دسترسی را از بخش «تنظیمات برنامه‌نویسان / API Keys» در پنل کاربری سامانه sms.ir کپی و در این کادر قرار دهید.
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              این کلید در زمان انتخاب «محیط عملیاتی» به طور خودکار جهت ارسال پیامک واقعی استفاده می‌شود.
+            </p>
+          </div>
+
+          {/* Sandbox API Key */}
+          <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                <span>🧪 کلید API سندباکس تستی (<span className="font-mono text-amber-700" dir="ltr">x-api-key</span>)</span>
+                {smsIsSandbox && (
+                  <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                    کلید فعال فعلی
+                  </span>
+                )}
+              </label>
+              <span className="text-[11px] text-slate-400 font-sans">مخصوص تست اتصال بدون ارسال پیامک</span>
+            </div>
+            <div className="relative">
+              <input
+                type={showSandboxApiKey ? 'text' : 'password'}
+                dir="ltr"
+                value={smsSandboxApiKey}
+                onChange={(e) => setSmsSandboxApiKey(e.target.value)}
+                placeholder="کلید سندباکس (تستی) صادر شده از sms.ir..."
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
+              />
+              <button
+                type="button"
+                onClick={() => setShowSandboxApiKey(!showSandboxApiKey)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                title={showSandboxApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
+              >
+                {renderEyeIcon(showSandboxApiKey)}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              این کلید در زمان انتخاب «محیط سندباکس تستی» به طور خودکار جهت آزمایش اتصال وب‌سرویس استفاده می‌شود.
             </p>
           </div>
 
@@ -427,9 +504,16 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
 
       {/* Live Test Box */}
       <div className="mt-8 pt-6 border-t border-slate-200">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-base">🧪</span>
-          <h4 className="text-sm font-black text-slate-800">تست زنده اتصال و ارسال پیامک اعتبارسنجی</h4>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🧪</span>
+            <h4 className="text-sm font-black text-slate-800">تست زنده اتصال و ارسال پیامک اعتبارسنجی</h4>
+          </div>
+          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+            smsIsSandbox ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+          }`}>
+            کلید فعال برای تست: {smsIsSandbox ? '🟡 کلید سندباکس تستی' : '🟢 کلید عملیاتی اصلی'}
+          </span>
         </div>
         <p className="text-xs text-slate-500 mb-4 leading-relaxed">
           برای اطمینان از صحت کلید API و شناسه قالب، یک شماره موبایل وارد کنید تا یک کد تستی به‌صورت آنی ارسال و نتیجه اتصال آزمایش شود:
@@ -450,7 +534,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
             disabled={testLoading || !testPhone.trim()}
             className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
           >
-            {testLoading ? 'در حال تست و ارسال...' : 'ارسال پیامک تستی'}
+            {testLoading ? 'در حال تست و ارسال...' : smsIsSandbox ? 'ارسال تست با کلید سندباکس' : 'ارسال تست با کلید عملیاتی'}
           </button>
         </div>
 

@@ -41,6 +41,7 @@ export async function PATCH(request: Request) {
       smsProvider,
       smsIsSandbox,
       smsApiKey,
+      smsSandboxApiKey,
       smsTemplateId,
       smsOtpParamName,
       smsLineNumber,
@@ -58,6 +59,7 @@ export async function PATCH(request: Request) {
     if (smsProvider !== undefined) updateData.smsProvider = smsProvider;
     if (smsIsSandbox !== undefined) updateData.smsIsSandbox = Boolean(smsIsSandbox);
     if (smsApiKey !== undefined) updateData.smsApiKey = smsApiKey ? smsApiKey.trim() : null;
+    if (smsSandboxApiKey !== undefined) updateData.smsSandboxApiKey = smsSandboxApiKey ? smsSandboxApiKey.trim() : null;
     if (smsTemplateId !== undefined) updateData.smsTemplateId = smsTemplateId ? smsTemplateId.toString().trim() : null;
     if (smsOtpParamName !== undefined) updateData.smsOtpParamName = (smsOtpParamName || 'Code').trim();
     if (smsLineNumber !== undefined) updateData.smsLineNumber = smsLineNumber ? smsLineNumber.trim() : null;

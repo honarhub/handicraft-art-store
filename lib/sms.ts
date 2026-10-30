@@ -155,7 +155,14 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
     if (settings) {
       isMobileOtpActive = settings.isMobileOtpActive;
       smsIsSandbox = Boolean(settings.smsIsSandbox);
-      apiKey = settings.smsApiKey || process.env.SMSIR_API_KEY || null;
+      
+      // Auto-select key based on mode:
+      if (smsIsSandbox) {
+        apiKey = settings.smsSandboxApiKey || settings.smsApiKey || process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null;
+      } else {
+        apiKey = settings.smsApiKey || process.env.SMSIR_API_KEY || null;
+      }
+
       templateId = settings.smsTemplateId || process.env.SMSIR_TEMPLATE_ID || null;
       paramName = settings.smsOtpParamName || 'Code';
     }
@@ -163,7 +170,11 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
     console.warn('[SMS] Could not load SiteSettings for SMS config, checking env...', err);
   }
 
-  if (!apiKey) apiKey = process.env.SMSIR_API_KEY || null;
+  if (!apiKey) {
+    apiKey = smsIsSandbox 
+      ? (process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null)
+      : (process.env.SMSIR_API_KEY || null);
+  }
   if (!templateId) templateId = process.env.SMSIR_TEMPLATE_ID || null;
 
   if (!isMobileOtpActive) {

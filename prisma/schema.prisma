@@ -338,6 +338,7 @@ model SiteSettings {
   smsProvider              String     @default("sms.ir")
   smsIsSandbox             Boolean    @default(false)
   smsApiKey                String?
+  smsSandboxApiKey         String?
   smsTemplateId            String?
   smsOtpParamName          String     @default("Code")
   smsLineNumber            String?
