@@ -136,6 +136,8 @@ export default function ArtistProfilePage() {
               setFieldErrors(errs);
             }
           } catch {}
+        } else {
+          setFieldErrors({});
         }
       }
     } catch (err: any) {
@@ -156,18 +158,57 @@ export default function ArtistProfilePage() {
     // Initial fetch once on page mount
     fetchProfile(false);
 
-    // Auto-update ONLY if the profile was previously locked/pending and admin has now completed the review.
-    // When the artist is actively editing the form (pendingMode === false), never overwrite their inputs!
+    // Auto-update admin feedback & locked state seamlessly without needing tab switching
     const handleStatusUpdate = (e: any) => {
-      if (pendingModeRef.current && e?.detail && e.detail.hasPendingEdits === false) {
+      if (!e?.detail) return;
+      const detail = e.detail;
+
+      // Sync admin feedback & field errors immediately from event payload
+      if (detail.adminFeedback !== undefined) {
+        setArtist((prev: any) => ({
+          ...(prev || {}),
+          adminFeedback: detail.adminFeedback,
+          pendingEdits: detail.hasPendingEdits ? prev?.pendingEdits : null
+        }));
+
+        if (detail.adminFeedback) {
+          try {
+            const parsed = typeof detail.adminFeedback === 'string' ? JSON.parse(detail.adminFeedback) : detail.adminFeedback;
+            if (typeof parsed === 'object' && parsed !== null) {
+              const errs: Record<string, string> = {};
+              Object.entries(parsed).forEach(([k, v]) => {
+                if (k !== '_generalMessage' && typeof v === 'string') {
+                  errs[k] = v;
+                }
+              });
+              setFieldErrors(errs);
+            }
+          } catch {}
+        } else {
+          setFieldErrors({});
+        }
+      }
+
+      // If review completed (hasPendingEdits is false), exit pendingMode and refresh profile data
+      if (detail.hasPendingEdits === false) {
+        setPendingMode(false);
+        fetchProfile(true);
+      }
+    };
+
+    const handleFocus = () => {
+      // If artist was waiting for admin review, check and refresh live profile upon returning to tab
+      if (pendingModeRef.current) {
         fetchProfile(true);
       }
     };
 
     window.addEventListener('artist-status-updated', handleStatusUpdate);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('artist-status-updated', handleStatusUpdate);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
@@ -532,10 +573,11 @@ export default function ArtistProfilePage() {
         city,
         adminFeedback: null 
       });
+      setFieldErrors({});
 
       // Notify banner & layout immediately without needing full page refresh
       window.dispatchEvent(new CustomEvent('artist-status-updated', {
-        detail: { hasPendingEdits: true, verificationLevel: 1 }
+        detail: { hasPendingEdits: true, verificationLevel: 1, adminFeedback: null }
       }));
 
       router.refresh();

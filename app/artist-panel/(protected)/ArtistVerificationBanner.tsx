@@ -30,6 +30,7 @@ export default function ArtistVerificationBanner({
 
   const prevPendingRef = React.useRef(hasPendingEdits);
   const prevLevelRef = React.useRef(verificationLevel);
+  const prevFeedbackRef = React.useRef(adminFeedback);
 
   const extractGeneralMsg = (feedback: any) => {
     if (!feedback) return null;
@@ -113,8 +114,9 @@ export default function ArtistVerificationBanner({
     setPending(hasPendingEdits);
     prevPendingRef.current = hasPendingEdits;
     prevLevelRef.current = verificationLevel;
+    prevFeedbackRef.current = adminFeedback;
     if (brandName) setCurrentBrandName(brandName);
-  }, [verificationLevel, isApproved, hasPendingEdits, brandName]);
+  }, [verificationLevel, isApproved, hasPendingEdits, brandName, adminFeedback]);
 
   // Event & Focus-based syncing (Zero background periodic polling)
   useEffect(() => {
@@ -135,6 +137,7 @@ export default function ArtistVerificationBanner({
           setCurrentBrandName(e.detail.brandName);
         }
         if (e.detail.adminFeedback !== undefined) {
+          prevFeedbackRef.current = e.detail.adminFeedback;
           const msg = extractGeneralMsg(e.detail.adminFeedback);
           setGeneralAlertMsg(msg);
         }
@@ -151,6 +154,7 @@ export default function ArtistVerificationBanner({
           const data = await res.json();
           const hasEditsChanged = typeof data.hasPendingEdits === 'boolean' && data.hasPendingEdits !== prevPendingRef.current;
           const hasLevelChanged = typeof data.verificationLevel === 'number' && data.verificationLevel !== prevLevelRef.current;
+          const hasFeedbackChanged = data.adminFeedback !== undefined && data.adminFeedback !== prevFeedbackRef.current;
 
           if (typeof data.hasPendingEdits === 'boolean') {
             setPending(data.hasPendingEdits);
@@ -159,6 +163,9 @@ export default function ArtistVerificationBanner({
           if (typeof data.verificationLevel === 'number') {
             setLevel(data.verificationLevel);
             prevLevelRef.current = data.verificationLevel;
+          }
+          if (data.adminFeedback !== undefined) {
+            prevFeedbackRef.current = data.adminFeedback;
           }
           if (typeof data.isApproved === 'boolean') {
             setApproved(data.isApproved);
@@ -172,7 +179,7 @@ export default function ArtistVerificationBanner({
           }
 
           // Broadcast only if status actually changed on server
-          if (hasEditsChanged || hasLevelChanged) {
+          if (hasEditsChanged || hasLevelChanged || hasFeedbackChanged) {
             window.dispatchEvent(new CustomEvent('artist-status-updated', { detail: data }));
           }
         }
