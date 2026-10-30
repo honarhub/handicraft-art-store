@@ -46,10 +46,12 @@ function ArtistLoginContent() {
   const [forgotTarget, setForgotTarget] = useState('');
   const [forgotCode, setForgotCode] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [forgotStep, setForgotStep] = useState<'request' | 'reset'>('request');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMsg, setForgotMsg] = useState('');
   const [forgotError, setForgotError] = useState('');
+  const forgotPasswordInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Alerts
   const [errorMsg, setErrorMsg] = useState('');
@@ -457,11 +459,72 @@ function ArtistLoginContent() {
     }
   };
 
+  // Close forgot modal on Escape
+  useEffect(() => {
+    if (!showForgotModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseForgotModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showForgotModal]);
+
   // ==========================================
   // 3. FORGOT PASSWORD FLOW
   // ==========================================
-  const handleForgotRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOpenForgotModal = () => {
+    // Automatically clear any previous login error or warning
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsUnregisteredError(false);
+    setUnregisteredEmail(null);
+    if (searchParams.get('error')) {
+      router.replace('/artist-panel/login', { scroll: false });
+    }
+
+    if (forgotPasswordInputRef.current) {
+      forgotPasswordInputRef.current.value = '';
+    }
+    setForgotTarget(loginIdentifier);
+    setForgotStep('request');
+    setForgotCode('');
+    setForgotNewPassword('');
+    setShowForgotNewPassword(false);
+    setForgotError('');
+    setForgotMsg('');
+    setShowForgotModal(true);
+  };
+
+  const handleCloseForgotModal = () => {
+    // Clear DOM input value directly so browsers do not detect dirty credentials on unmount
+    if (forgotPasswordInputRef.current) {
+      forgotPasswordInputRef.current.value = '';
+    }
+    setForgotNewPassword('');
+    setShowForgotNewPassword(false);
+    setForgotCode('');
+    setForgotError('');
+    setForgotMsg('');
+    setForgotStep('request');
+    setShowForgotModal(false);
+  };
+
+  const handleForgotBackToRequest = () => {
+    if (forgotPasswordInputRef.current) {
+      forgotPasswordInputRef.current.value = '';
+    }
+    setForgotNewPassword('');
+    setShowForgotNewPassword(false);
+    setForgotCode('');
+    setForgotError('');
+    setForgotMsg('');
+    setForgotStep('request');
+  };
+
+  const handleForgotRequest = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
     if (!forgotTarget.trim()) {
       setForgotError('شماره موبایل یا ایمیل را وارد کنید.');
       return;
@@ -493,10 +556,14 @@ function ArtistLoginContent() {
     }
   };
 
-  const handleForgotReset = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleForgotReset = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
     if (!forgotCode || !forgotNewPassword) {
       setForgotError('کد بازیابی و رمز جدید الزامی هستند.');
+      return;
+    }
+    if (forgotNewPassword.length < 6) {
+      setForgotError('رمز عبور باید حداقل ۶ کاراکتر باشد.');
       return;
     }
     setForgotLoading(true);
@@ -517,12 +584,49 @@ function ArtistLoginContent() {
       if (!res.ok) {
         setForgotError(data.error || 'خطا در تغییر رمز عبور.');
       } else {
+        const savedTarget = forgotTarget.trim();
+        const savedNewPassword = forgotNewPassword;
+
+        // Prompt browser to store/update credentials natively via PasswordCredential API
+        if (typeof window !== 'undefined' && 'PasswordCredential' in window && (navigator as any).credentials?.store) {
+          try {
+            const cred = new (window as any).PasswordCredential({
+              id: savedTarget,
+              password: savedNewPassword,
+              name: savedTarget
+            });
+            await (navigator as any).credentials.store(cred);
+          } catch {
+            // Ignore if browser unsupported or rejected
+          }
+        }
+
+        // Clean up DOM input value safely before closing
+        if (forgotPasswordInputRef.current) {
+          forgotPasswordInputRef.current.value = '';
+        }
         setShowForgotModal(false);
         setForgotStep('request');
+        setForgotCode('');
+        setForgotNewPassword('');
+        setShowForgotNewPassword(false);
+        setForgotError('');
+        setForgotMsg('');
+
+        // Completely clear ANY previous login errors
+        setErrorMsg('');
+        setIsUnregisteredError(false);
+        setUnregisteredEmail(null);
+        if (searchParams.get('error')) {
+          router.replace('/artist-panel/login', { scroll: false });
+        }
+
+        // Display success message and prefill login credentials
         setSuccessMsg('رمز عبور شما با موفقیت تغییر کرد! اکنون با رمز جدید وارد شوید.');
         setMainMode('login');
         setLoginStep('password');
-        setLoginIdentifier(forgotTarget.trim());
+        setLoginIdentifier(savedTarget);
+        setLoginPassword(savedNewPassword);
       }
     } catch {
       setForgotError('خطا در اتصال به سرور.');
@@ -746,7 +850,7 @@ function ArtistLoginContent() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setLoginStep('identifier'); setLoginPassword(''); }}
+                    onClick={() => { setLoginStep('identifier'); setLoginPassword(''); setErrorMsg(''); setSuccessMsg(''); }}
                     className="text-teal-700 hover:text-teal-900 font-bold underline text-[11px]"
                   >
                     تغییر
@@ -758,11 +862,8 @@ function ArtistLoginContent() {
                     <label className="block text-xs font-bold text-slate-700">رمز عبور</label>
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowForgotModal(true);
-                        setForgotTarget(loginIdentifier);
-                      }}
-                      className="text-xs text-teal-600 hover:text-teal-800 font-bold"
+                      onClick={handleOpenForgotModal}
+                      className="text-xs text-teal-600 hover:text-teal-800 font-bold cursor-pointer"
                     >
                       فراموشی رمز عبور؟
                     </button>
@@ -1263,14 +1364,21 @@ function ArtistLoginContent() {
       {/* FORGOT PASSWORD MODAL                                     */}
       {/* ======================================================== */}
       {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-5">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in"
+          onClick={handleCloseForgotModal}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-black text-slate-800">بازیابی رمز عبور</h3>
               <button
                 type="button"
-                onClick={() => setShowForgotModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                onClick={handleCloseForgotModal}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+                title="بستن"
               >
                 ✕
               </button>
@@ -1289,7 +1397,7 @@ function ArtistLoginContent() {
             )}
 
             {forgotStep === 'request' ? (
-              <form onSubmit={handleForgotRequest} className="space-y-4">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     شماره موبایل یا ایمیل حساب کاربری
@@ -1303,7 +1411,14 @@ function ArtistLoginContent() {
                     placeholder="09123456789 یا email@example.com"
                     value={forgotTarget}
                     onChange={(e) => setForgotTarget(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleForgotRequest();
+                      }
+                    }}
                     required
+                    autoFocus
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-center font-mono text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
@@ -1313,33 +1428,24 @@ function ArtistLoginContent() {
 
                 <div className="flex gap-2 pt-2">
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={() => handleForgotRequest()}
                     disabled={forgotLoading}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
                   >
                     {forgotLoading ? 'در حال ارسال...' : 'ارسال کد بازیابی'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowForgotModal(false)}
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
+                    onClick={handleCloseForgotModal}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                   >
                     انصراف
                   </button>
                 </div>
-              </form>
+              </div>
             ) : (
-              <form onSubmit={handleForgotReset} className="space-y-4">
-                <input
-                  type="text"
-                  name="username"
-                  autoComplete="username"
-                  value={forgotTarget}
-                  readOnly
-                  tabIndex={-1}
-                  aria-hidden="true"
-                  className="sr-only pointer-events-none opacity-0 absolute -z-10"
-                />
+              <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     کد ۵ رقمی ارسال‌شده
@@ -1354,7 +1460,14 @@ function ArtistLoginContent() {
                     placeholder="• • • • •"
                     value={forgotCode}
                     onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleForgotReset();
+                      }
+                    }}
                     required
+                    autoFocus
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-center font-mono text-lg tracking-widest text-slate-900 focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
@@ -1363,37 +1476,68 @@ function ArtistLoginContent() {
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     رمز عبور جدید (حداقل ۶ کاراکتر)
                   </label>
-                  <input
-                    type="password"
-                    id="forgot-new-password"
-                    name="password"
-                    autoComplete="new-password"
-                    dir="ltr"
-                    placeholder="••••••••"
-                    value={forgotNewPassword}
-                    onChange={(e) => setForgotNewPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-center font-mono text-sm tracking-widest text-slate-900 focus:ring-2 focus:ring-emerald-500"
-                  />
+                  <div className="relative">
+                    <input
+                      ref={forgotPasswordInputRef}
+                      type={showForgotNewPassword ? 'text' : 'password'}
+                      id="forgot-new-password"
+                      name="new-password"
+                      autoComplete="new-password"
+                      dir="ltr"
+                      placeholder="••••••••"
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleForgotReset();
+                        }
+                      }}
+                      required
+                      className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-center font-mono text-sm tracking-widest text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                      title={showForgotNewPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                      aria-label={showForgotNewPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                    >
+                      {showForgotNewPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-2">
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={() => handleForgotReset()}
                     disabled={forgotLoading || forgotCode.length !== 5}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
                   >
                     {forgotLoading ? 'در حال ذخیره...' : 'تنظیم رمز جدید و ورود'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setForgotStep('request')}
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
+                    onClick={handleForgotBackToRequest}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                   >
                     بازگشت
                   </button>
                 </div>
-              </form>
+              </div>
             )}
           </div>
         </div>
