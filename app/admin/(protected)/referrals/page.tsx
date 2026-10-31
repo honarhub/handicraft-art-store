@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 interface ReferralAdminItem {
@@ -41,23 +41,43 @@ interface ArtistOption {
   };
 }
 
+const toPersianDigits = (num: number | string) =>
+  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+
 export default function AdminReferralsPage() {
   const [codes, setCodes] = useState<ReferralAdminItem[]>([]);
-  const [artists, setArtists] = useState<ArtistOption[]>([]);
   const [stats, setStats] = useState({ totalCodes: 0, activeCodes: 0, usedCodes: 0 });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'used'>('all');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Filters & Pagination State
+  const [search, setSearch] = useState('');
+  const [creatorSearch, setCreatorSearch] = useState('');
+  const [usedBySearch, setUsedBySearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'used'>('all');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pagination, setPagination] = useState({
+    totalItems: 0,
+    totalPages: 1,
+    currentPage: 1,
+    pageSize: 10
+  });
 
   // Modal / Form state for generating codes
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [targetArtistUserId, setTargetArtistUserId] = useState<string>('');
   const [genMode, setGenMode] = useState<'batch' | 'custom'>('batch');
   const [batchCount, setBatchCount] = useState<number>(5);
   const [customCode, setCustomCode] = useState<string>('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+
+  // Live Artist Search inside Modal
+  const [artistSearchInput, setArtistSearchInput] = useState('');
+  const [artistSearchResults, setArtistSearchResults] = useState<ArtistOption[]>([]);
+  const [artistSearchLoading, setArtistSearchLoading] = useState(false);
+  const [selectedArtist, setSelectedArtist] = useState<ArtistOption | null>(null);
+  const [targetArtistUserId, setTargetArtistUserId] = useState<string>('');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Send Invite Modal state
   const [sendModalCode, setSendModalCode] = useState<string | null>(null);
@@ -65,19 +85,23 @@ export default function AdminReferralsPage() {
   const [sendLoading, setSendLoading] = useState(false);
   const [sendError, setSendError] = useState('');
 
-  const fetchCodes = async () => {
+  const fetchCodes = async (page = currentPage) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (search) params.set('q', search);
+      if (search.trim()) params.set('q', search.trim());
+      if (creatorSearch.trim()) params.set('creator', creatorSearch.trim());
+      if (usedBySearch.trim()) params.set('usedBy', usedBySearch.trim());
       if (statusFilter !== 'all') params.set('status', statusFilter);
+      params.set('page', page.toString());
+      params.set('limit', '10');
 
       const res = await fetch(`/api/admin/referrals?${params.toString()}`, { cache: 'no-store' });
       const data = await res.json();
       if (res.ok) {
         setCodes(data.codes || []);
         if (data.stats) setStats(data.stats);
-        if (data.artists) setArtists(data.artists);
+        if (data.pagination) setPagination(data.pagination);
       }
     } catch {
       // ignore
@@ -87,19 +111,86 @@ export default function AdminReferralsPage() {
   };
 
   useEffect(() => {
-    fetchCodes();
+    fetchCodes(1);
+    setCurrentPage(1);
   }, [statusFilter]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchCodes();
+    setCurrentPage(1);
+    fetchCodes(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setCreatorSearch('');
+    setUsedBySearch('');
+    setStatusFilter('all');
+    setCurrentPage(1);
+    // fetch with clean params
+    setTimeout(() => {
+      fetch(`/api/admin/referrals?page=1&limit=10`, { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.codes) setCodes(data.codes);
+          if (data.stats) setStats(data.stats);
+          if (data.pagination) setPagination(data.pagination);
+        });
+    }, 0);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > pagination.totalPages || newPage === currentPage) return;
+    setCurrentPage(newPage);
+    fetchCodes(newPage);
+  };
+
+  // Live debounce search for artist in modal
+  const handleArtistSearchChange = (val: string) => {
+    setArtistSearchInput(val);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    if (!val.trim()) {
+      setArtistSearchResults([]);
+      setArtistSearchLoading(false);
+      return;
+    }
+
+    setArtistSearchLoading(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/referrals?artistSearch=${encodeURIComponent(val.trim())}`);
+        const data = await res.json();
+        if (res.ok && data.artists) {
+          setArtistSearchResults(data.artists);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setArtistSearchLoading(false);
+      }
+    }, 280);
+  };
+
+  const handleSelectArtist = (artist: ArtistOption) => {
+    setSelectedArtist(artist);
+    setTargetArtistUserId(artist.id);
+    setArtistSearchInput('');
+    setArtistSearchResults([]);
+  };
+
+  const handleClearSelectedArtist = () => {
+    setSelectedArtist(null);
+    setTargetArtistUserId('');
+    setArtistSearchInput('');
+    setArtistSearchResults([]);
   };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => {
       setToastMsg((current) => (current === msg ? null : current));
-    }, 2000);
+    }, 2500);
   };
 
   const handleCopyCode = async (code: string) => {
@@ -192,19 +283,20 @@ export default function AdminReferralsPage() {
 
       setShowCreateModal(false);
       setCustomCode('');
-      setTargetArtistUserId('');
+      handleClearSelectedArtist();
       showToast(data.message || 'کدهای جدید با موفقیت ایجاد شدند.');
-      fetchCodes();
+      fetchCodes(1);
+      setCurrentPage(1);
     } catch {
-      setCreateError('خطای سرور');
+      setCreateError('خطای سرور در ایجاد کدهای معرف');
     } finally {
       setCreateLoading(false);
     }
   };
 
   return (
-    <div className="space-y-8 font-sans pb-16" dir="rtl">
-      {/* 2s Toast */}
+    <div className="space-y-7 font-sans pb-16" dir="rtl">
+      {/* 2.5s Toast */}
       {toastMsg && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl border border-slate-700 text-sm font-bold flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <span className="text-emerald-400 text-lg">✓</span>
@@ -217,13 +309,17 @@ export default function AdminReferralsPage() {
         <div>
           <h1 className="text-2xl font-black text-slate-900">مدیریت کدهای معرف هنرمندان</h1>
           <p className="text-sm text-slate-500 mt-1">
-            مشاهده، صدور و رهگیری کدهای دعوت اختصاصی پلتفرم و اتصالات هنرمندان
+            مشاهده، صدور، تخصیص به هنرمندان و ارسال دعوت‌نامه از طریق پیامک یا ایمیل
           </p>
         </div>
 
         <button
-          onClick={() => { setShowCreateModal(true); setCreateError(''); }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all self-start sm:self-auto"
+          onClick={() => {
+            setShowCreateModal(true);
+            setCreateError('');
+            handleClearSelectedArtist();
+          }}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all self-start sm:self-auto cursor-pointer"
         >
           <span className="text-lg">➕</span>
           <span>صدور کدهای معرف جدید</span>
@@ -234,119 +330,128 @@ export default function AdminReferralsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <span className="text-xs font-bold text-slate-500 block mb-1">مجموع کل کدهای صادر شده</span>
-          <span className="text-3xl font-black text-slate-900">{stats.totalCodes}</span>
+          <span className="text-3xl font-black text-slate-900">{toPersianDigits(stats.totalCodes)}</span>
         </div>
         <div className="bg-emerald-50 border-2 border-emerald-300 p-5 rounded-2xl shadow-sm">
           <span className="text-xs font-bold text-emerald-800 block mb-1">کدهای فعال و آماده استفاده</span>
-          <span className="text-3xl font-black text-emerald-800">{stats.activeCodes}</span>
+          <span className="text-3xl font-black text-emerald-800">{toPersianDigits(stats.activeCodes)}</span>
         </div>
         <div className="bg-slate-100 p-5 rounded-2xl border border-slate-300 shadow-sm">
           <span className="text-xs font-bold text-slate-600 block mb-1">کدهای استفاده شده (سوخته)</span>
-          <span className="text-3xl font-black text-slate-700">{stats.usedCodes}</span>
+          <span className="text-3xl font-black text-slate-700">{toPersianDigits(stats.usedCodes)}</span>
         </div>
       </div>
 
-      {/* Quick Artist Quota Grant Card */}
-      {artists.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-base">👥</span>
-              <h3 className="text-sm font-black text-slate-800">تخصیص سهمیه و صدور کد به تفکیک هنرمند</h3>
-            </div>
-            <span className="text-xs text-slate-500 font-medium">مجموعاً {artists.length} هنرمند در سیستم</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {artists.map((art) => (
-              <div 
-                key={art.id} 
-                className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between hover:bg-slate-100 transition-colors"
-              >
-                <div>
-                  <p className="text-xs font-bold text-slate-800 truncate max-w-[180px]">
-                    {art.name || art.artistProfile?.brandName || 'هنرمند بدون نام'}
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    {art._count?.createdReferrals || 0} کد صادر شده
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTargetArtistUserId(art.id);
-                    setShowCreateModal(true);
-                    setCreateError('');
-                  }}
-                  className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-xs cursor-pointer"
-                >
-                  ➕ صدور کد
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Advanced Filter and Search Bar */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         {/* Status Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              statusFilter === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            همه ({stats.totalCodes})
-          </button>
-          <button
-            onClick={() => setStatusFilter('active')}
-            className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              statusFilter === 'active' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            فعال ({stats.activeCodes})
-          </button>
-          <button
-            onClick={() => setStatusFilter('used')}
-            className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              statusFilter === 'used' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            استفاده شده ({stats.usedCodes})
-          </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              همه ({toPersianDigits(stats.totalCodes)})
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === 'active' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              فعال ({toPersianDigits(stats.activeCodes)})
+            </button>
+            <button
+              onClick={() => setStatusFilter('used')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                statusFilter === 'used' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              استفاده شده ({toPersianDigits(stats.usedCodes)})
+            </button>
+          </div>
+
+          {(search || creatorSearch || usedBySearch || statusFilter !== 'all') && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="text-xs text-red-600 hover:text-red-700 font-bold self-start sm:self-auto flex items-center gap-1 cursor-pointer"
+            >
+              <span>✕</span>
+              <span>پاک کردن فیلترها</span>
+            </button>
+          )}
         </div>
 
-        {/* Search */}
-        <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full md:w-80">
-          <input
-            type="text"
-            placeholder="جستجوی کد، هنرمند یا شماره..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 px-3.5 py-2 border border-slate-200 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors"
-          >
-            جستجو
-          </button>
+        {/* 3 Search Inputs: Code / Creator / UsedBy */}
+        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* General / Code */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              جستجو بر اساس کد معرف:
+            </label>
+            <input
+              type="text"
+              dir="ltr"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="مثال: HNR- یا نام کلی..."
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-800"
+            />
+          </div>
+
+          {/* Creator Artist Search */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              جستجو در ستون هنرمند معرّف (صاحب کد):
+            </label>
+            <input
+              type="text"
+              value={creatorSearch}
+              onChange={(e) => setCreatorSearch(e.target.value)}
+              placeholder="نام هنرمند معرف، برند، شماره یا ایمیل..."
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-800"
+            />
+          </div>
+
+          {/* UsedBy Artist Search */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              جستجو در ستون هنرمند استفاده‌کننده:
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={usedBySearch}
+                onChange={(e) => setUsedBySearch(e.target.value)}
+                placeholder="نام عضو جدید، برند، شماره یا ایمیل..."
+                className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-800"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+              >
+                اعمال فیلتر
+              </button>
+            </div>
+          </div>
         </form>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Referral Codes Table (10 per page) */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
           <div className="text-center py-16">
-            <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-xs font-bold text-slate-500">در حال بارگذاری کدهای معرف...</p>
           </div>
         ) : codes.length === 0 ? (
-          <div className="text-center py-16 text-slate-500">
-            <span className="text-4xl block mb-2">🔍</span>
-            <p className="font-bold text-sm">هیچ کد معِرفی یافت نشد.</p>
+          <div className="text-center py-16 text-slate-500 space-y-2">
+            <span className="text-4xl block">🔍</span>
+            <p className="font-bold text-sm text-slate-700">هیچ کد معِرفی با مشخصات جستجو شده یافت نشد.</p>
+            <p className="text-xs text-slate-400">فیلترهای جستجو را پاک کنید یا کد جدید صادر فرمایید.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -355,8 +460,8 @@ export default function AdminReferralsPage() {
                 <tr>
                   <th className="py-4 px-4">کد معرف</th>
                   <th className="py-4 px-4">وضعیت</th>
-                  <th className="py-4 px-4">مالک / معرف</th>
-                  <th className="py-4 px-4">استفاده‌کننده</th>
+                  <th className="py-4 px-4">هنرمند معرّف (صاحب کد)</th>
+                  <th className="py-4 px-4">هنرمند استفاده‌کننده (عضو جدید)</th>
                   <th className="py-4 px-4">تاریخ صدور</th>
                   <th className="py-4 px-4">تاریخ استفاده</th>
                   <th className="py-4 px-4 text-center">عملیات</th>
@@ -389,14 +494,19 @@ export default function AdminReferralsPage() {
                       )}
                     </td>
 
-                    {/* Creator */}
+                    {/* Creator Artist */}
                     <td className="py-4 px-4">
                       {item.creator ? (
                         <div>
                           <p className="font-bold text-slate-900">
                             {item.creator.name || item.creator.artistProfile?.brandName || (item.creator.role === 'ADMIN' ? 'مدیر کل (سیستم)' : 'هنرمند')}
                           </p>
-                          <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          {item.creator.artistProfile?.brandName && (
+                            <span className="text-[11px] text-emerald-700 font-medium block">
+                              برند: {item.creator.artistProfile.brandName}
+                            </span>
+                          )}
+                          <p className="text-[11px] text-slate-400 font-mono mt-0.5" dir="ltr">
                             {item.creator.phoneNumber || item.creator.email || '-'}
                           </p>
                         </div>
@@ -405,14 +515,19 @@ export default function AdminReferralsPage() {
                       )}
                     </td>
 
-                    {/* Used By */}
+                    {/* UsedBy Artist */}
                     <td className="py-4 px-4">
                       {item.usedBy ? (
                         <div>
                           <p className="font-bold text-slate-900">
                             {item.usedBy.name || item.usedBy.artistProfile?.brandName || 'هنرمند عضو شده'}
                           </p>
-                          <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          {item.usedBy.artistProfile?.brandName && (
+                            <span className="text-[11px] text-emerald-700 font-medium block">
+                              برند: {item.usedBy.artistProfile.brandName}
+                            </span>
+                          )}
+                          <p className="text-[11px] text-slate-400 font-mono mt-0.5" dir="ltr">
                             {item.usedBy.phoneNumber || item.usedBy.email || '-'}
                           </p>
                         </div>
@@ -436,7 +551,7 @@ export default function AdminReferralsPage() {
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => handleCopyCode(item.code)}
-                          className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                          className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                           title="کپی کردن فقط کد"
                         >
                           📋
@@ -445,7 +560,7 @@ export default function AdminReferralsPage() {
                           <>
                             <button
                               onClick={() => handleCopyLink(item.code)}
-                              className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                              className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                               title="کپی لینک مستقیم ثبت‌نام با این کد"
                             >
                               🔗
@@ -468,17 +583,83 @@ export default function AdminReferralsPage() {
             </table>
           </div>
         )}
+
+        {/* Pagination Bar (10 per page) */}
+        {!loading && codes.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-600">
+            <div>
+              <span>نمایش ۱۰ مورد در هر صفحه — مجموعاً </span>
+              <strong className="text-slate-900 font-bold">{toPersianDigits(pagination.totalItems)}</strong>
+              <span> کد معرف یافت شده</span>
+            </div>
+
+            <div className="flex items-center gap-1 self-center sm:self-auto">
+              {/* Prev Button */}
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                قبلی
+              </button>
+
+              {/* Page Numbers */}
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === pagination.totalPages || Math.abs(p - currentPage) <= 2)
+                .map((pageNum, idx, arr) => {
+                  const showEllipsis = idx > 0 && pageNum - arr[idx - 1] > 1;
+                  return (
+                    <React.Fragment key={pageNum}>
+                      {showEllipsis && <span className="px-1 text-slate-400">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          currentPage === pageNum
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {toPersianDigits(pageNum)}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+
+              {/* Next Button */}
+              <button
+                type="button"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= pagination.totalPages}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                بعدی
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Modal: Generate Referral Codes */}
+      {/* Modal: Generate Referral Codes with Dynamic Artist Live Search */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-6">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setShowCreateModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-slate-100 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-800">صدور کدهای معرف جدید</h3>
+              <div>
+                <h3 className="text-lg font-black text-slate-800">صدور و تخصیص کدهای معرف جدید</h3>
+                <p className="text-xs text-slate-500 mt-0.5">امکان صدور کدهای عمومی یا افزایش سهمیه یک هنرمند خاص</p>
+              </div>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
               >
                 ✕
               </button>
@@ -490,7 +671,7 @@ export default function AdminReferralsPage() {
               </div>
             )}
 
-            {/* Mode selector */}
+            {/* Mode selector (Batch vs Custom) */}
             <div className="flex bg-slate-100 p-1 rounded-xl">
               <button
                 type="button"
@@ -513,37 +694,95 @@ export default function AdminReferralsPage() {
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
-              {/* Target Artist Selector */}
-              <div>
+              {/* Dynamic Live Artist Search Section */}
+              <div className="relative">
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  تخصیص کد به هنرمند (افزایش سهمیه هنرمند):
+                  تخصیص به هنرمند خاص (جستجو و انتخاب هنرمند):
                 </label>
-                <select
-                  value={targetArtistUserId}
-                  onChange={(e) => setTargetArtistUserId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                >
-                  <option value="">کدهای عمومی سیستم (مدیر کل / بدون تخصیص به هنرمند خاص)</option>
-                  {artists.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name || a.artistProfile?.brandName || 'هنرمند بدون نام'} {a.artistProfile?.brandName ? `(استودیو ${a.artistProfile.brandName})` : ''} — {a.phoneNumber || a.email || ''} ({a._count?.createdReferrals || 0} کد فعلی)
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  در صورت انتخاب هنرمند، این کدهای جدید به عنوان سهمیه در پنل معرف آن هنرمند قرار خواهد گرفت.
-                </p>
+
+                {selectedArtist ? (
+                  /* Selected Artist Pill/Card */
+                  <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-black text-emerald-900">
+                        {selectedArtist.name || selectedArtist.artistProfile?.brandName || 'هنرمند انتخابی'}
+                        {selectedArtist.artistProfile?.brandName ? ` (${selectedArtist.artistProfile.brandName})` : ''}
+                      </p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">
+                        شماره/ایمیل: {selectedArtist.phoneNumber || selectedArtist.email || '-'} — دارای {toPersianDigits(selectedArtist._count?.createdReferrals || 0)} کد قبلی
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearSelectedArtist}
+                      className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-400 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                      title="لغو انتخاب و صدور برای مدیر کل (عمومی)"
+                    >
+                      ✕ لغو انتخاب
+                    </button>
+                  </div>
+                ) : (
+                  /* Artist Live Search Input */
+                  <div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={artistSearchInput}
+                        onChange={(e) => handleArtistSearchChange(e.target.value)}
+                        placeholder="برای تخصیص به هنرمند، نام، برند یا شماره موبایل را تایپ کنید..."
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-800"
+                      />
+                      {artistSearchLoading && (
+                        <div className="absolute left-3 top-3 w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      در صورت عدم انتخاب هنرمند، کدها به عنوان کدهای عمومی سیستم صادر می‌گردند.
+                    </p>
+
+                    {/* Autocomplete Dropdown */}
+                    {artistSearchResults.length > 0 && (
+                      <div className="absolute z-20 top-full mt-1.5 right-0 left-0 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto divide-y divide-slate-100">
+                        {artistSearchResults.map((art) => (
+                          <button
+                            key={art.id}
+                            type="button"
+                            onClick={() => handleSelectArtist(art)}
+                            className="w-full p-2.5 text-right hover:bg-emerald-50 transition-colors flex items-center justify-between text-xs cursor-pointer"
+                          >
+                            <div>
+                              <p className="font-bold text-slate-900">
+                                {art.name || art.artistProfile?.brandName || 'هنرمند'}
+                                {art.artistProfile?.brandName && (
+                                  <span className="text-emerald-700 font-medium mr-1.5">
+                                    ({art.artistProfile.brandName})
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-[11px] text-slate-400 font-mono mt-0.5" dir="ltr">
+                                {art.phoneNumber || art.email || '-'}
+                              </p>
+                            </div>
+                            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold">
+                              {toPersianDigits(art._count?.createdReferrals || 0)} کد
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {genMode === 'batch' ? (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">
-                    تعداد کدهای رندوم جهت صدور
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    تعداد کدهای رندوم جهت صدور:
                   </label>
                   <select
                     value={batchCount}
                     onChange={(e) => setBatchCount(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   >
                     <option value={1}>۱ عدد کد معرف</option>
                     <option value={2}>۲ عدد کد معرف</option>
@@ -556,8 +795,8 @@ export default function AdminReferralsPage() {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">
-                    کد معرف سفارشی دلخواه
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    کد معرف سفارشی دلخواه:
                   </label>
                   <input
                     type="text"
@@ -565,10 +804,10 @@ export default function AdminReferralsPage() {
                     placeholder="مثال: HONAR2026 یا VIP-ARTIST"
                     value={customCode}
                     onChange={(e) => setCustomCode(e.target.value.toUpperCase())}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-center tracking-widest"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-mono font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-center tracking-widest"
                   />
-                  <p className="text-[11px] text-slate-400 mt-1.5">
-                    کد سفارشی برای رویدادهای ویژه یا تبلیغاتی (حداقل ۳ کاراکتر).
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    کد سفارشی برای رویدادهای ویژه یا کمپین‌ها (حداقل ۳ کاراکتر).
                   </p>
                 </div>
               )}
@@ -579,7 +818,7 @@ export default function AdminReferralsPage() {
                   disabled={createLoading}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
                 >
-                  {createLoading ? 'در حال صدور...' : 'ثبت و صدور کد'}
+                  {createLoading ? 'در حال صدور...' : 'ثبت و صدور کدها'}
                 </button>
                 <button
                   type="button"
@@ -666,7 +905,7 @@ export default function AdminReferralsPage() {
                   type="button"
                   onClick={() => setSendModalCode(null)}
                   disabled={sendLoading}
-                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   انصراف
                 </button>
