@@ -34,7 +34,14 @@ export async function POST(req: Request) {
       where: { code: cleanCode },
       include: {
         creator: {
-          select: { id: true, name: true, role: true }
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            artistProfile: {
+              select: { brandName: true }
+            }
+          }
         }
       }
     });
@@ -72,7 +79,10 @@ export async function POST(req: Request) {
       activeChannel = 'sms';
     }
 
-    const senderName = referral.creator?.name || session.user.name || 'مدیریت هنرهاب';
+    const isCreatorAdmin = referral.creator?.role === 'ADMIN' || session.user.role === 'ADMIN';
+    const senderName = isCreatorAdmin 
+      ? 'مدیریت سایت' 
+      : (referral.creator?.artistProfile?.brandName || referral.creator?.name || 'مدیریت سایت');
 
     if (activeChannel === 'sms') {
       const normalizedPhone = normalizePhoneNumber(cleanTarget);

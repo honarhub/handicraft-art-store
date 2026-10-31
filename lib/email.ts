@@ -571,7 +571,9 @@ export function renderReferralInviteEmailHtml(options: {
     registerUrl = `${registerUrl}${separator}tab=register`;
   }
 
-  const inviterText = senderName ? `از سوی <strong>${senderName}</strong>` : 'از سوی یکی از هنرمندان برگزیده هنرهاب';
+  const inviterText = (senderName && senderName.trim()) 
+    ? `از سوی <strong>${senderName.trim()}</strong>` 
+    : 'از سوی <strong>مدیریت سایت</strong>';
 
   return `
 <!DOCTYPE html>

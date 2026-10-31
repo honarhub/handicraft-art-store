@@ -130,7 +130,7 @@ export async function POST(req: Request) {
         toEmail: cleanTarget,
         referralCode: newCode,
         registerUrl,
-        senderName: session.user.name || 'مدیر کل سیستم (هنرهاب)'
+        senderName: 'مدیریت سایت'
       });
 
       if (!emailResult.success) {
