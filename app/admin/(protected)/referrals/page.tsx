@@ -79,6 +79,12 @@ export default function AdminReferralsPage() {
   const [targetArtistUserId, setTargetArtistUserId] = useState<string>('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Quick Random Code Generate & Send Modal state
+  const [showQuickSendModal, setShowQuickSendModal] = useState(false);
+  const [quickSendTarget, setQuickSendTarget] = useState('');
+  const [quickSendLoading, setQuickSendLoading] = useState(false);
+  const [quickSendError, setQuickSendError] = useState('');
+
   // Send Invite Modal state
   const [sendModalCode, setSendModalCode] = useState<string | null>(null);
   const [sendTarget, setSendTarget] = useState('');
@@ -246,6 +252,38 @@ export default function AdminReferralsPage() {
     }
   };
 
+  const handleQuickSendSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickSendTarget.trim()) return;
+
+    setQuickSendLoading(true);
+    setQuickSendError('');
+
+    try {
+      const res = await fetch('/api/admin/referrals/quick-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target: quickSendTarget.trim() })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setQuickSendError(data.error || 'خطا در صدور و ارسال کد معرف');
+        return;
+      }
+
+      setShowQuickSendModal(false);
+      setQuickSendTarget('');
+      showToast(data.message || 'کد معرف رندوم با موفقیت صادر و ارسال شد.');
+      fetchCodes(1);
+      setCurrentPage(1);
+    } catch {
+      setQuickSendError('خطای سرور در صدور و ارسال کد معرف');
+    } finally {
+      setQuickSendLoading(false);
+    }
+  };
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateLoading(true);
@@ -313,17 +351,31 @@ export default function AdminReferralsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setShowCreateModal(true);
-            setCreateError('');
-            handleClearSelectedArtist();
-          }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all self-start sm:self-auto cursor-pointer"
-        >
-          <span className="text-lg">➕</span>
-          <span>صدور کدهای معرف جدید</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          <button
+            onClick={() => {
+              setShowQuickSendModal(true);
+              setQuickSendError('');
+              setQuickSendTarget('');
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
+          >
+            <span className="text-lg">🚀</span>
+            <span>صدور کد رندوم و ارسال مستقیم</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowCreateModal(true);
+              setCreateError('');
+              handleClearSelectedArtist();
+            }}
+            className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+          >
+            <span className="text-lg">➕</span>
+            <span>صدور دسته‌ای / سفارشی</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -921,6 +973,98 @@ export default function AdminReferralsPage() {
                     </>
                   ) : (
                     <span>ارسال دعوت‌نامه 🚀</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Random Code Generate & Send Modal */}
+      {showQuickSendModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in"
+          onClick={() => setShowQuickSendModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+                  🚀
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800">صدور کد معرف رندوم و ارسال مستقیم</h3>
+                  <p className="text-xs text-slate-500">ایجاد کد خودکار به اسم مدیر کل و ارسال آنی به مخاطب</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowQuickSendModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickSendSubmit} className="space-y-4">
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 text-xs text-emerald-800 leading-relaxed">
+                ✨ پس از ثبت، یک کد معرف رندوم و یکتا تولید شده، به عنوان معرف مدیر کل در دیتابیس ثبت می‌گردد و لینک ثبت‌نام به همراه کد معرف مستقیماً به شماره یا ایمیل وارد شده ارسال خواهد شد.
+              </div>
+
+              {/* Target Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شماره موبایل یا ایمیل متقاضی / هنرمند مدعو:
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={quickSendTarget}
+                  onChange={(e) => setQuickSendTarget(e.target.value)}
+                  placeholder="0912... یا artist@example.com"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl font-sans text-sm focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800 text-left placeholder:text-right"
+                  required
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  💡 در صورت ورود شماره موبایل، پیامک وب‌سرویس حاوی لینک ثبت‌نام ارسال می‌شود؛ در صورت ورود ایمیل، دعوت‌نامه رسمی ایمیلی ارسال خواهد شد.
+                </p>
+              </div>
+
+              {/* Error display */}
+              {quickSendError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold">
+                  {quickSendError}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickSendModal(false)}
+                  disabled={quickSendLoading}
+                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  انصراف
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickSendLoading || !quickSendTarget.trim()}
+                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {quickSendLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>در حال صدور و ارسال...</span>
+                    </>
+                  ) : (
+                    <span>صدور و ارسال آنی 🚀</span>
                   )}
                 </button>
               </div>
