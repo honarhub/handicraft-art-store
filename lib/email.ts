@@ -554,22 +554,28 @@ export function renderReferralInviteEmailHtml(options: {
   senderName?: string;
 }): string {
   const { referralCode, senderName } = options;
-  let registerUrl = options.registerUrl || 'https://honarhub.ir/artist-panel/login?tab=register';
 
   // 1. Force production domain: Never expose localhost/127.0.0.1 in emails
-  if (registerUrl.includes('localhost') || registerUrl.includes('127.0.0.1')) {
-    registerUrl = registerUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/gi, 'https://honarhub.ir');
+  let baseUrl = 'https://honarhub.ir';
+  if (options.registerUrl) {
+    try {
+      const parsed = new URL(options.registerUrl);
+      if (parsed.hostname && !parsed.hostname.includes('localhost') && !parsed.hostname.includes('127.0.0.1')) {
+        baseUrl = `${parsed.protocol}//${parsed.host}`;
+      }
+    } catch {
+      // fallback
+    }
   }
 
-  // 2. Guarantee that tab=register and ref={referralCode} are present in the link
-  if (!registerUrl.includes('ref=')) {
-    const separator = registerUrl.includes('?') ? '&' : '?';
-    registerUrl = `${registerUrl}${separator}ref=${encodeURIComponent(referralCode)}`;
-  }
-  if (!registerUrl.includes('tab=register')) {
-    const separator = registerUrl.includes('?') ? '&' : '?';
-    registerUrl = `${registerUrl}${separator}tab=register`;
-  }
+  // 2. Guarantee that 'ref' is the FIRST query parameter.
+  // Placing 'ref' right after '?' prevents email sanitizers from truncating it,
+  // and ensures the referral code is immediately loaded into the registration form.
+  const cleanCode = encodeURIComponent(referralCode.trim().toUpperCase());
+  const canonicalUrl = `${baseUrl}/artist-panel/login?ref=${cleanCode}&tab=register`;
+
+  // 3. For HTML href attributes, escape ampersand as &amp; per standard W3C HTML specification
+  const htmlAttrHref = `${baseUrl}/artist-panel/login?ref=${cleanCode}&amp;tab=register`;
 
   const inviterText = (senderName && senderName.trim()) 
     ? `از سوی <strong>${senderName.trim()}</strong>` 
@@ -647,7 +653,7 @@ export function renderReferralInviteEmailHtml(options: {
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0 20px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${registerUrl}" target="_blank" style="background-color: #059669; color: #ffffff; padding: 14px 32px; border-radius: 12px; font-weight: 800; font-size: 14px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);">
+                    <a href="${htmlAttrHref}" target="_blank" style="background-color: #059669; color: #ffffff; padding: 14px 32px; border-radius: 12px; font-weight: 800; font-size: 14px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);">
                       تکمیل ثبت‌نام و عضویت در هنرهاب
                     </a>
                   </td>
@@ -659,8 +665,8 @@ export function renderReferralInviteEmailHtml(options: {
                 <p style="margin: 0 0 6px 0; font-size: 11.5px; font-weight: 700; color: #475569;">
                   یا لینک زیر را در مرورگر خود باز کنید:
                 </p>
-                <a href="${registerUrl}" target="_blank" style="font-size: 11.5px; color: #059669; text-decoration: underline; direction: ltr; display: block; text-align: left;">
-                  ${registerUrl}
+                <a href="${htmlAttrHref}" target="_blank" style="font-size: 11.5px; color: #059669; text-decoration: underline; direction: ltr; display: block; text-align: left;">
+                  ${canonicalUrl}
                 </a>
               </div>
 

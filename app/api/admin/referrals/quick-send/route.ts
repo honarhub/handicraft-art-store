@@ -100,9 +100,9 @@ export async function POST(req: Request) {
       }
     });
 
-    // 3. Construct canonical registration link (guarantees production domain and ref code)
+    // 3. Construct canonical registration link (guarantees production domain and ref code as primary query parameter)
     const baseUrl = getCanonicalBaseUrl(req);
-    const registerUrl = `${baseUrl}/artist-panel/login?tab=register&ref=${encodeURIComponent(newCode)}`;
+    const registerUrl = `${baseUrl}/artist-panel/login?ref=${encodeURIComponent(newCode)}&tab=register`;
 
     // 4. Send via SMS or Email
     if (activeChannel === 'sms') {

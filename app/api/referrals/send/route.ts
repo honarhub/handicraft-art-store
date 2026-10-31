@@ -60,9 +60,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'شما دسترسی مجاز برای ارسال این کد معرف را ندارید.' }, { status: 403 });
     }
 
-    // Construct the canonical registration link with referral code (guarantees production domain)
+    // Construct the canonical registration link with referral code (guarantees production domain and ref as primary param)
     const baseUrl = getCanonicalBaseUrl(req);
-    const registerUrl = `${baseUrl}/artist-panel/login?tab=register&ref=${encodeURIComponent(cleanCode)}`;
+    const registerUrl = `${baseUrl}/artist-panel/login?ref=${encodeURIComponent(cleanCode)}&tab=register`;
 
     // Determine delivery channel: SMS or Email
     const isEmailLike = cleanTarget.includes('@');
