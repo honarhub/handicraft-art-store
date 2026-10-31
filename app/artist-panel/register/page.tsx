@@ -13,11 +13,11 @@ function RegisterRedirectContent() {
       windowParams = new URLSearchParams(window.location.search);
     }
 
-    const ref = searchParams.get('ref') || searchParams.get('code') || searchParams.get('referral') || searchParams.get('referralCode')
-      || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
+    const ref = searchParams.get('invite') || searchParams.get('ref') || searchParams.get('code') || searchParams.get('referral') || searchParams.get('referralCode')
+      || windowParams?.get('invite') || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
 
     const target = ref 
-      ? `/artist-panel/login?ref=${encodeURIComponent(ref.trim().toUpperCase())}&tab=register`
+      ? `/artist-panel/login?invite=${encodeURIComponent(ref.trim().toUpperCase())}&tab=register`
       : '/artist-panel/login?tab=register';
     router.replace(target);
   }, [router, searchParams]);

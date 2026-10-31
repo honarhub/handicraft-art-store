@@ -67,8 +67,8 @@ function ArtistLoginContent() {
     }
 
     const tab = searchParams.get('tab') || searchParams.get('mode') || windowParams?.get('tab') || windowParams?.get('mode');
-    const ref = searchParams.get('ref') || searchParams.get('code') || searchParams.get('referral') || searchParams.get('referralCode')
-      || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
+    const ref = searchParams.get('invite') || searchParams.get('ref') || searchParams.get('code') || searchParams.get('referral') || searchParams.get('referralCode')
+      || windowParams?.get('invite') || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
     const err = searchParams.get('error') || windowParams?.get('error');
 
     if (ref && typeof ref === 'string') {
