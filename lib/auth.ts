@@ -6,6 +6,27 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { normalizePhoneNumber } from "@/lib/sms";
 
+/**
+ * Parse admin emails from environment variables (supports comma-separated ADMIN_EMAILS and ADMIN_EMAIL)
+ */
+export function getAdminEmails(): string[] {
+  const envVal = `${process.env.ADMIN_EMAILS || ''},${process.env.ADMIN_EMAIL || ''}`;
+  return Array.from(
+    new Set(
+      envVal
+        .split(',')
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  );
+}
+
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const adminEmails = getAdminEmails();
+  return adminEmails.includes(email.trim().toLowerCase());
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -21,9 +42,7 @@ export const authOptions: NextAuthOptions = {
         }
       },
       profile(profile) {
-        const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-        const userEmail = profile.email?.trim().toLowerCase();
-        const isAdmin = Boolean(adminEmail && userEmail === adminEmail);
+        const isAdmin = isAdminEmail(profile.email);
         return {
           id: profile.sub,
           name: profile.name,
@@ -248,8 +267,7 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === 'google') {
         const googleEmail = (profile?.email || user.email)?.trim().toLowerCase();
         const googleName = (profile as any)?.name || user.name;
-        const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-        const isAdmin = Boolean(adminEmail && googleEmail === adminEmail);
+        const isAdmin = isAdminEmail(googleEmail);
         
         // Find existing user by exact email
         let dbUser = await prisma.user.findUnique({
@@ -361,10 +379,9 @@ export const authOptions: NextAuthOptions = {
         token.name = dbUser.name;
         token.email = dbUser.email;
         
-        const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-        const userEmail = dbUser.email?.trim().toLowerCase();
+        const isAdmin = isAdminEmail(dbUser.email);
         
-        if (adminEmail && userEmail === adminEmail) {
+        if (isAdmin) {
           if (dbUser.role !== 'ADMIN') {
             await prisma.user.update({
               where: { id: dbUser.id },
