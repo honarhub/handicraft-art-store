@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import prisma from "@/lib/prisma";
+import prisma, { ensureDatabaseSchema } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { normalizePhoneNumber } from "@/lib/sms";
 
@@ -62,6 +62,8 @@ export const authOptions: NextAuthOptions = {
         loginType: { type: "hidden" }
       },
       async authorize(credentials) {
+        await ensureDatabaseSchema();
+
         // --- 1. Mobile Phone or Email + OTP Login ---
         if (credentials?.loginType === 'otp' || ((credentials?.phone || credentials?.email) && credentials?.code)) {
           const isEmail = Boolean(credentials?.email && !credentials?.phone);
@@ -264,6 +266,7 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
+      await ensureDatabaseSchema();
       if (account?.provider === 'google') {
         const googleEmail = (profile?.email || user.email)?.trim().toLowerCase();
         const googleName = (profile as any)?.name || user.name;
@@ -364,6 +367,7 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user, trigger, session }) {
+      await ensureDatabaseSchema();
       if (user) {
         token.id = user.id;
         token.role = user.role;
