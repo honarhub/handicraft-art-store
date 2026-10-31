@@ -59,18 +59,44 @@ function ArtistLoginContent() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Read search params on load
+  // Read search params on load (supports ref, code, referral and persists in session/localStorage)
   useEffect(() => {
-    const tab = searchParams.get('tab') || searchParams.get('mode');
-    const ref = searchParams.get('ref');
-    const err = searchParams.get('error');
+    let windowParams: URLSearchParams | null = null;
+    if (typeof window !== 'undefined') {
+      windowParams = new URLSearchParams(window.location.search);
+    }
 
-    if (ref) {
-      setRegReferralCode(ref.trim().toUpperCase());
+    const tab = searchParams.get('tab') || searchParams.get('mode') || windowParams?.get('tab') || windowParams?.get('mode');
+    const ref = searchParams.get('ref') || searchParams.get('code') || searchParams.get('referral') || searchParams.get('referralCode')
+      || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
+    const err = searchParams.get('error') || windowParams?.get('error');
+
+    if (ref && typeof ref === 'string') {
+      const cleanRef = ref.trim().toUpperCase();
+      setRegReferralCode(cleanRef);
       setRefFromUrl(true);
       setMainMode('register');
-    } else if (tab === 'register') {
-      setMainMode('register');
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('honarhub_referral_code', cleanRef);
+          localStorage.setItem('honarhub_referral_code', cleanRef);
+        }
+      } catch {}
+    } else {
+      // Check stored referral code if user navigates or refreshes
+      try {
+        if (typeof window !== 'undefined') {
+          const storedRef = sessionStorage.getItem('honarhub_referral_code') || localStorage.getItem('honarhub_referral_code');
+          if (storedRef) {
+            setRegReferralCode(storedRef.trim().toUpperCase());
+            setRefFromUrl(true);
+          }
+        }
+      } catch {}
+
+      if (tab === 'register') {
+        setMainMode('register');
+      }
     }
 
     if (err === 'not_registered') {

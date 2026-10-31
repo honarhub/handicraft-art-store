@@ -222,7 +222,9 @@ export default function AdminReferralsPage() {
   };
 
   const handleCopyLink = async (code: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://honarhub.ir';
+    const origin = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')
+      ? window.location.origin 
+      : 'https://honarhub.ir';
     const link = `${origin}/artist-panel/login?tab=register&ref=${encodeURIComponent(code)}`;
     try {
       await navigator.clipboard.writeText(link);

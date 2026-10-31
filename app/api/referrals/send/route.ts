@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getCanonicalBaseUrl } from '@/lib/referral';
 import { isValidIranianMobile, normalizePhoneNumber, sendReferralInviteSms } from '@/lib/sms';
 import { sendReferralInviteEmail } from '@/lib/email';
 
@@ -52,8 +53,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'شما دسترسی مجاز برای ارسال این کد معرف را ندارید.' }, { status: 403 });
     }
 
-    // Construct the canonical registration link with referral code
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://honarhub.ir';
+    // Construct the canonical registration link with referral code (guarantees production domain)
+    const baseUrl = getCanonicalBaseUrl(req);
     const registerUrl = `${baseUrl}/artist-panel/login?tab=register&ref=${encodeURIComponent(cleanCode)}`;
 
     // Determine delivery channel: SMS or Email

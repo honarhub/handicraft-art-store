@@ -8,9 +8,16 @@ function RegisterRedirectContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const ref = searchParams.get('ref');
+    let windowParams: URLSearchParams | null = null;
+    if (typeof window !== 'undefined') {
+      windowParams = new URLSearchParams(window.location.search);
+    }
+
+    const ref = searchParams.get('ref') || searchParams.get('code') || searchParams.get('referral') || searchParams.get('referralCode')
+      || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
+
     const target = ref 
-      ? `/artist-panel/login?tab=register&ref=${encodeURIComponent(ref)}`
+      ? `/artist-panel/login?tab=register&ref=${encodeURIComponent(ref.trim().toUpperCase())}`
       : '/artist-panel/login?tab=register';
     router.replace(target);
   }, [router, searchParams]);

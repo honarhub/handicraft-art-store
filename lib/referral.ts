@@ -63,3 +63,30 @@ export async function ensureArtistReferralCodes(userId: string, targetCount = 5)
     }
   });
 }
+
+/**
+ * Canonical URL resolver for emails, SMS, and invites.
+ * Prioritizes actual incoming request host (e.g. honarhub.ir).
+ * Never exposes 'localhost' in production or outgoing communications.
+ */
+export function getCanonicalBaseUrl(req?: Request): string {
+  if (req) {
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+      const proto = req.headers.get('x-forwarded-proto') || 'https';
+      return `${proto}://${host}`;
+    }
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (appUrl && !appUrl.includes('localhost') && !appUrl.includes('127.0.0.1')) {
+    return appUrl.replace(/\/$/, '');
+  }
+
+  const nextAuthUrl = process.env.NEXTAUTH_URL;
+  if (nextAuthUrl && !nextAuthUrl.includes('localhost') && !nextAuthUrl.includes('127.0.0.1')) {
+    return nextAuthUrl.replace(/\/$/, '');
+  }
+
+  return 'https://honarhub.ir';
+}

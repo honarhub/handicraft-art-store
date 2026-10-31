@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { generateRandomCode } from '@/lib/referral';
+import { generateRandomCode, getCanonicalBaseUrl } from '@/lib/referral';
 import { isValidIranianMobile, normalizePhoneNumber, sendReferralInviteSms } from '@/lib/sms';
 import { sendReferralInviteEmail } from '@/lib/email';
 
@@ -100,8 +100,8 @@ export async function POST(req: Request) {
       }
     });
 
-    // 3. Construct canonical registration link
-    const baseUrl = process.env.NEXTAUTH_URL || 'https://honarhub.ir';
+    // 3. Construct canonical registration link (guarantees production domain and ref code)
+    const baseUrl = getCanonicalBaseUrl(req);
     const registerUrl = `${baseUrl}/artist-panel/login?tab=register&ref=${encodeURIComponent(newCode)}`;
 
     // 4. Send via SMS or Email

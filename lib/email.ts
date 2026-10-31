@@ -553,7 +553,24 @@ export function renderReferralInviteEmailHtml(options: {
   registerUrl: string;
   senderName?: string;
 }): string {
-  const { referralCode, registerUrl, senderName } = options;
+  const { referralCode, senderName } = options;
+  let registerUrl = options.registerUrl || 'https://honarhub.ir/artist-panel/login?tab=register';
+
+  // 1. Force production domain: Never expose localhost/127.0.0.1 in emails
+  if (registerUrl.includes('localhost') || registerUrl.includes('127.0.0.1')) {
+    registerUrl = registerUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/gi, 'https://honarhub.ir');
+  }
+
+  // 2. Guarantee that tab=register and ref={referralCode} are present in the link
+  if (!registerUrl.includes('ref=')) {
+    const separator = registerUrl.includes('?') ? '&' : '?';
+    registerUrl = `${registerUrl}${separator}ref=${encodeURIComponent(referralCode)}`;
+  }
+  if (!registerUrl.includes('tab=register')) {
+    const separator = registerUrl.includes('?') ? '&' : '?';
+    registerUrl = `${registerUrl}${separator}tab=register`;
+  }
+
   const inviterText = senderName ? `از سوی <strong>${senderName}</strong>` : 'از سوی یکی از هنرمندان برگزیده هنرهاب';
 
   return `
