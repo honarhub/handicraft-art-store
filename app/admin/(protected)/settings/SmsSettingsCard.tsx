@@ -10,6 +10,8 @@ export interface SmsSettingsProps {
     smsSandboxApiKey?: string | null;
     smsTemplateId?: string | null;
     smsOtpParamName?: string;
+    smsReferralTemplateId?: string | null;
+    smsReferralParamName?: string;
     smsLineNumber?: string | null;
     otpResendIntervalSeconds?: number;
     otpMaxPerHourPerPhone?: number;
@@ -30,6 +32,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   const [showSandboxApiKey, setShowSandboxApiKey] = useState(false);
   const [smsTemplateId, setSmsTemplateId] = useState(initialSettings.smsTemplateId || '');
   const [smsOtpParamName, setSmsOtpParamName] = useState(initialSettings.smsOtpParamName || 'Code');
+  const [smsReferralTemplateId, setSmsReferralTemplateId] = useState(initialSettings.smsReferralTemplateId || '');
+  const [smsReferralParamName, setSmsReferralParamName] = useState(initialSettings.smsReferralParamName || 'Code');
   const [smsLineNumber, setSmsLineNumber] = useState(initialSettings.smsLineNumber || '');
 
   // Anti-abuse & timing settings
@@ -55,6 +59,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.smsSandboxApiKey !== undefined) setSmsSandboxApiKey(initialSettings.smsSandboxApiKey || '');
       if (initialSettings.smsTemplateId !== undefined) setSmsTemplateId(initialSettings.smsTemplateId || '');
       if (initialSettings.smsOtpParamName !== undefined) setSmsOtpParamName(initialSettings.smsOtpParamName || 'Code');
+      if (initialSettings.smsReferralTemplateId !== undefined) setSmsReferralTemplateId(initialSettings.smsReferralTemplateId || '');
+      if (initialSettings.smsReferralParamName !== undefined) setSmsReferralParamName(initialSettings.smsReferralParamName || 'Code');
       if (initialSettings.smsLineNumber !== undefined) setSmsLineNumber(initialSettings.smsLineNumber || '');
       if (initialSettings.otpResendIntervalSeconds !== undefined) setOtpResendIntervalSeconds(initialSettings.otpResendIntervalSeconds);
       if (initialSettings.otpMaxPerHourPerPhone !== undefined) setOtpMaxPerHourPerPhone(initialSettings.otpMaxPerHourPerPhone);
@@ -97,6 +103,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         smsSandboxApiKey,
         smsTemplateId,
         smsOtpParamName,
+        smsReferralTemplateId,
+        smsReferralParamName,
         smsLineNumber,
         otpResendIntervalSeconds: Number(otpResendIntervalSeconds),
         otpMaxPerHourPerPhone: Number(otpMaxPerHourPerPhone),
@@ -385,6 +393,42 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
             />
             <p className="text-[11px] text-slate-400 mt-1">
               نام متغیری که در متن قالب خود قرار داده‌اید (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
+            </p>
+          </div>
+
+          {/* Referral SMS Template ID */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              شناسه قالب پیامک دعوت‌نامه با کد معرف (اختیاری)
+            </label>
+            <input
+              type="text"
+              dir="ltr"
+              value={smsReferralTemplateId}
+              onChange={(e) => setSmsReferralTemplateId(e.target.value.replace(/\D/g, ''))}
+              placeholder="مثال: 100555"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              شناسه قالب ارسال سریع برای دعوت هنرمندان با کد معرف. در صورت خالی بودن، از قالب پیش‌فرض ارسال کد استفاده خواهد شد.
+            </p>
+          </div>
+
+          {/* Referral SMS Parameter Name */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              نام متغیر لینک معرف در قالب
+            </label>
+            <input
+              type="text"
+              dir="ltr"
+              value={smsReferralParamName}
+              onChange={(e) => setSmsReferralParamName(e.target.value)}
+              placeholder="Code"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              به جای کد، لینک کامل ثبت‌نام با کد معرف در این متغیر قرار می‌گیرد (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
             </p>
           </div>
 

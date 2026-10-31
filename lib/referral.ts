@@ -11,11 +11,11 @@ export function generateRandomCode(prefix = 'HNR'): string {
 }
 
 /**
- * Ensures an artist has up to `targetCount` referral codes (default 3).
+ * Ensures an artist has at least `targetCount` referral codes (default 5).
  * Only creates missing codes if the artist currently has fewer than `targetCount`.
- * If the artist has excess unused codes beyond `targetCount`, prunes them so the total matches targetCount.
+ * Never prunes or deletes extra codes, allowing admins to grant additional codes at any time.
  */
-export async function ensureArtistReferralCodes(userId: string, targetCount = 3) {
+export async function ensureArtistReferralCodes(userId: string, targetCount = 5) {
   const existingCodes = await prisma.referralCode.findMany({
     where: { creatorId: userId },
     orderBy: { createdAt: 'asc' }
@@ -43,20 +43,6 @@ export async function ensureArtistReferralCodes(userId: string, targetCount = 3)
         isUsed: false
       }))
     });
-  } else if (existingCodes.length > targetCount) {
-    // If the artist has more codes than targetCount (e.g. from previous higher quota),
-    // prune excess unused codes while strictly preserving already-used ones.
-    const unused = existingCodes.filter(c => !c.isUsed);
-    const used = existingCodes.filter(c => c.isUsed);
-    const allowedUnused = Math.max(0, targetCount - used.length);
-    if (unused.length > allowedUnused) {
-      const excessUnused = unused.slice(allowedUnused);
-      await prisma.referralCode.deleteMany({
-        where: {
-          id: { in: excessUnused.map(c => c.id) }
-        }
-      });
-    }
   }
 
   return prisma.referralCode.findMany({

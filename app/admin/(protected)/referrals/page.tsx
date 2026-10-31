@@ -27,8 +27,23 @@ interface ReferralAdminItem {
   } | null;
 }
 
+interface ArtistOption {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  artistProfile?: {
+    displayId: number;
+    brandName?: string | null;
+  } | null;
+  _count?: {
+    createdReferrals: number;
+  };
+}
+
 export default function AdminReferralsPage() {
   const [codes, setCodes] = useState<ReferralAdminItem[]>([]);
+  const [artists, setArtists] = useState<ArtistOption[]>([]);
   const [stats, setStats] = useState({ totalCodes: 0, activeCodes: 0, usedCodes: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -37,11 +52,18 @@ export default function AdminReferralsPage() {
 
   // Modal / Form state for generating codes
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [targetArtistUserId, setTargetArtistUserId] = useState<string>('');
   const [genMode, setGenMode] = useState<'batch' | 'custom'>('batch');
   const [batchCount, setBatchCount] = useState<number>(5);
   const [customCode, setCustomCode] = useState<string>('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+
+  // Send Invite Modal state
+  const [sendModalCode, setSendModalCode] = useState<string | null>(null);
+  const [sendTarget, setSendTarget] = useState('');
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   const fetchCodes = async () => {
     try {
@@ -55,6 +77,7 @@ export default function AdminReferralsPage() {
       if (res.ok) {
         setCodes(data.codes || []);
         if (data.stats) setStats(data.stats);
+        if (data.artists) setArtists(data.artists);
       }
     } catch {
       // ignore
@@ -88,6 +111,50 @@ export default function AdminReferralsPage() {
     }
   };
 
+  const handleCopyLink = async (code: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://honarhub.ir';
+    const link = `${origin}/artist-panel/login?tab=register&ref=${encodeURIComponent(code)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      showToast(`لینک مستقیم ثبت‌نام با کد «${code}» کپی شد.`);
+    } catch {
+      showToast('خطا در کپی کردن لینک.');
+    }
+  };
+
+  const handleSendInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sendModalCode || !sendTarget.trim()) return;
+
+    setSendLoading(true);
+    setSendError('');
+
+    try {
+      const res = await fetch('/api/referrals/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: sendModalCode,
+          target: sendTarget.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setSendError(data.error || 'خطا در ارسال دعوت‌نامه');
+        return;
+      }
+
+      setSendModalCode(null);
+      setSendTarget('');
+      showToast(data.message || 'دعوت‌نامه با موفقیت ارسال شد.');
+    } catch {
+      setSendError('خطای غیرمنتظره در برقراری ارتباط با سرور.');
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateLoading(true);
@@ -95,6 +162,10 @@ export default function AdminReferralsPage() {
 
     try {
       const payload: any = {};
+      if (targetArtistUserId) {
+        payload.targetArtistUserId = targetArtistUserId;
+      }
+
       if (genMode === 'custom') {
         if (!customCode.trim()) {
           setCreateError('لطفاً کد سفارشی را وارد کنید.');
@@ -121,6 +192,7 @@ export default function AdminReferralsPage() {
 
       setShowCreateModal(false);
       setCustomCode('');
+      setTargetArtistUserId('');
       showToast(data.message || 'کدهای جدید با موفقیت ایجاد شدند.');
       fetchCodes();
     } catch {
@@ -173,6 +245,48 @@ export default function AdminReferralsPage() {
           <span className="text-3xl font-black text-slate-700">{stats.usedCodes}</span>
         </div>
       </div>
+
+      {/* Quick Artist Quota Grant Card */}
+      {artists.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">👥</span>
+              <h3 className="text-sm font-black text-slate-800">تخصیص سهمیه و صدور کد به تفکیک هنرمند</h3>
+            </div>
+            <span className="text-xs text-slate-500 font-medium">مجموعاً {artists.length} هنرمند در سیستم</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {artists.map((art) => (
+              <div 
+                key={art.id} 
+                className="p-3 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between hover:bg-slate-100 transition-colors"
+              >
+                <div>
+                  <p className="text-xs font-bold text-slate-800 truncate max-w-[180px]">
+                    {art.name || art.artistProfile?.brandName || 'هنرمند بدون نام'}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {art._count?.createdReferrals || 0} کد صادر شده
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTargetArtistUserId(art.id);
+                    setShowCreateModal(true);
+                    setCreateError('');
+                  }}
+                  className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  ➕ صدور کد
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
@@ -317,15 +431,36 @@ export default function AdminReferralsPage() {
                       {item.usedAt ? new Date(item.usedAt).toLocaleDateString('fa-IR') : '-'}
                     </td>
 
-                    {/* Copy action */}
+                    {/* Actions */}
                     <td className="py-4 px-4 text-center">
-                      <button
-                        onClick={() => handleCopyCode(item.code)}
-                        className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                        title="کپی کردن کد"
-                      >
-                        📋
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleCopyCode(item.code)}
+                          className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                          title="کپی کردن فقط کد"
+                        >
+                          📋
+                        </button>
+                        {!item.isUsed && (
+                          <>
+                            <button
+                              onClick={() => handleCopyLink(item.code)}
+                              className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                              title="کپی لینک مستقیم ثبت‌نام با این کد"
+                            >
+                              🔗
+                            </button>
+                            <button
+                              onClick={() => { setSendModalCode(item.code); setSendTarget(''); setSendError(''); }}
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold py-1 px-2.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              title="ارسال پیامک یا ایمیل به متقاضی"
+                            >
+                              <span>✉️</span>
+                              <span>ارسال</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -378,6 +513,28 @@ export default function AdminReferralsPage() {
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
+              {/* Target Artist Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  تخصیص کد به هنرمند (افزایش سهمیه هنرمند):
+                </label>
+                <select
+                  value={targetArtistUserId}
+                  onChange={(e) => setTargetArtistUserId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                >
+                  <option value="">کدهای عمومی سیستم (مدیر کل / بدون تخصیص به هنرمند خاص)</option>
+                  {artists.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name || a.artistProfile?.brandName || 'هنرمند بدون نام'} {a.artistProfile?.brandName ? `(استودیو ${a.artistProfile.brandName})` : ''} — {a.phoneNumber || a.email || ''} ({a._count?.createdReferrals || 0} کد فعلی)
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  در صورت انتخاب هنرمند، این کدهای جدید به عنوان سهمیه در پنل معرف آن هنرمند قرار خواهد گرفت.
+                </p>
+              </div>
+
               {genMode === 'batch' ? (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-2">
@@ -389,7 +546,9 @@ export default function AdminReferralsPage() {
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   >
                     <option value={1}>۱ عدد کد معرف</option>
-                    <option value={3}>۳ عدد کد معرف (سهمیه یک هنرمند)</option>
+                    <option value={2}>۲ عدد کد معرف</option>
+                    <option value={3}>۳ عدد کد معرف</option>
+                    <option value={5}>۵ عدد کد معرف (سهمیه استاندارد)</option>
                     <option value={10}>۱۰ عدد کد معرف</option>
                     <option value={20}>۲۰ عدد کد معرف</option>
                     <option value={50}>۵۰ عدد کد معرف</option>
@@ -418,16 +577,112 @@ export default function AdminReferralsPage() {
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
                 >
                   {createLoading ? 'در حال صدور...' : 'ثبت و صدور کد'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                 >
                   انصراف
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Send Invite Modal (SMS / Email) */}
+      {sendModalCode && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          onClick={() => setSendModalCode(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+                  ✉️
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800">ارسال دعوت‌نامه با کد معرف</h3>
+                  <p className="text-xs text-slate-500">ارسال پیامک یا ایمیل رسمی حاوی لینک ثبت‌نام</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSendModalCode(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendInviteSubmit} className="space-y-4">
+              {/* Selected Code Banner */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-900">کد معرف ارسالی:</span>
+                <span className="font-mono text-lg font-black text-emerald-800 tracking-wider">
+                  {sendModalCode}
+                </span>
+              </div>
+
+              {/* Target Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شماره موبایل یا ایمیل مقصد:
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={sendTarget}
+                  onChange={(e) => setSendTarget(e.target.value)}
+                  placeholder="0912... یا artist@example.com"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl font-sans text-sm focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800 text-left placeholder:text-right"
+                  required
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  💡 با وارد کردن شماره موبایل، پیامک رسمی ارسال اعتبارسنجی حاوی لینک ثبت‌نام ارسال می‌شود. با وارد کردن ایمیل، دعوت‌نامه اختصاصی ارسال می‌گردد.
+                </p>
+              </div>
+
+              {/* Error display */}
+              {sendError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold">
+                  {sendError}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSendModalCode(null)}
+                  disabled={sendLoading}
+                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  انصراف
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendLoading || !sendTarget.trim()}
+                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {sendLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>در حال ارسال...</span>
+                    </>
+                  ) : (
+                    <span>ارسال دعوت‌نامه 🚀</span>
+                  )}
                 </button>
               </div>
             </form>

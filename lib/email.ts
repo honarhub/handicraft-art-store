@@ -543,3 +543,217 @@ export async function testEmailService(options: {
 
 // Alias for backwards compatibility
 export const testResendConnection = testEmailService;
+
+/**
+ * Modern Persian HTML template for Referral Invitation emails
+ * Replaces the OTP display with the referral code, registration button and direct link.
+ */
+export function renderReferralInviteEmailHtml(options: {
+  referralCode: string;
+  registerUrl: string;
+  senderName?: string;
+}): string {
+  const { referralCode, registerUrl, senderName } = options;
+  const inviterText = senderName ? `از سوی <strong>${senderName}</strong>` : 'از سوی یکی از هنرمندان برگزیده هنرهاب';
+
+  return `
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>دعوت‌نامه اختصاصی عضویت در هنرهاب</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap" rel="stylesheet" type="text/css">
+  <style type="text/css">
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;800;900&display=swap');
+    body, table, td, p, a, span, h1, h2, h3 {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif !important;
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Tahoma, Arial, sans-serif; direction: rtl; text-align: right; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f5f9; padding: 36px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 18px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;">
+          
+          <!-- Lightweight Header & Brand Logo -->
+          <tr>
+            <td style="background-color: #064e3b; padding: 24px 20px; text-align: center;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; direction: rtl; text-align: center;">
+                      <span style="font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; vertical-align: middle;">هنر</span><span style="background-color: #FF9900; color: #000000; padding: 2px 7px; border-radius: 6px; margin-right: 3px; font-size: 21px; font-weight: 900; vertical-align: middle;">هاب</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top: 6px;">
+                    <span style="color: #a7f3d0; font-size: 11.5px; font-weight: 500;">سامانه تخصصی دست‌سازه‌ها و هنرهای اصیل ایرانی</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Formal & Concise Content -->
+          <tr>
+            <td style="padding: 30px 28px 24px 28px;">
+              <p style="margin: 0 0 10px 0; font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.6;">
+                هنرمند گرامی؛
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 13.5px; line-height: 1.8; color: #475569;">
+                شما ${inviterText} به پلتفرم تخصصی دست‌سازه‌ها و هنرهای اصیل ایرانی «هنرهاب» دعوت شده‌اید.
+              </p>
+
+              <!-- Prominent Referral Code Box -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 16px 0 20px 0;">
+                <tr>
+                  <td align="center">
+                    <div style="background-color: #ecfdf5; border: 2px dashed #059669; border-radius: 16px; padding: 14px 28px; display: inline-block; text-align: center;">
+                      <span style="font-size: 11px; font-weight: 700; color: #059669; display: block; margin-bottom: 4px;">کد معرف اختصاصی شما:</span>
+                      <span style="font-family: 'Courier New', monospace; font-size: 28px; font-weight: 900; color: #064e3b; letter-spacing: 4px; display: inline-block; direction: ltr;">
+                        ${referralCode}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Big Call To Action Button -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 20px 0 20px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${registerUrl}" target="_blank" style="background-color: #059669; color: #ffffff; padding: 14px 32px; border-radius: 12px; font-weight: 800; font-size: 14px; text-decoration: none; display: inline-block; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);">
+                      تکمیل ثبت‌نام و عضویت در هنرهاب
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Direct Link Box -->
+              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; word-break: break-all;">
+                <p style="margin: 0 0 6px 0; font-size: 11.5px; font-weight: 700; color: #475569;">
+                  یا لینک زیر را در مرورگر خود باز کنید:
+                </p>
+                <a href="${registerUrl}" target="_blank" style="font-size: 11.5px; color: #059669; text-decoration: underline; direction: ltr; display: block; text-align: left;">
+                  ${registerUrl}
+                </a>
+              </div>
+
+              <!-- Notice -->
+              <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 12px; padding: 12px 16px; margin-bottom: 12px;">
+                <p style="margin: 0; font-size: 12px; line-height: 1.8; color: #92400e;">
+                  💡 <strong>توجه:</strong> این کد معرف سهمیه اختصاصی و یکبار مصرف است و پس از تکمیل ثبت‌نام شما می‌سوزد.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Lightweight Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #f1f5f9; padding: 16px 28px; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.8;">
+                پشتیبانی: <a href="mailto:support@honarhub.ir" style="color: #64748b; text-decoration: none;">support@honarhub.ir</a><br>
+                © تمامی حقوق محفوظ است — خانواده دست‌سازه‌های ایرانی هنرهاب
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Sends Referral Code invitation email via Resend or Internal Sandbox Mock
+ */
+export async function sendReferralInviteEmail(options: {
+  toEmail: string;
+  referralCode: string;
+  registerUrl: string;
+  senderName?: string;
+}): Promise<EmailSendResult> {
+  const emailTrimmed = options.toEmail.trim().toLowerCase();
+  const config = await getEmailConfig();
+
+  if (!config.isEmailServiceActive) {
+    return {
+      success: false,
+      error: 'سرویس ارسال ایمیل موقتاً توسط مدیریت غیرفعال شده است.'
+    };
+  }
+
+  // 1. Sandbox / Mock Mode
+  if (config.emailIsSandbox) {
+    console.log('====================================================');
+    console.log(`[EMAIL-REFERRAL-SANDBOX-MOCK] Invitation to ${emailTrimmed}`);
+    console.log(`Code: ${options.referralCode} | Link: ${options.registerUrl}`);
+    console.log('====================================================');
+    return {
+      success: true,
+      mode: 'SANDBOX',
+      devCode: options.referralCode
+    };
+  }
+
+  // 2. Production Mode: Requires Resend API Key
+  if (config.resendApiKey) {
+    try {
+      const resend = new Resend(config.resendApiKey.trim());
+      const fromField = `${config.emailFromName} <${config.emailFromAddress.trim()}>`;
+
+      const { data, error } = await resend.emails.send({
+        from: fromField,
+        to: emailTrimmed,
+        subject: `دعوت‌نامه اختصاصی عضویت در هنرهاب (کد معرف: ${options.referralCode})`,
+        html: renderReferralInviteEmailHtml({
+          referralCode: options.referralCode,
+          registerUrl: options.registerUrl,
+          senderName: options.senderName
+        })
+      });
+
+      if (error) {
+        console.error('[Resend Referral Error]', error);
+        return {
+          success: false,
+          error: error.message || 'خطا در ارسال ایمیل از طریق Resend'
+        };
+      }
+
+      console.log(`[Resend Referral Success] Email sent to ${emailTrimmed} (ID: ${data?.id})`);
+      return {
+        success: true,
+        id: data?.id,
+        mode: 'PRODUCTION'
+      };
+    } catch (err: any) {
+      console.error('[Resend Referral Network Error]', err);
+      return {
+        success: false,
+        error: err.message || 'خطای شبکه در اتصال به سرویس Resend'
+      };
+    }
+  }
+
+  // Fallback in development when Resend is not configured
+  console.log('====================================================');
+  console.log(`[EMAIL-REFERRAL MOCK] Invitation to ${emailTrimmed}`);
+  console.log(`Code: ${options.referralCode} | Link: ${options.registerUrl}`);
+  console.log('====================================================');
+
+  return {
+    success: true,
+    mode: 'SANDBOX',
+    devCode: options.referralCode
+  };
+}

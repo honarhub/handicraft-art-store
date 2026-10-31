@@ -368,3 +368,106 @@ export function hasProfilePendingEdits(pendingEdits: any): boolean {
     return false;
   }
 }
+
+/**
+ * Sends Referral Code invitation via SMS.ir Fast-Send (ارسال سریع)
+ * Replaces the template parameter (default 'Code') with the full registration link containing the referral code.
+ */
+export async function sendReferralInviteSms(options: {
+  mobile: string;
+  referralCode: string;
+  registerUrl: string;
+}): Promise<SmsResult> {
+  const normalized = normalizePhoneNumber(options.mobile);
+  if (!isValidIranianMobile(normalized)) {
+    return { success: false, error: 'شماره تلفن همراه نامعتبر است.' };
+  }
+
+  let isMobileOtpActive = true;
+  let apiKey: string | null = null;
+  let templateId: string | null = null;
+  let paramName = 'Code';
+  let smsIsSandbox = false;
+
+  try {
+    const { default: prisma } = await import('@/lib/prisma');
+    const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+    if (settings) {
+      isMobileOtpActive = settings.isMobileOtpActive;
+      smsIsSandbox = Boolean(settings.smsIsSandbox);
+      
+      if (smsIsSandbox) {
+        apiKey = settings.smsSandboxApiKey || settings.smsApiKey || process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null;
+      } else {
+        apiKey = settings.smsApiKey || process.env.SMSIR_API_KEY || null;
+      }
+
+      templateId = settings.smsReferralTemplateId || settings.smsTemplateId || process.env.SMSIR_REFERRAL_TEMPLATE_ID || process.env.SMSIR_TEMPLATE_ID || null;
+      paramName = settings.smsReferralParamName || 'Code';
+    }
+  } catch (err) {
+    console.warn('[SMS Referral] Could not load SiteSettings, checking env...', err);
+  }
+
+  if (!apiKey) {
+    apiKey = smsIsSandbox 
+      ? (process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null)
+      : (process.env.SMSIR_API_KEY || null);
+  }
+  if (!templateId) {
+    templateId = process.env.SMSIR_REFERRAL_TEMPLATE_ID || process.env.SMSIR_TEMPLATE_ID || null;
+  }
+
+  if (!isMobileOtpActive) {
+    return {
+      success: false,
+      error: 'سرویس ارسال پیامک موقتاً توسط مدیریت غیرفعال شده است.'
+    };
+  }
+
+  // 1. Live credentials provided (calls real sms.ir endpoint with registerUrl as the parameter value)
+  if (apiKey && templateId) {
+    const result = await sendSmsIrVerify({
+      mobile: normalized,
+      code: options.registerUrl,
+      apiKey,
+      templateId,
+      paramName
+    });
+
+    if (!result.success) {
+      return result;
+    }
+
+    const isSandboxKey =
+      smsIsSandbox ||
+      apiKey.toLowerCase().includes('sandbox') ||
+      apiKey.toLowerCase().includes('test') ||
+      result.cost === 0;
+
+    if (isSandboxKey) {
+      return {
+        ...result,
+        mode: 'SANDBOX',
+        devCode: options.registerUrl
+      };
+    }
+
+    return {
+      ...result,
+      mode: 'PRODUCTION'
+    };
+  }
+
+  // 2. Mock mode for dev/local
+  console.log('====================================================');
+  console.log(`[SMS-REFERRAL MOCK] Invitation to ${normalized}`);
+  console.log(`Code: ${options.referralCode} | Link: ${options.registerUrl}`);
+  console.log('====================================================');
+
+  return {
+    success: true,
+    mode: 'MOCK',
+    devCode: options.registerUrl
+  };
+}

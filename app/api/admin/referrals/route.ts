@@ -37,7 +37,7 @@ export async function GET(req: Request) {
       ];
     }
 
-    const [totalCodes, activeCodes, usedCodes, codes] = await Promise.all([
+    const [totalCodes, activeCodes, usedCodes, codes, artists] = await Promise.all([
       prisma.referralCode.count(),
       prisma.referralCode.count({ where: { isUsed: false } }),
       prisma.referralCode.count({ where: { isUsed: true } }),
@@ -70,6 +70,28 @@ export async function GET(req: Request) {
             }
           }
         }
+      }),
+      prisma.user.findMany({
+        where: {
+          OR: [
+            { role: 'ARTIST' },
+            { artistProfile: { isNot: null } }
+          ],
+          artistProfile: { isDeleted: false }
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phoneNumber: true,
+          artistProfile: {
+            select: { displayId: true, brandName: true }
+          },
+          _count: {
+            select: { createdReferrals: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
       })
     ]);
 
@@ -80,7 +102,8 @@ export async function GET(req: Request) {
         activeCodes,
         usedCodes
       },
-      codes
+      codes,
+      artists
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate'

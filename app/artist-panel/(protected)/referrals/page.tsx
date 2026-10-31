@@ -39,6 +39,12 @@ export default function ArtistReferralsPage() {
   const [shareModalData, setShareModalData] = useState<ShareModalData | null>(null);
   const [copiedModalLink, setCopiedModalLink] = useState(false);
 
+  // Send via SMS / Email modal state
+  const [sendModalCode, setSendModalCode] = useState<string | null>(null);
+  const [sendTarget, setSendTarget] = useState('');
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendError, setSendError] = useState('');
+
   const fetchCodes = async () => {
     try {
       setLoading(true);
@@ -124,6 +130,39 @@ export default function ArtistReferralsPage() {
     });
   };
 
+  const handleSendInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sendModalCode || !sendTarget.trim()) return;
+
+    setSendLoading(true);
+    setSendError('');
+
+    try {
+      const res = await fetch('/api/referrals/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: sendModalCode,
+          target: sendTarget.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setSendError(data.error || 'خطا در ارسال دعوت‌نامه');
+        return;
+      }
+
+      setSendModalCode(null);
+      setSendTarget('');
+      showToast(data.message || 'دعوت‌نامه با موفقیت ارسال شد.');
+    } catch {
+      setSendError('خطای غیرمنتظره در برقراری ارتباط با سرور.');
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
   const activeCodes = codes.filter((c) => !c.isUsed);
   const usedCodes = codes.filter((c) => c.isUsed);
 
@@ -150,7 +189,7 @@ export default function ArtistReferralsPage() {
               دعوت از هنرمندان (کدهای دعوت اختصاصی)
             </h1>
             <p className="text-sm sm:text-base text-teal-100/90 leading-relaxed">
-              شما به عنوان هنرمند تایید شده در هنرهاب، دارای <strong className="text-amber-300 font-black">۳ کد معرف اختصاصی</strong> هستید تا در اختیار همکاران و هنرمندان دیگر قرار دهید. هر کد یکبار مصرف است و پس از ثبت‌نام موفق، می‌سوزد.
+              شما به عنوان هنرمند تایید شده در هنرهاب، دارای کدهای معرف اختصاصی هستید تا در اختیار همکاران و هنرمندان دیگر قرار دهید. هر کد یکبار مصرف است و پس از ثبت‌نام موفق، می‌سوزد.
             </p>
           </div>
 
@@ -158,7 +197,7 @@ export default function ArtistReferralsPage() {
           <div className="flex md:flex-col gap-3 shrink-0">
             <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/15 text-center">
               <span className="text-xs text-teal-200 block mb-0.5">کدهای قابل استفاده</span>
-              <span className="text-2xl font-black text-emerald-300">{toPersianDigits(activeCodes.length)} از ۳</span>
+              <span className="text-2xl font-black text-emerald-300">{toPersianDigits(activeCodes.length)} از {toPersianDigits(codes.length)}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/15 text-center">
               <span className="text-xs text-teal-200 block mb-0.5">استفاده شده</span>
@@ -198,7 +237,7 @@ export default function ArtistReferralsPage() {
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
               <span>🎟️</span>
-              <span>کدهای اختصاصی شما (مجموعاً ۳ سهمیه)</span>
+              <span>کدهای اختصاصی شما (مجموعاً {toPersianDigits(codes.length)} سهمیه)</span>
             </h2>
             <span className="text-xs text-slate-500 font-medium">
               برای اشتراک‌گذاری روی هر کد کلیک کنید
@@ -304,15 +343,26 @@ export default function ArtistReferralsPage() {
                       </button>
                     </div>
 
+                    {/* Direct SMS / Email Send Button */}
+                    <button
+                      type="button"
+                      onClick={() => { setSendModalCode(item.code); setSendTarget(''); setSendError(''); }}
+                      className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
+                      title="ارسال مستقیم دعوت‌نامه از طریق پیامک یا ایمیل"
+                    >
+                      <span className="text-sm">✉️</span>
+                      <span>ارسال کد با پیامک یا ایمیل</span>
+                    </button>
+
                     {/* Share Button (Web Share API for Mobile & Desktop) */}
                     <button
                       type="button"
                       onClick={() => handleShare(item.code)}
-                      className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-900/20 cursor-pointer"
+                      className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
                       title="اشتراک‌گذاری دعوت‌نامه متناسب با دستگاه"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                      <span>اشتراک‌گذاری دعوت‌نامه با دوستان</span>
+                      <span>اشتراک‌گذاری در پیام‌رسان‌ها</span>
                     </button>
                   </div>
                 </div>
@@ -446,6 +496,102 @@ export default function ArtistReferralsPage() {
                 {copiedModalLink ? 'کپی شد ✓' : 'کپی لینک'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Invite Modal (SMS / Email) */}
+      {sendModalCode && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+          onClick={() => setSendModalCode(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
+                  ✉️
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800">ارسال مستقیم دعوت‌نامه</h3>
+                  <p className="text-xs text-slate-500">ارسال از طریق پیامک یا ایمیل رسمی هنرهاب</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSendModalCode(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendInviteSubmit} className="space-y-4">
+              {/* Selected Code Banner */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-900">کد معرف ارسالی:</span>
+                <span className="font-mono text-lg font-black text-emerald-800 tracking-wider">
+                  {sendModalCode}
+                </span>
+              </div>
+
+              {/* Target Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شماره موبایل یا ایمیل همکار هنرمند:
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={sendTarget}
+                  onChange={(e) => setSendTarget(e.target.value)}
+                  placeholder="0912... یا artist@example.com"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl font-sans text-sm focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800 text-left placeholder:text-right"
+                  required
+                  autoFocus
+                />
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  💡 با وارد کردن شماره موبایل، پیامک رسمی حاوی لینک اختصاصی ثبت‌نام با این کد ارسال می‌شود. با وارد کردن ایمیل، دعوت‌نامه با قالب اختصاصی ارسال خواهد شد.
+                </p>
+              </div>
+
+              {/* Error display */}
+              {sendError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold">
+                  {sendError}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSendModalCode(null)}
+                  disabled={sendLoading}
+                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  انصراف
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendLoading || !sendTarget.trim()}
+                  className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {sendLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>در حال ارسال...</span>
+                    </>
+                  ) : (
+                    <span>ارسال دعوت‌نامه 🚀</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

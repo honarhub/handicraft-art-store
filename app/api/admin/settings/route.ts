@@ -44,6 +44,8 @@ export async function PATCH(request: Request) {
       smsSandboxApiKey,
       smsTemplateId,
       smsOtpParamName,
+      smsReferralTemplateId,
+      smsReferralParamName,
       smsLineNumber,
       otpResendIntervalSeconds,
       otpMaxPerHourPerPhone,
@@ -67,6 +69,8 @@ export async function PATCH(request: Request) {
     if (smsSandboxApiKey !== undefined) updateData.smsSandboxApiKey = smsSandboxApiKey ? smsSandboxApiKey.trim() : null;
     if (smsTemplateId !== undefined) updateData.smsTemplateId = smsTemplateId ? smsTemplateId.toString().trim() : null;
     if (smsOtpParamName !== undefined) updateData.smsOtpParamName = (smsOtpParamName || 'Code').trim();
+    if (smsReferralTemplateId !== undefined) updateData.smsReferralTemplateId = smsReferralTemplateId ? smsReferralTemplateId.toString().trim() : null;
+    if (smsReferralParamName !== undefined) updateData.smsReferralParamName = (smsReferralParamName || 'Code').trim();
     if (smsLineNumber !== undefined) updateData.smsLineNumber = smsLineNumber ? smsLineNumber.trim() : null;
     if (otpResendIntervalSeconds !== undefined) updateData.otpResendIntervalSeconds = Math.max(10, Number(otpResendIntervalSeconds) || 60);
     if (otpMaxPerHourPerPhone !== undefined) updateData.otpMaxPerHourPerPhone = Math.max(1, Number(otpMaxPerHourPerPhone) || 5);
