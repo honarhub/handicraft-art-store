@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { target, channel = 'auto', code: clientProvidedCode } = body;
+    const { target, channel = 'auto', code: clientProvidedCode, isCustom = false } = body;
 
     if (!target || typeof target !== 'string' || !target.trim()) {
       return NextResponse.json({ error: 'لطفاً شماره موبایل یا آدرس ایمیل متقاضی را وارد کنید.' }, { status: 400 });
@@ -51,12 +51,30 @@ export async function POST(req: Request) {
       }
     }
 
-    // 1. Determine unique referral code (use client previewed code if available & unique, or generate fresh)
+    // 1. Determine unique referral code (custom code validation OR random code generation)
     let newCode = '';
-    if (clientProvidedCode && typeof clientProvidedCode === 'string') {
+    if (clientProvidedCode && typeof clientProvidedCode === 'string' && clientProvidedCode.trim()) {
       const candidate = clientProvidedCode.trim().toUpperCase();
+
+      if (isCustom) {
+        if (candidate.length < 3) {
+          return NextResponse.json({ error: 'کد سفارشی باید حداقل ۳ کاراکتر باشد.' }, { status: 400 });
+        }
+        if (candidate.length > 25) {
+          return NextResponse.json({ error: 'طول کد سفارشی حداکثر می‌تواند ۲۵ کاراکتر باشد (محدودیت سامانه پیامک).' }, { status: 400 });
+        }
+        if (/\s/.test(candidate)) {
+          return NextResponse.json({ error: 'کد سفارشی نمی‌تواند حاوی فاصله باشد.' }, { status: 400 });
+        }
+      }
+
       const existing = await prisma.referralCode.findUnique({ where: { code: candidate } });
-      if (!existing) {
+      if (existing) {
+        if (isCustom) {
+          return NextResponse.json({ error: `کد معرف «${candidate}» قبلاً در سیستم ثبت شده و تکراری است. لطفاً کد دیگری انتخاب کنید.` }, { status: 400 });
+        }
+        // If not custom (was previewed random), let it fall through to generate a new unique code below
+      } else {
         newCode = candidate;
       }
     }

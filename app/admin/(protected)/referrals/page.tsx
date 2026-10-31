@@ -91,7 +91,9 @@ export default function AdminReferralsPage() {
 
   // Quick Instant Code Generate & Send Modal state
   const [showQuickSendModal, setShowQuickSendModal] = useState(false);
+  const [quickSendMode, setQuickSendMode] = useState<'auto' | 'custom'>('auto');
   const [quickSendCode, setQuickSendCode] = useState('');
+  const [quickSendCustomCode, setQuickSendCustomCode] = useState('');
   const [quickSendTarget, setQuickSendTarget] = useState('');
   const [quickSendLoading, setQuickSendLoading] = useState(false);
   const [quickSendError, setQuickSendError] = useState('');
@@ -264,7 +266,9 @@ export default function AdminReferralsPage() {
   };
 
   const handleOpenQuickSendModal = () => {
+    setQuickSendMode('auto');
     setQuickSendCode(generateClientCode());
+    setQuickSendCustomCode('');
     setQuickSendTarget('');
     setQuickSendError('');
     setShowQuickSendModal(true);
@@ -273,6 +277,25 @@ export default function AdminReferralsPage() {
   const handleQuickSendSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickSendTarget.trim()) return;
+
+    const activeCode = quickSendMode === 'custom' 
+      ? quickSendCustomCode.trim().toUpperCase() 
+      : quickSendCode.trim().toUpperCase();
+
+    if (quickSendMode === 'custom') {
+      if (!activeCode || activeCode.length < 3) {
+        setQuickSendError('کد سفارشی باید حداقل ۳ کاراکتر باشد.');
+        return;
+      }
+      if (activeCode.length > 25) {
+        setQuickSendError('طول کد سفارشی نمی‌تواند بیش از ۲۵ کاراکتر باشد (محدودیت سامانه پیامک).');
+        return;
+      }
+      if (/\s/.test(activeCode)) {
+        setQuickSendError('کد سفارشی نمی‌تواند حاوی فاصله باشد.');
+        return;
+      }
+    }
 
     setQuickSendLoading(true);
     setQuickSendError('');
@@ -283,7 +306,8 @@ export default function AdminReferralsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           target: quickSendTarget.trim(),
-          code: quickSendCode
+          code: activeCode,
+          isCustom: quickSendMode === 'custom'
         })
       });
 
@@ -296,7 +320,8 @@ export default function AdminReferralsPage() {
       setShowQuickSendModal(false);
       setQuickSendTarget('');
       setQuickSendCode('');
-      showToast(data.message || 'کد معرف آنی با موفقیت صادر و ارسال شد.');
+      setQuickSendCustomCode('');
+      showToast(data.message || `کد معرف «${activeCode}» با موفقیت صادر و ارسال شد.`);
       fetchCodes(1);
       setCurrentPage(1);
     } catch {
@@ -1061,24 +1086,75 @@ export default function AdminReferralsPage() {
             </div>
 
             <form onSubmit={handleQuickSendSubmit} className="space-y-4">
-              {/* Generated Code Display */}
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-bold text-emerald-800 block mb-0.5">کد معرف آنی:</span>
-                  <span className="font-mono text-xl font-black text-emerald-900 tracking-wider" dir="ltr">
-                    {quickSendCode}
-                  </span>
-                </div>
+              {/* Code Mode Switcher: Auto vs Custom */}
+              <div className="flex bg-slate-100 p-1 rounded-xl">
                 <button
                   type="button"
-                  onClick={() => setQuickSendCode(generateClientCode())}
-                  className="text-xs text-emerald-700 hover:text-emerald-900 font-bold bg-white/90 hover:bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="تولید یک کد دیگر"
+                  onClick={() => {
+                    setQuickSendMode('auto');
+                    setQuickSendError('');
+                  }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    quickSendMode === 'auto' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 >
-                  <span>🔄</span>
-                  <span>کد جدید</span>
+                  <span>⚡</span>
+                  <span>کد خودکار (سیستمی)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickSendMode('custom');
+                    setQuickSendError('');
+                  }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    quickSendMode === 'custom' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <span>✏️</span>
+                  <span>کد سفارشی (دلخواه)</span>
                 </button>
               </div>
+
+              {quickSendMode === 'auto' ? (
+                /* Generated Code Display */
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-bold text-emerald-800 block mb-0.5">کد معرف آنی:</span>
+                    <span className="font-mono text-xl font-black text-emerald-900 tracking-wider" dir="ltr">
+                      {quickSendCode}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuickSendCode(generateClientCode())}
+                    className="text-xs text-emerald-700 hover:text-emerald-900 font-bold bg-white/90 hover:bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                    title="تولید یک کد دیگر"
+                  >
+                    <span>🔄</span>
+                    <span>کد جدید</span>
+                  </button>
+                </div>
+              ) : (
+                /* Custom Code Input */
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    کد معرف سفارشی دلخواه:
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    placeholder="مثال: VIP-ARTIST یا HONAR2026"
+                    value={quickSendCustomCode}
+                    onChange={(e) => setQuickSendCustomCode(e.target.value.toUpperCase())}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-xl font-mono text-sm font-bold text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-none text-center tracking-widest uppercase placeholder:font-sans placeholder:tracking-normal"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    کد سفارشی باید بین ۳ تا ۲۵ کاراکتر باشد (بدون فاصله).
+                  </p>
+                </div>
+              )}
 
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-600 leading-relaxed">
                 ✨ پس از ثبت، این کد تنها در صورت ارسال موفق پیامک یا ایمیل به عنوان معرف مدیر کل در سیستم ثبت و فعال خواهد شد.
