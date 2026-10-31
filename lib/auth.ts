@@ -121,7 +121,22 @@ export const authOptions: NextAuthOptions = {
             throw new Error("برای این حساب رمز عبور تعیین نشده است. لطفاً با رمز یکبار مصرف پیامکی وارد شوید یا از فراموشی رمز عبور استفاده نمایید.");
           }
 
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          let isPasswordValid = false;
+          try {
+            isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          } catch {
+            isPasswordValid = false;
+          }
+
+          if (!isPasswordValid && credentials.password === user.password) {
+            isPasswordValid = true;
+            const newHash = await bcrypt.hash(credentials.password, 10);
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { password: newHash }
+            });
+          }
+
           if (!isPasswordValid) {
             throw new Error("رمز عبور اشتباه است.");
           }
@@ -164,7 +179,22 @@ export const authOptions: NextAuthOptions = {
           throw new Error("برای این حساب رمز عبور تعریف نشده است. در صورت ثبت نام با گوگل یا موبایل، از آن طریق اقدام کنید.");
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+        let isPasswordValid = false;
+        try {
+          isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+        } catch {
+          isPasswordValid = false;
+        }
+
+        // Support fallback if password was stored in plain text and auto-upgrade to hash
+        if (!isPasswordValid && credentials.password === user.password) {
+          isPasswordValid = true;
+          const newHash = await bcrypt.hash(credentials.password, 10);
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { password: newHash }
+          });
+        }
 
         if (!isPasswordValid) {
           throw new Error("رمز عبور اشتباه است.");

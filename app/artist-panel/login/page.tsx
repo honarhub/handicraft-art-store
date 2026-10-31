@@ -95,7 +95,9 @@ function ArtistLoginContent() {
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (status === 'authenticated' && !['deleted', 'archived', 'deactivated'].includes(errorParam || '')) {
-      if (session?.user?.role === 'ARTIST' || session?.user?.role === 'ADMIN') {
+      if (session?.user?.role === 'ADMIN') {
+        router.push('/admin');
+      } else {
         router.push('/artist-panel/dashboard');
       }
     }
@@ -238,7 +240,17 @@ function ArtistLoginContent() {
             // Ignore if browser unsupported or rejected
           }
         }
-        router.push('/artist-panel/dashboard');
+        try {
+          const sessionRes = await fetch('/api/auth/session');
+          const sessionData = await sessionRes.json();
+          if (sessionData?.user?.role === 'ADMIN') {
+            router.push('/admin');
+          } else {
+            router.push('/artist-panel/dashboard');
+          }
+        } catch {
+          router.push('/artist-panel/dashboard');
+        }
       }
     } catch {
       setSuccessMsg('');
@@ -329,7 +341,17 @@ function ArtistLoginContent() {
         setErrorMsg(res.error || 'کد تایید نامعتبر است.');
         setLoginLoading(false);
       } else {
-        router.push('/artist-panel/dashboard');
+        try {
+          const sessionRes = await fetch('/api/auth/session');
+          const sessionData = await sessionRes.json();
+          if (sessionData?.user?.role === 'ADMIN') {
+            router.push('/admin');
+          } else {
+            router.push('/artist-panel/dashboard');
+          }
+        } catch {
+          router.push('/artist-panel/dashboard');
+        }
       }
     } catch {
       setSuccessMsg('');
@@ -494,7 +516,17 @@ function ArtistLoginContent() {
         }
         router.push('/artist-panel/onboarding');
       } else {
-        router.push('/artist-panel/dashboard');
+        try {
+          const sessionRes = await fetch('/api/auth/session');
+          const sessionData = await sessionRes.json();
+          if (sessionData?.user?.role === 'ADMIN') {
+            router.push('/admin');
+          } else {
+            router.push('/artist-panel/dashboard');
+          }
+        } catch {
+          router.push('/artist-panel/dashboard');
+        }
       }
     } catch {
       setErrorMsg('مشکلی در تکمیل ثبت‌نام پیش آمد.');
