@@ -276,6 +276,9 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (dbUser) {
+          // Explicitly assign internal database user id to the NextAuth user object
+          user.id = dbUser.id;
+
           // If the user has no name or a generic default name, sync from Google profile
           if (googleName && (!dbUser.name || dbUser.name.startsWith('هنرمند'))) {
             await prisma.user.update({
@@ -338,6 +341,23 @@ export const authOptions: NextAuthOptions = {
             const redirectEmail = encodeURIComponent(googleEmail);
             return `/artist-panel/login?error=not_registered&email=${redirectEmail}`;
           }
+          // Admin user logging in via Google for the first time:
+          const newAdmin = await prisma.user.create({
+            data: {
+              email: googleEmail,
+              name: googleName || 'مدیر سیستم',
+              role: 'ADMIN',
+            }
+          });
+          await prisma.artistProfile.create({
+            data: {
+              userId: newAdmin.id,
+              isApproved: true,
+              isActive: true,
+              bio: 'مدیر کل سیستم (Master Admin)',
+            }
+          });
+          user.id = newAdmin.id;
           user.role = 'ADMIN';
         }
       }
@@ -355,13 +375,10 @@ export const authOptions: NextAuthOptions = {
       }
       
       // Look up user by id or by email to ensure token stays in sync with actual DB record
-      const lookupFilter = token.id
-        ? { id: token.id as string }
-        : (token.email ? { email: token.email as string } : null);
-
-      if (lookupFilter && trigger !== 'update') {
-        const dbUser = await prisma.user.findUnique({
-          where: lookupFilter,
+      let dbUser = null;
+      if (token.id) {
+        dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
           select: { 
             id: true, 
             name: true, 
@@ -370,16 +387,36 @@ export const authOptions: NextAuthOptions = {
             artistProfile: { select: { id: true, isDeleted: true } } 
           }
         });
-        if (!dbUser || dbUser.artistProfile?.isDeleted) {
-          // Invalidate session cleanly if user or artist is deleted
+      }
+      if (!dbUser && token.email) {
+        dbUser = await prisma.user.findUnique({
+          where: { email: (token.email as string).trim().toLowerCase() },
+          select: { 
+            id: true, 
+            name: true, 
+            role: true, 
+            email: true, 
+            artistProfile: { select: { id: true, isDeleted: true } } 
+          }
+        });
+      }
+
+      if (trigger !== 'update') {
+        if (!dbUser) {
+          // If no user found in database, invalidate token
+          return {} as any;
+        }
+
+        const isAdmin = isAdminEmail(dbUser.email);
+
+        if (!isAdmin && dbUser.artistProfile?.isDeleted) {
+          // Invalidate session cleanly if non-admin artist is deleted
           return {} as any;
         }
         
         token.id = dbUser.id;
         token.name = dbUser.name;
         token.email = dbUser.email;
-        
-        const isAdmin = isAdminEmail(dbUser.email);
         
         if (isAdmin) {
           if (dbUser.role !== 'ADMIN') {
@@ -409,11 +446,14 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token && session?.user) {
-        if (token.id) session.user.id = token.id as string;
-        if (token.role) session.user.role = token.role as string;
-        if (token.name) session.user.name = token.name as string;
-        if (token.email) session.user.email = token.email as string;
+      if (!token || !token.id) {
+        return null as any;
+      }
+      if (session?.user) {
+        session.user.id = token.id as string;
+        session.user.role = (token.role as string) || 'USER';
+        session.user.name = token.name as string;
+        session.user.email = token.email as string;
       }
       return session;
     }
