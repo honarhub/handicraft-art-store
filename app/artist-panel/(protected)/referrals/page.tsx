@@ -74,9 +74,9 @@ export default function ArtistReferralsPage() {
   };
 
   const getRegisterUrl = (code: string) => {
-    const origin = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')
+    const origin = typeof window !== 'undefined' && window.location.origin 
       ? window.location.origin 
-      : 'https://honarhub.ir';
+      : '';
     return `${origin}/artist-panel/login?invite=${encodeURIComponent(code)}&ref=${encodeURIComponent(code)}&tab=register`;
   };
 

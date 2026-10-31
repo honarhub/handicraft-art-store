@@ -555,17 +555,18 @@ export function renderReferralInviteEmailHtml(options: {
 }): string {
   const { referralCode, senderName } = options;
 
-  // 1. Force production domain: Never expose localhost/127.0.0.1 in emails
-  let baseUrl = 'https://honarhub.ir';
+  // Dynamically resolve baseUrl from options.registerUrl without hardcoding domain
+  let baseUrl = '';
   if (options.registerUrl) {
     try {
       const parsed = new URL(options.registerUrl);
-      if (parsed.hostname && !parsed.hostname.includes('localhost') && !parsed.hostname.includes('127.0.0.1')) {
-        baseUrl = `${parsed.protocol}//${parsed.host}`;
-      }
+      baseUrl = `${parsed.protocol}//${parsed.host}`;
     } catch {
       // fallback
     }
+  }
+  if (!baseUrl) {
+    baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://honarhub.ir';
   }
 
   // 2. Include BOTH 'invite' and 'ref' query parameters:
