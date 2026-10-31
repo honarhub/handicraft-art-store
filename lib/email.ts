@@ -569,14 +569,12 @@ export function renderReferralInviteEmailHtml(options: {
     baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://honarhub.ir';
   }
 
-  // 2. Include BOTH 'invite' and 'ref' query parameters:
-  // - 'invite' as the first parameter survives email client sanitizers (e.g. Gmail/Outlook) that strip 'ref'.
-  // - 'ref' provides 100% backward compatibility with existing frontends/cache that expect 'ref'.
+  // 2. Use 'invite' as the single concise query parameter (prevents email sanitizers from stripping it)
   const cleanCode = encodeURIComponent(referralCode.trim().toUpperCase());
-  const canonicalUrl = `${baseUrl}/artist-panel/login?invite=${cleanCode}&ref=${cleanCode}&tab=register`;
+  const canonicalUrl = `${baseUrl}/artist-panel/login?invite=${cleanCode}&tab=register`;
 
   // 3. For HTML href attributes, escape ampersand as &amp; per standard W3C HTML specification
-  const htmlAttrHref = `${baseUrl}/artist-panel/login?invite=${cleanCode}&amp;ref=${cleanCode}&amp;tab=register`;
+  const htmlAttrHref = `${baseUrl}/artist-panel/login?invite=${cleanCode}&amp;tab=register`;
 
   const inviterText = (senderName && senderName.trim()) 
     ? `از سوی <strong>${senderName.trim()}</strong>` 

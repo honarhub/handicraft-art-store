@@ -77,7 +77,7 @@ export default function ArtistReferralsPage() {
     const origin = typeof window !== 'undefined' && window.location.origin 
       ? window.location.origin 
       : '';
-    return `${origin}/artist-panel/login?invite=${encodeURIComponent(code)}&ref=${encodeURIComponent(code)}&tab=register`;
+    return `${origin}/artist-panel/login?invite=${encodeURIComponent(code)}&tab=register`;
   };
 
   const handleCopyCode = async (code: string) => {
