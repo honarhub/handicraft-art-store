@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { target, channel = 'auto' } = body;
+    const { target, channel = 'auto', code: clientProvidedCode } = body;
 
     if (!target || typeof target !== 'string' || !target.trim()) {
       return NextResponse.json({ error: 'لطفاً شماره موبایل یا آدرس ایمیل متقاضی را وارد کنید.' }, { status: 400 });
@@ -51,15 +51,25 @@ export async function POST(req: Request) {
       }
     }
 
-    // 1. Generate unique random referral code
+    // 1. Determine unique referral code (use client previewed code if available & unique, or generate fresh)
     let newCode = '';
-    let isUnique = false;
-    while (!isUnique) {
-      const candidate = generateRandomCode();
+    if (clientProvidedCode && typeof clientProvidedCode === 'string') {
+      const candidate = clientProvidedCode.trim().toUpperCase();
       const existing = await prisma.referralCode.findUnique({ where: { code: candidate } });
       if (!existing) {
         newCode = candidate;
-        isUnique = true;
+      }
+    }
+
+    if (!newCode) {
+      let isUnique = false;
+      while (!isUnique) {
+        const candidate = generateRandomCode();
+        const existing = await prisma.referralCode.findUnique({ where: { code: candidate } });
+        if (!existing) {
+          newCode = candidate;
+          isUnique = true;
+        }
       }
     }
 

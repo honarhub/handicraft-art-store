@@ -79,8 +79,19 @@ export default function AdminReferralsPage() {
   const [targetArtistUserId, setTargetArtistUserId] = useState<string>('');
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Quick Random Code Generate & Send Modal state
+  // Client-side quick random code generator for preview
+  const generateClientCode = (prefix = 'HNR'): string => {
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let randomPart = '';
+    for (let i = 0; i < 5; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `${prefix}-${randomPart}`;
+  };
+
+  // Quick Instant Code Generate & Send Modal state
   const [showQuickSendModal, setShowQuickSendModal] = useState(false);
+  const [quickSendCode, setQuickSendCode] = useState('');
   const [quickSendTarget, setQuickSendTarget] = useState('');
   const [quickSendLoading, setQuickSendLoading] = useState(false);
   const [quickSendError, setQuickSendError] = useState('');
@@ -252,6 +263,13 @@ export default function AdminReferralsPage() {
     }
   };
 
+  const handleOpenQuickSendModal = () => {
+    setQuickSendCode(generateClientCode());
+    setQuickSendTarget('');
+    setQuickSendError('');
+    setShowQuickSendModal(true);
+  };
+
   const handleQuickSendSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickSendTarget.trim()) return;
@@ -263,7 +281,10 @@ export default function AdminReferralsPage() {
       const res = await fetch('/api/admin/referrals/quick-send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: quickSendTarget.trim() })
+        body: JSON.stringify({
+          target: quickSendTarget.trim(),
+          code: quickSendCode
+        })
       });
 
       const data = await res.json();
@@ -274,13 +295,35 @@ export default function AdminReferralsPage() {
 
       setShowQuickSendModal(false);
       setQuickSendTarget('');
-      showToast(data.message || 'کد معرف رندوم با موفقیت صادر و ارسال شد.');
+      setQuickSendCode('');
+      showToast(data.message || 'کد معرف آنی با موفقیت صادر و ارسال شد.');
       fetchCodes(1);
       setCurrentPage(1);
     } catch {
       setQuickSendError('خطای سرور در صدور و ارسال کد معرف');
     } finally {
       setQuickSendLoading(false);
+    }
+  };
+
+  const handleDeleteCode = async (id: string, code: string) => {
+    if (!window.confirm(`آیا از حذف و باطل کردن کد معرف «${code}» اطمینان دارید؟`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/referrals?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'خطا در حذف کد معرف');
+        return;
+      }
+      showToast(data.message || `کد معرف «${code}» با موفقیت حذف گردید.`);
+      fetchCodes(currentPage);
+    } catch {
+      showToast('خطای شبکه در حذف کد معرف.');
     }
   };
 
@@ -353,15 +396,11 @@ export default function AdminReferralsPage() {
 
         <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
           <button
-            onClick={() => {
-              setShowQuickSendModal(true);
-              setQuickSendError('');
-              setQuickSendTarget('');
-            }}
+            onClick={handleOpenQuickSendModal}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
           >
-            <span className="text-lg">🚀</span>
-            <span>صدور کد رندوم و ارسال مستقیم</span>
+            <span className="text-lg">⚡</span>
+            <span>صدور کد آنی</span>
           </button>
 
           <button
@@ -524,11 +563,24 @@ export default function AdminReferralsPage() {
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                     {/* Code */}
                     <td className="py-4 px-4">
-                      <span className={`font-mono text-sm font-black px-2.5 py-1 rounded-lg ${
-                        item.isUsed ? 'bg-slate-100 text-slate-400 line-through' : 'bg-emerald-50 text-emerald-800 border border-emerald-300'
-                      }`}>
-                        {item.code}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-mono text-sm font-black px-2.5 py-1 rounded-lg ${
+                          item.isUsed ? 'bg-slate-100 text-slate-400 line-through' : 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                        }`}>
+                          {item.code}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(item.code)}
+                          className="text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                          title="کپی کد معرف"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </div>
                     </td>
 
                     {/* Status */}
@@ -598,35 +650,32 @@ export default function AdminReferralsPage() {
                       {item.usedAt ? new Date(item.usedAt).toLocaleDateString('fa-IR') : '-'}
                     </td>
 
-                    {/* Actions */}
+                    {/* Actions: ONLY Copy Link (chain icon) and Delete (standard trash icon) */}
                     <td className="py-4 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
-                          onClick={() => handleCopyCode(item.code)}
-                          className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                          title="کپی کردن فقط کد"
+                          onClick={() => handleCopyLink(item.code)}
+                          className="text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors cursor-pointer"
+                          title="کپی لینک مستقیم ثبت‌نام با این کد"
                         >
-                          📋
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                          </svg>
                         </button>
-                        {!item.isUsed && (
-                          <>
-                            <button
-                              onClick={() => handleCopyLink(item.code)}
-                              className="text-slate-500 hover:text-emerald-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                              title="کپی لینک مستقیم ثبت‌نام با این کد"
-                            >
-                              🔗
-                            </button>
-                            <button
-                              onClick={() => { setSendModalCode(item.code); setSendTarget(''); setSendError(''); }}
-                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold py-1 px-2.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-                              title="ارسال پیامک یا ایمیل به متقاضی"
-                            >
-                              <span>✉️</span>
-                              <span>ارسال</span>
-                            </button>
-                          </>
-                        )}
+                        <button
+                          onClick={() => handleDeleteCode(item.id, item.code)}
+                          title="حذف و باطل کردن کد معرف"
+                          className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors border border-transparent hover:border-red-100 cursor-pointer"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -981,7 +1030,7 @@ export default function AdminReferralsPage() {
         </div>
       )}
 
-      {/* Quick Random Code Generate & Send Modal */}
+      {/* Quick Instant Code Generate & Send Modal */}
       {showQuickSendModal && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in"
@@ -995,11 +1044,11 @@ export default function AdminReferralsPage() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-lg font-bold">
-                  🚀
+                  ⚡
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-800">صدور کد معرف رندوم و ارسال مستقیم</h3>
-                  <p className="text-xs text-slate-500">ایجاد کد خودکار به اسم مدیر کل و ارسال آنی به مخاطب</p>
+                  <h3 className="text-base font-black text-slate-800">صدور کد آنی</h3>
+                  <p className="text-xs text-slate-500">صدور کد اختصاصی به نام مدیر کل و ارسال به متقاضی</p>
                 </div>
               </div>
               <button
@@ -1012,8 +1061,27 @@ export default function AdminReferralsPage() {
             </div>
 
             <form onSubmit={handleQuickSendSubmit} className="space-y-4">
-              <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3 text-xs text-emerald-800 leading-relaxed">
-                ✨ پس از ثبت، یک کد معرف رندوم و یکتا تولید شده، به عنوان معرف مدیر کل در دیتابیس ثبت می‌گردد و لینک ثبت‌نام به همراه کد معرف مستقیماً به شماره یا ایمیل وارد شده ارسال خواهد شد.
+              {/* Generated Code Display */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-bold text-emerald-800 block mb-0.5">کد معرف آنی:</span>
+                  <span className="font-mono text-xl font-black text-emerald-900 tracking-wider" dir="ltr">
+                    {quickSendCode}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuickSendCode(generateClientCode())}
+                  className="text-xs text-emerald-700 hover:text-emerald-900 font-bold bg-white/90 hover:bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="تولید یک کد دیگر"
+                >
+                  <span>🔄</span>
+                  <span>کد جدید</span>
+                </button>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-600 leading-relaxed">
+                ✨ پس از ثبت، این کد تنها در صورت ارسال موفق پیامک یا ایمیل به عنوان معرف مدیر کل در سیستم ثبت و فعال خواهد شد.
               </div>
 
               {/* Target Input */}
@@ -1032,7 +1100,7 @@ export default function AdminReferralsPage() {
                   autoFocus
                 />
                 <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
-                  💡 در صورت ورود شماره موبایل، پیامک وب‌سرویس حاوی لینک ثبت‌نام ارسال می‌شود؛ در صورت ورود ایمیل، دعوت‌نامه رسمی ایمیلی ارسال خواهد شد.
+                  💡 با وارد کردن شماره موبایل پیامک حاوی کد معرف و لینک ثبت‌نام ارسال می‌شود؛ با وارد کردن ایمیل، دعوت‌نامه رسمی ارسال خواهد شد.
                 </p>
               </div>
 
@@ -1064,7 +1132,7 @@ export default function AdminReferralsPage() {
                       <span>در حال صدور و ارسال...</span>
                     </>
                   ) : (
-                    <span>صدور و ارسال آنی 🚀</span>
+                    <span>صدور و ارسال آنی ⚡</span>
                   )}
                 </button>
               </div>

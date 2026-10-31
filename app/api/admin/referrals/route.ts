@@ -253,3 +253,48 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'خطا در ایجاد کدهای معرف' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'دسترسی فقط برای ادمین کل مجاز است.' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    let id = searchParams.get('id');
+
+    if (!id) {
+      try {
+        const body = await req.json();
+        id = body?.id;
+      } catch {
+        // no body
+      }
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'شناسه کد معرف مشخص نشده است.' }, { status: 400 });
+    }
+
+    const referral = await prisma.referralCode.findUnique({
+      where: { id }
+    });
+
+    if (!referral) {
+      return NextResponse.json({ error: 'کد معرف مورد نظر یافت نشد.' }, { status: 404 });
+    }
+
+    await prisma.referralCode.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `کد معرف «${referral.code}» با موفقیت حذف و باطل شد.`
+    });
+  } catch (error: any) {
+    console.error('Admin referrals DELETE error:', error);
+    return NextResponse.json({ error: 'خطا در حذف و باطل کردن کد معرف' }, { status: 500 });
+  }
+}

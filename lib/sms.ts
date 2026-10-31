@@ -425,11 +425,11 @@ export async function sendReferralInviteSms(options: {
     };
   }
 
-  // 1. Live credentials provided (calls real sms.ir endpoint with registerUrl as the parameter value)
+  // 1. Live credentials provided (calls real sms.ir endpoint with referralCode as parameter value; max length is 25 chars)
   if (apiKey && templateId) {
     const result = await sendSmsIrVerify({
       mobile: normalized,
-      code: options.registerUrl,
+      code: options.referralCode,
       apiKey,
       templateId,
       paramName
@@ -449,7 +449,7 @@ export async function sendReferralInviteSms(options: {
       return {
         ...result,
         mode: 'SANDBOX',
-        devCode: options.registerUrl
+        devCode: options.referralCode
       };
     }
 
@@ -468,6 +468,6 @@ export async function sendReferralInviteSms(options: {
   return {
     success: true,
     mode: 'MOCK',
-    devCode: options.registerUrl
+    devCode: options.referralCode
   };
 }
