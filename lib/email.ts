@@ -568,14 +568,14 @@ export function renderReferralInviteEmailHtml(options: {
     }
   }
 
-  // 2. Guarantee that 'invite' is the FIRST query parameter.
-  // Using 'invite' (instead of 'ref') prevents email client tracking-sanitizers (e.g. Gmail/Outlook)
-  // from stripping the referral code, ensuring it is automatically loaded into the registration form.
+  // 2. Include BOTH 'invite' and 'ref' query parameters:
+  // - 'invite' as the first parameter survives email client sanitizers (e.g. Gmail/Outlook) that strip 'ref'.
+  // - 'ref' provides 100% backward compatibility with existing frontends/cache that expect 'ref'.
   const cleanCode = encodeURIComponent(referralCode.trim().toUpperCase());
-  const canonicalUrl = `${baseUrl}/artist-panel/login?invite=${cleanCode}&tab=register`;
+  const canonicalUrl = `${baseUrl}/artist-panel/login?invite=${cleanCode}&ref=${cleanCode}&tab=register`;
 
   // 3. For HTML href attributes, escape ampersand as &amp; per standard W3C HTML specification
-  const htmlAttrHref = `${baseUrl}/artist-panel/login?invite=${cleanCode}&amp;tab=register`;
+  const htmlAttrHref = `${baseUrl}/artist-panel/login?invite=${cleanCode}&amp;ref=${cleanCode}&amp;tab=register`;
 
   const inviterText = (senderName && senderName.trim()) 
     ? `از سوی <strong>${senderName.trim()}</strong>` 

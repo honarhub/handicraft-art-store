@@ -6,13 +6,58 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 
+// Helper function to reliably extract referral code from current URL, search params, or storage
+function extractReferralCode(searchParams?: URLSearchParams | null): string {
+  try {
+    let windowParams: URLSearchParams | null = null;
+    if (typeof window !== 'undefined') {
+      windowParams = new URLSearchParams(window.location.search);
+    }
+
+    const candidate = 
+      searchParams?.get('invite') ||
+      searchParams?.get('ref') ||
+      searchParams?.get('code') ||
+      searchParams?.get('referral') ||
+      searchParams?.get('referralCode') ||
+      windowParams?.get('invite') ||
+      windowParams?.get('ref') ||
+      windowParams?.get('code') ||
+      windowParams?.get('referral') ||
+      windowParams?.get('referralCode');
+
+    if (candidate && typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim().toUpperCase();
+    }
+
+    // Direct regex match on raw window.location.href in case next router query parsing differs
+    if (typeof window !== 'undefined') {
+      const match = window.location.href.match(/[?&](invite|ref|code|referral|referralCode)=([^&#]+)/i);
+      if (match && match[2]) {
+        return decodeURIComponent(match[2]).trim().toUpperCase();
+      }
+
+      // Check stored referral code if user previously arrived via referral link
+      const stored = sessionStorage.getItem('honarhub_referral_code') || localStorage.getItem('honarhub_referral_code');
+      if (stored && stored.trim()) {
+        return stored.trim().toUpperCase();
+      }
+    }
+  } catch {}
+  return '';
+}
+
 function ArtistLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
 
   // Main Mode: 'login' | 'register'
-  const [mainMode, setMainMode] = useState<'login' | 'register'>('login');
+  const [mainMode, setMainMode] = useState<'login' | 'register'>(() => {
+    const code = extractReferralCode(searchParams);
+    const tab = searchParams.get('tab') || searchParams.get('mode');
+    return (code || tab === 'register') ? 'register' : 'login';
+  });
 
   // --- LOGIN STATES ---
   const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
@@ -32,7 +77,7 @@ function ArtistLoginContent() {
   const [regMethod, setRegMethod] = useState<'phone' | 'email'>('phone');
   const [regStep, setRegStep] = useState<'form' | 'otp'>('form');
   const [regIdentifier, setRegIdentifier] = useState('');
-  const [regReferralCode, setRegReferralCode] = useState('');
+  const [regReferralCode, setRegReferralCode] = useState(() => extractReferralCode(searchParams));
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
@@ -59,7 +104,7 @@ function ArtistLoginContent() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Read search params on load (supports ref, code, referral and persists in session/localStorage)
+  // Read search params on load (supports invite, ref, code, referral and persists in session/localStorage)
   useEffect(() => {
     let windowParams: URLSearchParams | null = null;
     if (typeof window !== 'undefined') {
@@ -67,36 +112,21 @@ function ArtistLoginContent() {
     }
 
     const tab = searchParams.get('tab') || searchParams.get('mode') || windowParams?.get('tab') || windowParams?.get('mode');
-    const ref = searchParams.get('invite') || searchParams.get('ref') || searchParams.get('code') || searchParams.get('referral') || searchParams.get('referralCode')
-      || windowParams?.get('invite') || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
+    const detectedCode = extractReferralCode(searchParams);
     const err = searchParams.get('error') || windowParams?.get('error');
 
-    if (ref && typeof ref === 'string') {
-      const cleanRef = ref.trim().toUpperCase();
-      setRegReferralCode(cleanRef);
+    if (detectedCode) {
+      setRegReferralCode(detectedCode);
       setRefFromUrl(true);
       setMainMode('register');
       try {
         if (typeof window !== 'undefined') {
-          sessionStorage.setItem('honarhub_referral_code', cleanRef);
-          localStorage.setItem('honarhub_referral_code', cleanRef);
+          sessionStorage.setItem('honarhub_referral_code', detectedCode);
+          localStorage.setItem('honarhub_referral_code', detectedCode);
         }
       } catch {}
-    } else {
-      // Check stored referral code if user navigates or refreshes
-      try {
-        if (typeof window !== 'undefined') {
-          const storedRef = sessionStorage.getItem('honarhub_referral_code') || localStorage.getItem('honarhub_referral_code');
-          if (storedRef) {
-            setRegReferralCode(storedRef.trim().toUpperCase());
-            setRefFromUrl(true);
-          }
-        }
-      } catch {}
-
-      if (tab === 'register') {
-        setMainMode('register');
-      }
+    } else if (tab === 'register') {
+      setMainMode('register');
     }
 
     if (err === 'not_registered') {

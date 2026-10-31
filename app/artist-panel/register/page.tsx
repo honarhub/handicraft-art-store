@@ -17,7 +17,7 @@ function RegisterRedirectContent() {
       || windowParams?.get('invite') || windowParams?.get('ref') || windowParams?.get('code') || windowParams?.get('referral') || windowParams?.get('referralCode');
 
     const target = ref 
-      ? `/artist-panel/login?invite=${encodeURIComponent(ref.trim().toUpperCase())}&tab=register`
+      ? `/artist-panel/login?invite=${encodeURIComponent(ref.trim().toUpperCase())}&ref=${encodeURIComponent(ref.trim().toUpperCase())}&tab=register`
       : '/artist-panel/login?tab=register';
     router.replace(target);
   }, [router, searchParams]);
