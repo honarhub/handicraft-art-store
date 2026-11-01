@@ -340,7 +340,11 @@ export async function testSmsIrConnection(options: {
  * Sends OTP via active SMS provider (SMS.ir or FarazSMS)
  * Automatically loads SiteSettings from DB or process.env
  */
-export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult> {
+export async function sendSmsOtp(
+  phone: string, 
+  code: string,
+  purpose: 'LOGIN' | 'REGISTER' | 'PROFILE_VERIFY' | string = 'LOGIN'
+): Promise<SmsResult> {
   const normalized = normalizePhoneNumber(phone);
 
   let smsProvider = 'sms.ir';
@@ -351,12 +355,16 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
   let apiKey: string | null = null;
   let templateId: string | null = null;
   let paramName: string = 'Code';
+  let smsProfileTemplateId: string | null = null;
+  let smsProfileParamName: string = 'Code';
 
   // FarazSMS config
   let farazApiKey: string | null = null;
   let farazLineNumber: string | null = null;
   let farazPatternCode: string | null = null;
   let farazOtpParamName: string = 'code';
+  let farazProfilePatternCode: string | null = null;
+  let farazProfileParamName: string = 'code';
 
   try {
     const { default: prisma } = await import('@/lib/prisma');
@@ -371,6 +379,8 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
       farazLineNumber = settings.farazSmsLineNumber || process.env.FARAZSMS_LINE_NUMBER || null;
       farazPatternCode = settings.farazSmsPatternCode || process.env.FARAZSMS_PATTERN_CODE || null;
       farazOtpParamName = settings.farazSmsOtpParamName || 'code';
+      farazProfilePatternCode = settings.farazSmsProfilePatternCode || null;
+      farazProfileParamName = settings.farazSmsProfileParamName || 'code';
 
       // SMS.ir fields
       if (smsIsSandbox) {
@@ -381,6 +391,8 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
 
       templateId = settings.smsTemplateId || process.env.SMSIR_TEMPLATE_ID || null;
       paramName = settings.smsOtpParamName || 'Code';
+      smsProfileTemplateId = settings.smsProfileTemplateId || null;
+      smsProfileParamName = settings.smsProfileParamName || 'Code';
     }
   } catch (err) {
     console.warn('[SMS] Could not load SiteSettings for SMS config, checking env...', err);
@@ -393,30 +405,55 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
     };
   }
 
+  const isProfileVerify = purpose === 'PROFILE_VERIFY';
+
   // --- FARAZSMS PROVIDER ---
   if (smsProvider === 'farazsms') {
     if (!farazApiKey) farazApiKey = process.env.FARAZSMS_API_KEY || null;
     if (!farazLineNumber) farazLineNumber = process.env.FARAZSMS_LINE_NUMBER || null;
     if (!farazPatternCode) farazPatternCode = process.env.FARAZSMS_PATTERN_CODE || null;
 
-    if (farazApiKey && farazLineNumber && farazPatternCode) {
-      const result = await sendFarazSmsPattern({
-        mobile: normalized,
-        code,
-        apiKey: farazApiKey,
-        lineNumber: farazLineNumber,
-        patternCode: farazPatternCode,
-        paramName: farazOtpParamName
-      });
+    if (farazApiKey && farazLineNumber) {
+      let result: SmsResult | null = null;
 
-      if (!result.success) {
-        return result;
+      // 1. If profile verification and profile pattern is configured, use it
+      if (isProfileVerify && farazProfilePatternCode) {
+        result = await sendFarazSmsPattern({
+          mobile: normalized,
+          code,
+          apiKey: farazApiKey,
+          lineNumber: farazLineNumber,
+          patternCode: farazProfilePatternCode,
+          paramName: farazProfileParamName || 'code'
+        });
+
+        if (!result.success) {
+          console.warn(`[FarazSMS] Profile verify pattern '${farazProfilePatternCode}' failed (${result.error}). Retrying with primary OTP pattern...`);
+        }
       }
 
-      return {
-        ...result,
-        mode: 'PRODUCTION'
-      };
+      // 2. Default OTP pattern (or fallback for profile verify)
+      if ((!result || !result.success) && farazPatternCode) {
+        result = await sendFarazSmsPattern({
+          mobile: normalized,
+          code,
+          apiKey: farazApiKey,
+          lineNumber: farazLineNumber,
+          patternCode: farazPatternCode,
+          paramName: farazOtpParamName || 'code'
+        });
+      }
+
+      if (result) {
+        if (!result.success) {
+          return result;
+        }
+
+        return {
+          ...result,
+          mode: 'PRODUCTION'
+        };
+      }
     }
 
     // Mock fallback if Faraz credentials are not yet configured
@@ -438,17 +475,35 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
   }
   if (!templateId) templateId = process.env.SMSIR_TEMPLATE_ID || null;
 
-  if (apiKey && templateId) {
-    const result = await sendSmsIrVerify({
-      mobile: normalized,
-      code,
-      apiKey,
-      templateId,
-      paramName
-    });
+  if (apiKey && (templateId || (isProfileVerify && smsProfileTemplateId))) {
+    let result: SmsResult | null = null;
 
-    if (!result.success) {
-      return result;
+    if (isProfileVerify && smsProfileTemplateId) {
+      result = await sendSmsIrVerify({
+        mobile: normalized,
+        code,
+        apiKey,
+        templateId: smsProfileTemplateId,
+        paramName: smsProfileParamName || 'Code'
+      });
+
+      if (!result.success && templateId) {
+        console.warn(`[SMS.ir] Profile verify template '${smsProfileTemplateId}' failed (${result.error}). Retrying with primary template...`);
+      }
+    }
+
+    if ((!result || !result.success) && templateId) {
+      result = await sendSmsIrVerify({
+        mobile: normalized,
+        code,
+        apiKey,
+        templateId,
+        paramName
+      });
+    }
+
+    if (!result?.success) {
+      return result || { success: false, error: 'خطا در ارسال پیامک با sms.ir' };
     }
 
     // Determine if the key or response indicates Sandbox

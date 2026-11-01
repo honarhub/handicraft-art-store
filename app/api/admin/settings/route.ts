@@ -46,11 +46,15 @@ export async function PATCH(request: Request) {
       smsOtpParamName,
       smsReferralTemplateId,
       smsReferralParamName,
+      smsProfileTemplateId,
+      smsProfileParamName,
       smsLineNumber,
       farazSmsApiKey,
       farazSmsLineNumber,
       farazSmsPatternCode,
       farazSmsOtpParamName,
+      farazSmsProfilePatternCode,
+      farazSmsProfileParamName,
       farazSmsReferralPatternCode,
       farazSmsReferralParamName,
       farazSmsReferralWithNamePatternCode,
@@ -81,11 +85,15 @@ export async function PATCH(request: Request) {
     if (smsOtpParamName !== undefined) updateData.smsOtpParamName = (smsOtpParamName || 'Code').trim();
     if (smsReferralTemplateId !== undefined) updateData.smsReferralTemplateId = smsReferralTemplateId ? smsReferralTemplateId.toString().trim() : null;
     if (smsReferralParamName !== undefined) updateData.smsReferralParamName = (smsReferralParamName || 'Code').trim();
+    if (smsProfileTemplateId !== undefined) updateData.smsProfileTemplateId = smsProfileTemplateId ? smsProfileTemplateId.toString().trim() : null;
+    if (smsProfileParamName !== undefined) updateData.smsProfileParamName = (smsProfileParamName || 'Code').trim();
     if (smsLineNumber !== undefined) updateData.smsLineNumber = smsLineNumber ? smsLineNumber.trim() : null;
     if (farazSmsApiKey !== undefined) updateData.farazSmsApiKey = farazSmsApiKey ? farazSmsApiKey.trim() : null;
     if (farazSmsLineNumber !== undefined) updateData.farazSmsLineNumber = farazSmsLineNumber ? farazSmsLineNumber.trim() : null;
     if (farazSmsPatternCode !== undefined) updateData.farazSmsPatternCode = farazSmsPatternCode ? farazSmsPatternCode.trim() : null;
     if (farazSmsOtpParamName !== undefined) updateData.farazSmsOtpParamName = (farazSmsOtpParamName || 'code').trim();
+    if (farazSmsProfilePatternCode !== undefined) updateData.farazSmsProfilePatternCode = farazSmsProfilePatternCode ? farazSmsProfilePatternCode.trim() : null;
+    if (farazSmsProfileParamName !== undefined) updateData.farazSmsProfileParamName = (farazSmsProfileParamName || 'code').trim();
     if (farazSmsReferralPatternCode !== undefined) updateData.farazSmsReferralPatternCode = farazSmsReferralPatternCode ? farazSmsReferralPatternCode.trim() : null;
     if (farazSmsReferralParamName !== undefined) updateData.farazSmsReferralParamName = (farazSmsReferralParamName || 'code').trim();
     if (farazSmsReferralWithNamePatternCode !== undefined) updateData.farazSmsReferralWithNamePatternCode = farazSmsReferralWithNamePatternCode ? farazSmsReferralWithNamePatternCode.trim() : null;

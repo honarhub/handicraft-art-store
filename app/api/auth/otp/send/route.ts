@@ -7,7 +7,7 @@ import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure, isLocalhostRequest
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { phone, email, type, referralCode } = body;
+    const { phone, email, type, referralCode, purpose } = body;
 
     if (!phone && !email) {
       return NextResponse.json({ error: 'شماره موبایل یا ایمیل الزامی است.' }, { status: 400 });
@@ -136,7 +136,8 @@ export async function POST(req: Request) {
     let devCodeToReturn: string | undefined = undefined;
 
     if (!isEmail) {
-      const smsRes = await sendSmsOtp(normalizedTarget, code);
+      const otpPurpose = purpose || (targetType === 'PROFILE_OTP' ? 'PROFILE_VERIFY' : 'LOGIN');
+      const smsRes = await sendSmsOtp(normalizedTarget, code, otpPurpose);
       if (!smsRes.success) {
         await logOtpFailure(securityCheck.clientIp, normalizedTarget, targetType, smsRes.error || 'خطا در ارسال پیامک');
         return NextResponse.json({

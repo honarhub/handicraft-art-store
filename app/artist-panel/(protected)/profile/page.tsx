@@ -443,7 +443,7 @@ export default function ArtistProfilePage() {
       const res = await fetch('/api/auth/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normPhone, type: 'PHONE_OTP' })
+        body: JSON.stringify({ phone: normPhone, type: 'PROFILE_OTP', purpose: 'PROFILE_VERIFY' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا در ارسال پیامک');
@@ -480,7 +480,7 @@ export default function ArtistProfilePage() {
       const res = await fetch('/api/auth/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneNumber, code: codeToVerify, type: 'PHONE_OTP' })
+        body: JSON.stringify({ phone: phoneNumber, code: codeToVerify, type: 'PROFILE_OTP' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'کد تایید اشتباه است یا منقضی شده است.');

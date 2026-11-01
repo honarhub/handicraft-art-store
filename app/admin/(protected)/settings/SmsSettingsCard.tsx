@@ -13,12 +13,16 @@ export interface SmsSettingsProps {
     smsOtpParamName?: string;
     smsReferralTemplateId?: string | null;
     smsReferralParamName?: string;
+    smsProfileTemplateId?: string | null;
+    smsProfileParamName?: string;
     smsLineNumber?: string | null;
     // FarazSMS
     farazSmsApiKey?: string | null;
     farazSmsLineNumber?: string | null;
     farazSmsPatternCode?: string | null;
     farazSmsOtpParamName?: string;
+    farazSmsProfilePatternCode?: string | null;
+    farazSmsProfileParamName?: string;
     farazSmsReferralPatternCode?: string | null;
     farazSmsReferralParamName?: string;
     farazSmsReferralWithNamePatternCode?: string | null;
@@ -54,6 +58,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   const [smsOtpParamName, setSmsOtpParamName] = useState(initialSettings.smsOtpParamName || 'Code');
   const [smsReferralTemplateId, setSmsReferralTemplateId] = useState(initialSettings.smsReferralTemplateId || '');
   const [smsReferralParamName, setSmsReferralParamName] = useState(initialSettings.smsReferralParamName || 'Code');
+  const [smsProfileTemplateId, setSmsProfileTemplateId] = useState(initialSettings.smsProfileTemplateId || '');
+  const [smsProfileParamName, setSmsProfileParamName] = useState(initialSettings.smsProfileParamName || 'Code');
   const [smsLineNumber, setSmsLineNumber] = useState(initialSettings.smsLineNumber || '');
 
   // FarazSMS states
@@ -62,6 +68,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   const [farazSmsLineNumber, setFarazSmsLineNumber] = useState(initialSettings.farazSmsLineNumber || '');
   const [farazSmsPatternCode, setFarazSmsPatternCode] = useState(initialSettings.farazSmsPatternCode || '');
   const [farazSmsOtpParamName, setFarazSmsOtpParamName] = useState(initialSettings.farazSmsOtpParamName || 'code');
+  const [farazSmsProfilePatternCode, setFarazSmsProfilePatternCode] = useState(initialSettings.farazSmsProfilePatternCode || '');
+  const [farazSmsProfileParamName, setFarazSmsProfileParamName] = useState(initialSettings.farazSmsProfileParamName || 'code');
   const [farazSmsReferralPatternCode, setFarazSmsReferralPatternCode] = useState(initialSettings.farazSmsReferralPatternCode || '');
   const [farazSmsReferralParamName, setFarazSmsReferralParamName] = useState(initialSettings.farazSmsReferralParamName || 'code');
   const [farazSmsReferralWithNamePatternCode, setFarazSmsReferralWithNamePatternCode] = useState(initialSettings.farazSmsReferralWithNamePatternCode || '');
@@ -102,6 +110,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.smsOtpParamName !== undefined) setSmsOtpParamName(initialSettings.smsOtpParamName || 'Code');
       if (initialSettings.smsReferralTemplateId !== undefined) setSmsReferralTemplateId(initialSettings.smsReferralTemplateId || '');
       if (initialSettings.smsReferralParamName !== undefined) setSmsReferralParamName(initialSettings.smsReferralParamName || 'Code');
+      if (initialSettings.smsProfileTemplateId !== undefined) setSmsProfileTemplateId(initialSettings.smsProfileTemplateId || '');
+      if (initialSettings.smsProfileParamName !== undefined) setSmsProfileParamName(initialSettings.smsProfileParamName || 'Code');
       if (initialSettings.smsReferralWithNameTemplateId !== undefined) setSmsReferralWithNameTemplateId(initialSettings.smsReferralWithNameTemplateId || '');
       if (initialSettings.smsReferralNameParamName !== undefined) setSmsReferralNameParamName(initialSettings.smsReferralNameParamName || 'name');
       if (initialSettings.smsLineNumber !== undefined) setSmsLineNumber(initialSettings.smsLineNumber || '');
@@ -111,6 +121,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.farazSmsLineNumber !== undefined) setFarazSmsLineNumber(initialSettings.farazSmsLineNumber || '');
       if (initialSettings.farazSmsPatternCode !== undefined) setFarazSmsPatternCode(initialSettings.farazSmsPatternCode || '');
       if (initialSettings.farazSmsOtpParamName !== undefined) setFarazSmsOtpParamName(initialSettings.farazSmsOtpParamName || 'code');
+      if (initialSettings.farazSmsProfilePatternCode !== undefined) setFarazSmsProfilePatternCode(initialSettings.farazSmsProfilePatternCode || '');
+      if (initialSettings.farazSmsProfileParamName !== undefined) setFarazSmsProfileParamName(initialSettings.farazSmsProfileParamName || 'code');
       if (initialSettings.farazSmsReferralPatternCode !== undefined) setFarazSmsReferralPatternCode(initialSettings.farazSmsReferralPatternCode || '');
       if (initialSettings.farazSmsReferralParamName !== undefined) setFarazSmsReferralParamName(initialSettings.farazSmsReferralParamName || 'code');
       if (initialSettings.farazSmsReferralWithNamePatternCode !== undefined) setFarazSmsReferralWithNamePatternCode(initialSettings.farazSmsReferralWithNamePatternCode || '');
@@ -162,6 +174,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         smsOtpParamName,
         smsReferralTemplateId,
         smsReferralParamName,
+        smsProfileTemplateId,
+        smsProfileParamName,
         smsReferralWithNameTemplateId,
         smsReferralNameParamName,
         smsLineNumber,
@@ -170,6 +184,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         farazSmsLineNumber,
         farazSmsPatternCode,
         farazSmsOtpParamName,
+        farazSmsProfilePatternCode,
+        farazSmsProfileParamName,
         farazSmsReferralPatternCode,
         farazSmsReferralParamName,
         farazSmsReferralWithNamePatternCode,
@@ -587,6 +603,42 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                 </p>
               </div>
 
+              {/* Faraz Profile Pattern Code */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  کد الگوی تایید یا تغییر پروفایل هنرمند (اختیاری)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsProfilePatternCode}
+                  onChange={(e) => setFarazSmsProfilePatternCode(e.target.value.trim())}
+                  placeholder="مثال: Z9X2K1M8Q"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  کد الگوی تایید شده برای ارسال کد تایید در زمان تغییر یا تایید پروفایل هنرمند. در صورت خالی بودن، از پترن ورود (OTP) استفاده می‌شود.
+                </p>
+              </div>
+
+              {/* Faraz Profile Param Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر کد در الگوی تایید پروفایل
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsProfileParamName}
+                  onChange={(e) => setFarazSmsProfileParamName(e.target.value.trim())}
+                  placeholder="code"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام متغیر کد در الگوی پروفایل (پیش‌فرض: <span className="font-mono font-bold">code</span>).
+                </p>
+              </div>
+
               {/* Faraz Referral Pattern Code */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -678,6 +730,12 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                 <div className="text-[11px] font-bold text-slate-700">۲. نمونه الگوی پیامک دعوت‌نامه با نام هنرمند:</div>
                 <div className="p-2.5 bg-white rounded-xl border border-slate-200 font-mono text-[12px] text-slate-800 select-all" dir="rtl">
                   %name% عزیز، شما به هنرهاب دعوت شده‌اید. کد معرف اختصاصی شما: %code%
+                </div>
+              </div>
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[11px] font-bold text-slate-700">۳. نمونه الگوی پیامک تایید یا تغییر پروفایل هنرمند:</div>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 font-mono text-[12px] text-slate-800 select-all" dir="rtl">
+                  کد تایید جهت ویرایش و ثبت اطلاعات حساب در هنرهاب: %code%
                 </div>
               </div>
               <p className="text-[11px] text-slate-500">
@@ -846,6 +904,42 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   نام متغیری که در متن قالب خود قرار داده‌اید (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
+                </p>
+              </div>
+
+              {/* Profile SMS Template ID */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شناسه قالب پیامک تایید یا تغییر پروفایل (اختیاری)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsProfileTemplateId}
+                  onChange={(e) => setSmsProfileTemplateId(e.target.value.replace(/\D/g, ''))}
+                  placeholder="مثال: 100235"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  شناسه عددی قالب اعتبارسنجی تایید یا ویرایش پروفایل هنرمند. در صورت خالی بودن از قالب اصلی استفاده می‌شود.
+                </p>
+              </div>
+
+              {/* Profile SMS Parameter Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر کد در قالب تایید پروفایل
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsProfileParamName}
+                  onChange={(e) => setSmsProfileParamName(e.target.value)}
+                  placeholder="Code"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام متغیری که در متن قالب تایید پروفایل قرار داده‌اید (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
                 </p>
               </div>
 

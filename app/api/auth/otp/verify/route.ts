@@ -16,11 +16,15 @@ export async function POST(req: Request) {
     const normalizedTarget = isEmail ? email.trim().toLowerCase() : normalizePhoneNumber(phone);
     const cleanedCode = code.toString().trim();
 
+    const allowedTypes = (targetType === 'PROFILE_OTP' || targetType === 'PHONE_OTP')
+      ? ['PROFILE_OTP', 'PHONE_OTP']
+      : [targetType];
+
     const record = await prisma.verificationCode.findFirst({
       where: {
         target: normalizedTarget,
         code: cleanedCode,
-        type: targetType,
+        type: { in: allowedTypes },
         used: false,
         expiresAt: { gte: new Date() }
       },
