@@ -34,6 +34,12 @@ const MIGRATION_STATEMENTS = [
   'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "mustChangePassword" BOOLEAN NOT NULL DEFAULT false',
   'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "smsReferralTemplateId" TEXT',
   'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "smsReferralParamName" TEXT NOT NULL DEFAULT \'Code\'',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "farazSmsApiKey" TEXT',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "farazSmsLineNumber" TEXT',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "farazSmsPatternCode" TEXT',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "farazSmsOtpParamName" TEXT NOT NULL DEFAULT \'code\'',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "farazSmsReferralPatternCode" TEXT',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "farazSmsReferralParamName" TEXT NOT NULL DEFAULT \'code\'',
   `CREATE TABLE IF NOT EXISTS "VerificationCode" (
       "id" TEXT NOT NULL,
       "target" TEXT NOT NULL,
