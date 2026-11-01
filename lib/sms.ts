@@ -223,7 +223,12 @@ export async function sendFarazSmsPattern(options: {
  * Checks account balance via FarazSMS / IranPayamak API
  * Endpoint: GET https://api.iranpayamak.com/ws/v1/account/balance
  */
-export async function checkFarazSmsBalance(apiKey: string): Promise<{ success: boolean; balance?: number; error?: string }> {
+export async function checkFarazSmsBalance(apiKey: string): Promise<{
+  success: boolean;
+  balance?: number;
+  balanceCount?: number;
+  error?: string;
+}> {
   try {
     const res = await fetch('https://api.iranpayamak.com/ws/v1/account/balance', {
       method: 'GET',
@@ -234,11 +239,43 @@ export async function checkFarazSmsBalance(apiKey: string): Promise<{ success: b
     });
 
     const data = await res.json().catch(() => null);
-    if (res.ok && data?.status === 'success' && data?.data !== undefined) {
-      return { success: true, balance: Number(data.data) };
+    if (res.ok && (data?.status === 'success' || data?.status === 200) && data?.data !== undefined) {
+      let balanceAmount = 0;
+      let balanceCount: number | undefined = undefined;
+
+      if (typeof data.data === 'number') {
+        balanceAmount = data.data;
+      } else if (typeof data.data === 'string') {
+        balanceAmount = parseFloat(data.data) || 0;
+      } else if (typeof data.data === 'object' && data.data !== null) {
+        // FarazSMS / IranPayamak / IPPanel format:
+        // { balance_amount: "50504", balance_count: "203.6451612903225806" }
+        const rawAmount = data.data.balance_amount ?? data.data.balance ?? data.data.credit ?? data.data.amount;
+        balanceAmount = Number(rawAmount) || 0;
+
+        const rawCount = data.data.balance_count ?? data.data.count;
+        if (rawCount !== undefined && rawCount !== null) {
+          balanceCount = Math.floor(Number(rawCount)) || undefined;
+        }
+      }
+
+      return {
+        success: true,
+        balance: balanceAmount,
+        balanceCount
+      };
     }
 
-    return { success: false, error: data?.messages || `خطا در دریافت موجودی (${res.status})` };
+    let errorMsg = data?.message || data?.messages;
+    if (!errorMsg && res.status === 401) {
+      errorMsg = 'کلید Api-Key فراز اس‌ام‌اس نامعتبر است.';
+    } else if (!errorMsg) {
+      errorMsg = `خطا در دریافت موجودی (${res.status})`;
+    } else if (typeof errorMsg === 'object') {
+      errorMsg = JSON.stringify(errorMsg);
+    }
+
+    return { success: false, error: errorMsg };
   } catch (err: any) {
     return { success: false, error: err.message || 'خطای شبکه در بررسی موجودی فراز اس‌ام‌اس' };
   }

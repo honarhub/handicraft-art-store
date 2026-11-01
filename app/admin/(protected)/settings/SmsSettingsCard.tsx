@@ -292,8 +292,10 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       const data = await res.json();
       if (res.ok && data.success) {
         setFarazBalance(data.balance);
-        setBalanceMsg(data.message || `موجودی: ${data.balance?.toLocaleString('fa-IR')} ریال`);
+        const countText = data.balanceCount !== undefined ? ` (~${Number(data.balanceCount).toLocaleString('fa-IR')} پیامک)` : '';
+        setBalanceMsg(data.message || `موجودی حساب: ${Number(data.balance).toLocaleString('fa-IR')} ریال${countText}`);
       } else {
+        setFarazBalance(null);
         setBalanceMsg(`❌ خطا: ${data.error || 'عدم دسترسی به مانده حساب'}`);
       }
     } catch {
@@ -483,10 +485,18 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
             </div>
 
             {balanceMsg && (
-              <div className={`p-3 rounded-xl border text-xs font-bold ${
-                farazBalance !== null ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-red-50 text-red-900 border-red-200'
+              <div className={`p-3.5 rounded-2xl border text-xs font-bold flex flex-wrap items-center justify-between gap-2 ${
+                farazBalance !== null && !isNaN(farazBalance) ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-red-50 text-red-900 border-red-200'
               }`}>
-                {balanceMsg}
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{farazBalance !== null && !isNaN(farazBalance) ? '✅' : '⚠️'}</span>
+                  <span>{balanceMsg}</span>
+                </div>
+                {farazBalance !== null && !isNaN(farazBalance) && (
+                  <span className="font-mono text-emerald-800 text-[11px] bg-emerald-100/70 px-2.5 py-1 rounded-lg" dir="ltr">
+                    {Number(farazBalance).toLocaleString()} Rials
+                  </span>
+                )}
               </div>
             )}
 

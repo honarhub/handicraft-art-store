@@ -43,10 +43,12 @@ export async function POST(req: Request) {
       }
       const balRes = await checkFarazSmsBalance(key);
       if (balRes.success) {
+        const countText = balRes.balanceCount !== undefined ? ` (~${balRes.balanceCount.toLocaleString('fa-IR')} پیامک)` : '';
         return NextResponse.json({
           success: true,
           balance: balRes.balance,
-          message: `موجودی پنل فراز اس‌ام‌اس: ${balRes.balance?.toLocaleString('fa-IR')} ریال`
+          balanceCount: balRes.balanceCount,
+          message: `موجودی حساب فراز اس‌ام‌اس: ${balRes.balance?.toLocaleString('fa-IR')} ریال${countText}`
         });
       }
       return NextResponse.json({ error: balRes.error || 'خطا در دریافت موجودی' }, { status: 400 });
