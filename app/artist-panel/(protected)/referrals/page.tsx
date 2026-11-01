@@ -75,9 +75,9 @@ export default function ArtistReferralsPage() {
 
   const getRegisterUrl = (code: string) => {
     const origin = typeof window !== 'undefined' && window.location.origin 
-      ? window.location.origin 
-      : '';
-    return `${origin}/artist-panel/login?invite=${encodeURIComponent(code)}&tab=register`;
+      ? (window.location.origin.includes('localhost') ? window.location.origin : 'https://honarhub.com')
+      : 'https://honarhub.com';
+    return `${origin}/i/${encodeURIComponent(code)}`;
   };
 
   const handleCopyCode = async (code: string) => {

@@ -225,12 +225,12 @@ export default function AdminReferralsPage() {
 
   const handleCopyLink = async (code: string) => {
     const origin = typeof window !== 'undefined' && window.location.origin 
-      ? window.location.origin 
-      : '';
-    const link = `${origin}/artist-panel/login?invite=${encodeURIComponent(code)}&tab=register`;
+      ? (window.location.origin.includes('localhost') ? window.location.origin : 'https://honarhub.com')
+      : 'https://honarhub.com';
+    const link = `${origin}/i/${encodeURIComponent(code)}`;
     try {
       await navigator.clipboard.writeText(link);
-      showToast(`لینک مستقیم ثبت‌نام با کد «${code}» کپی شد.`);
+      showToast(`لینک کوتاه ثبت‌نام (${link}) کپی شد.`);
     } catch {
       showToast('خطا در کپی کردن لینک.');
     }

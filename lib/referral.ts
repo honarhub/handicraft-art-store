@@ -66,30 +66,47 @@ export async function ensureArtistReferralCodes(userId: string, targetCount = 5)
 
 /**
  * Resolves base URL dynamically from the incoming request or environment.
- * Automatically respects whatever domain/host the request arrived on (.com, .ir, localhost, etc.).
+ * Localhost is preserved for local development; in production it strictly defaults to https://honarhub.com.
  */
 export function getCanonicalBaseUrl(req?: Request): string {
   if (req) {
     const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
     if (host) {
-      const proto = req.headers.get('x-forwarded-proto') || (host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https');
-      return `${proto}://${host}`;
+      if (host.includes('localhost') || host.includes('127.0.0.1')) {
+        const proto = req.headers.get('x-forwarded-proto') || 'http';
+        return `${proto}://${host}`;
+      }
+      return 'https://honarhub.com';
     }
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
-  if (appUrl) {
+  if (appUrl && (appUrl.includes('localhost') || appUrl.includes('127.0.0.1'))) {
     return appUrl.replace(/\/$/, '');
   }
 
   const nextAuthUrl = process.env.NEXTAUTH_URL;
-  if (nextAuthUrl) {
+  if (nextAuthUrl && (nextAuthUrl.includes('localhost') || nextAuthUrl.includes('127.0.0.1'))) {
     return nextAuthUrl.replace(/\/$/, '');
   }
 
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
+  return 'https://honarhub.com';
+}
 
-  return '';
+/**
+ * Returns short invite URL (e.g. https://honarhub.com/i/HNR-56235)
+ */
+export function getShortInviteUrl(code: string, req?: Request): string {
+  const baseUrl = getCanonicalBaseUrl(req);
+  const cleanCode = encodeURIComponent((code || '').trim().toUpperCase());
+  return `${baseUrl}/i/${cleanCode}`;
+}
+
+/**
+ * Returns canonical full invite URL
+ */
+export function getFullInviteUrl(code: string, req?: Request): string {
+  const baseUrl = getCanonicalBaseUrl(req);
+  const cleanCode = encodeURIComponent((code || '').trim().toUpperCase());
+  return `${baseUrl}/artist-panel/login?invite=${cleanCode}&tab=register`;
 }

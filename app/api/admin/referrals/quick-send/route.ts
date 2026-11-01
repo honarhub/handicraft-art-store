@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { generateRandomCode, getCanonicalBaseUrl } from '@/lib/referral';
+import { generateRandomCode, getCanonicalBaseUrl, getShortInviteUrl } from '@/lib/referral';
 import { isValidIranianMobile, normalizePhoneNumber, sendReferralInviteSms } from '@/lib/sms';
 import { sendReferralInviteEmail } from '@/lib/email';
 
@@ -102,9 +102,8 @@ export async function POST(req: Request) {
       }
     });
 
-    // 3. Construct clean registration link using 'invite'
-    const baseUrl = getCanonicalBaseUrl(req);
-    const registerUrl = `${baseUrl}/artist-panel/login?invite=${encodeURIComponent(newCode)}&tab=register`;
+    // 3. Construct short referral link (e.g. https://honarhub.com/i/CODE)
+    const registerUrl = getShortInviteUrl(newCode, req);
 
     // 4. Send via SMS or Email
     if (activeChannel === 'sms') {
