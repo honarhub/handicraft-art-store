@@ -1374,6 +1374,28 @@ export default function ArtistProfilePage() {
 
       </div>
 
+      {/* Profile Submission Processing / Waiting Overlay */}
+      {submitLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200" dir="rtl">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-slate-100 text-center space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-2xl bg-teal-50 border-2 border-teal-200 flex items-center justify-center mx-auto text-teal-600 shadow-sm">
+              <span className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin"></span>
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                لطفاً اندکی صبر کنید...
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                در حال پردازش، بارگذاری تصاویر و ثبت اطلاعات پروفایل شما هستیم. لطفاً تا پایان فرآیند شکیبا باشید.
+              </p>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-teal-600 h-full rounded-full animate-pulse w-full"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Phone OTP Modal (Sent for verifying each profile edit) */}
       {showPhoneOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">

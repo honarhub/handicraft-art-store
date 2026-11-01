@@ -31,6 +31,9 @@ export default function ArtistEditProductPage() {
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [pendingCropQueue, setPendingCropQueue] = useState<string[]>([]);
 
+  // Submission Feedback Modal States
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+
   // Helper for price formatting
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const persianToEnglish = (str: string) => {
@@ -229,6 +232,7 @@ export default function ArtistEditProductPage() {
     e.preventDefault();
     
     setSubmitLoading(true);
+    setSubmitStatus('loading');
     try {
       const res = await fetch(`/api/products/${id}`, {
         method: 'PATCH',
@@ -250,13 +254,15 @@ export default function ArtistEditProductPage() {
         })
       });
 
-      if (!res.ok) throw new Error('Error updating product');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Error updating product');
+      }
       
-      const resData = await res.json();
-      alert(resData.message || 'تغییرات با موفقیت ثبت شد و در انتظار تایید مدیریت قرار گرفت.');
-      router.push('/artist-panel/products');
-    } catch (error) {
-      alert('خطا در ثبت تغییرات');
+      setSubmitStatus('success');
+    } catch (error: any) {
+      alert(error.message || 'خطا در ثبت تغییرات');
+      setSubmitStatus('idle');
     } finally {
       setSubmitLoading(false);
     }
@@ -539,6 +545,72 @@ export default function ArtistEditProductPage() {
         }}
         onCropComplete={handleCropComplete}
       />
+
+      {/* Submission Status Overlay Modal */}
+      {submitStatus !== 'idle' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200" dir="rtl">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center relative overflow-hidden">
+            {submitStatus === 'loading' ? (
+              <div className="space-y-4 py-4">
+                <div className="relative w-16 h-16 mx-auto">
+                  <div className="w-16 h-16 rounded-full border-4 border-teal-100 border-t-teal-600 animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-lg">⏳</div>
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-800">
+                    لطفاً اندکی صبر کنید...
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                    در حال ارسال تغییرات و به‌روزرسانی تصاویر محصول هستیم. لطفاً از بستن صفحه خودداری فرمایید.
+                  </p>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-teal-600 h-full rounded-full animate-pulse w-full"></div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5 py-2 animate-in fade-in zoom-in-95 duration-300">
+                {/* Success Icon */}
+                <div className="w-20 h-20 rounded-3xl bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center mx-auto text-4xl shadow-sm">
+                  ✨
+                </div>
+
+                {/* Title & Status */}
+                <div>
+                  <span className="inline-block bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black px-3 py-1 rounded-full mb-3">
+                    🟡 در انتظار بررسی و تایید مدیریت
+                  </span>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                    تغییرات با موفقیت ذخیره و ارسال شد!
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-2.5 leading-relaxed font-medium">
+                    ویرایش‌های شما برای اثر <strong className="text-slate-900">«{title}»</strong> با موفقیت ثبت گردید. پس از بازبینی و تأیید نهایی ناظران، این تغییرات بر روی صفحه عمومی اثر اعمال خواهد شد. در این مدت محصول شما بدون وقفه در فروشگاه فعال باقی می‌ماند.
+                  </p>
+                </div>
+
+                {/* CTAs */}
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => router.push('/artist-panel/products')}
+                    className="flex-1 py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-teal-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>📦</span>
+                    <span>بازگشت به لیست آثار</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubmitStatus('idle')}
+                    className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>بستن پنجره</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -72,23 +72,55 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
   // Available platforms are those not yet in socialLinks
   const availablePlatforms = allPlatforms.filter(p => typeof socialLinks[p] === 'undefined');
 
+  // Track raw user typing per platform so typing '@' or editing is never swallowed
+  const [typedInputs, setTypedInputs] = React.useState<Record<string, string>>({});
+
   const handleAdd = (platform: SocialPlatform) => {
-    // Add platform with empty username so YOUR_USERNAME hint is displayed
+    setTypedInputs(prev => ({ ...prev, [platform]: '' }));
     onChange({ ...socialLinks, [platform]: '' });
   };
 
   const handleRemove = (platform: SocialPlatform) => {
     const newLinks = { ...socialLinks };
     delete newLinks[platform];
+    setTypedInputs(prev => {
+      const copy = { ...prev };
+      delete copy[platform];
+      return copy;
+    });
     onChange(newLinks);
   };
 
-  const getUsername = (url: string | undefined, prefix: string) => {
+  const extractCleanHandle = (val: string, prefix: string) => {
+    let raw = val.trim();
+    if (raw.startsWith(prefix)) {
+      raw = raw.slice(prefix.length);
+    } else if (raw.includes(prefix.replace('https://', ''))) {
+      const idx = raw.indexOf(prefix.replace('https://', ''));
+      raw = raw.slice(idx + prefix.replace('https://', '').length);
+    }
+    return raw.replace(/^@+/, '');
+  };
+
+  const getDisplayValue = (platform: SocialPlatform, url: string | undefined, prefix: string) => {
+    if (platform in typedInputs) {
+      return typedInputs[platform];
+    }
     if (!url) return '';
     if (url.startsWith(prefix)) {
       return url.slice(prefix.length);
     }
-    return url.replace(/^@/, '');
+    return url;
+  };
+
+  const handleInputChange = (plat: SocialPlatform, val: string) => {
+    setTypedInputs(prev => ({ ...prev, [plat]: val }));
+    const meta = platformMeta[plat];
+    if (!meta) return;
+
+    const cleanHandle = extractCleanHandle(val, meta.prefix);
+    const fullUrl = cleanHandle ? `${meta.prefix}${cleanHandle}` : '';
+    onChange({ ...socialLinks, [plat]: fullUrl });
   };
 
   return (
@@ -98,7 +130,8 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
         const meta = platformMeta[plat];
         if (!meta) return null;
 
-        const currentUsername = getUsername(url, meta.prefix);
+        const displayVal = getDisplayValue(plat, url, meta.prefix);
+        const cleanHandle = extractCleanHandle(displayVal, meta.prefix);
 
         return (
           <div key={platform} className="bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
@@ -123,42 +156,30 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
               </button>
             </div>
 
-            {/* Input row: Mobile-first responsive layout */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all">
-              {/* Prefix (Badge on mobile, inline on desktop) */}
-              <div className="bg-slate-100/90 text-slate-600 px-3 py-1.5 sm:py-2.5 border-b sm:border-b-0 sm:border-l border-slate-200 text-xs font-mono select-none flex items-center justify-between sm:justify-start gap-1 shrink-0" dir="ltr">
-                <span className="font-semibold text-slate-700">{meta.prefix}</span>
+            {/* Input row: LTR direction so prefix is on the LEFT on desktop */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all" dir="ltr">
+              {/* Prefix (Left side on desktop with border-r, top bar on mobile with border-b) */}
+              <div className="bg-slate-100/90 text-slate-600 px-3 py-1.5 sm:py-2.5 border-b sm:border-b-0 sm:border-r border-slate-200 text-xs font-mono select-none flex items-center justify-between sm:justify-start gap-1 shrink-0" dir="ltr">
+                <span className="font-bold text-slate-700">{meta.prefix}</span>
                 <span className="text-[10px] text-slate-400 sm:hidden">پیشوند</span>
               </div>
 
               {/* Input for handle / username or pasted full url */}
               <input 
                 type="text" 
-                value={currentUsername} 
-                onChange={e => {
-                  let raw = e.target.value.trim();
-                  // If pasted full URL, extract handle
-                  if (raw.startsWith(meta.prefix)) {
-                    raw = raw.slice(meta.prefix.length);
-                  } else if (raw.includes(meta.prefix.replace('https://', ''))) {
-                    const idx = raw.indexOf(meta.prefix.replace('https://', ''));
-                    raw = raw.slice(idx + meta.prefix.replace('https://', '').length);
-                  }
-                  raw = raw.replace(/^@/, '');
-                  const fullUrl = raw.trim() ? `${meta.prefix}${raw.trim()}` : '';
-                  onChange({ ...socialLinks, [plat]: fullUrl });
-                }}
-                className="flex-1 px-3 py-2.5 bg-transparent border-none outline-none text-slate-900 text-sm sm:text-base font-mono font-medium placeholder:text-slate-400 placeholder:font-normal placeholder:font-sans" 
+                value={displayVal} 
+                onChange={e => handleInputChange(plat, e.target.value)}
+                className="flex-1 px-3 py-2.5 bg-transparent border-none outline-none text-slate-900 text-sm sm:text-base font-mono font-medium placeholder:text-slate-400 placeholder:font-normal placeholder:font-sans text-left" 
                 dir="ltr" 
                 placeholder="آیدی (مثلاً: art_shams یا @art_shams)"
               />
             </div>
 
             {/* Helper preview when username is entered */}
-            {currentUsername && (
-              <div className="text-[11px] text-teal-700 font-mono dir-ltr flex items-center gap-1.5 px-1 truncate" dir="ltr">
-                <span className="text-[10px] font-sans font-bold text-teal-800 shrink-0">🔗 پیش‌نمایش:</span>
-                <span className="truncate">{meta.prefix}{currentUsername}</span>
+            {cleanHandle && (
+              <div className="text-[11px] text-teal-700 font-mono flex items-center gap-1.5 px-1 truncate" dir="ltr">
+                <span className="text-[10px] font-sans font-bold text-teal-800 shrink-0">🔗 پیش‌نمایش لینک:</span>
+                <span className="truncate text-teal-900 font-bold">{meta.prefix}{cleanHandle}</span>
               </div>
             )}
           </div>

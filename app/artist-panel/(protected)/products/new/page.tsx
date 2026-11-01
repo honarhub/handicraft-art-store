@@ -30,6 +30,10 @@ export default function ArtistAddProductPage() {
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [pendingCropQueue, setPendingCropQueue] = useState<string[]>([]);
 
+  // Submission Feedback Modal States
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [createdProductTitle, setCreatedProductTitle] = useState('');
+
   // Helper for price formatting
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const persianToEnglish = (str: string) => {
@@ -271,6 +275,7 @@ export default function ArtistAddProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    setSubmitStatus('loading');
     setSubmitLoading(true);
     try {
       // artistId is omitted here, the backend will read it from cookies
@@ -295,10 +300,11 @@ export default function ArtistAddProductPage() {
 
       if (!res.ok) throw new Error('Error creating product');
       
-      alert('محصول با موفقیت ثبت شد و در انتظار تایید ادمین قرار گرفت!');
-      router.push('/artist-panel/products');
+      setCreatedProductTitle(title);
+      setSubmitStatus('success');
     } catch (error) {
-      alert('خطا در ثبت محصول');
+      alert('متاسفانه در ثبت محصول مشکلی پیش آمد. لطفاً دوباره تلاش نمایید.');
+      setSubmitStatus('idle');
     } finally {
       setSubmitLoading(false);
     }
@@ -695,6 +701,86 @@ export default function ArtistAddProductPage() {
         }}
         onCropComplete={handleCropComplete}
       />
+
+      {/* Product Submission Loading & Success Feedback Modal */}
+      {submitStatus !== 'idle' && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+          dir="rtl"
+        >
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            {submitStatus === 'loading' ? (
+              <div className="space-y-4 py-2">
+                <div className="w-16 h-16 rounded-2xl bg-teal-50 border-2 border-teal-200 flex items-center justify-center mx-auto text-teal-600 shadow-sm">
+                  <span className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin"></span>
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                    اندکی صبر کنید...
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+                    در حال آپلود تصاویر، پردازش متادیتا و ارسال محصول شما به سامانه هنرهاب هستیم.
+                  </p>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div className="bg-teal-600 h-full rounded-full animate-pulse w-full"></div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5 py-2 animate-in fade-in zoom-in-95 duration-300">
+                {/* Success Icon */}
+                <div className="w-20 h-20 rounded-3xl bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center mx-auto text-4xl shadow-sm">
+                  🎉
+                </div>
+
+                {/* Title & Status */}
+                <div>
+                  <span className="inline-block bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black px-3 py-1 rounded-full mb-3">
+                    🟡 در انتظار بررسی و تایید ناظران
+                  </span>
+                  <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                    محصول شما با موفقیت ثبت و ارسال شد!
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 mt-2.5 leading-relaxed font-medium">
+                    اثر ارزشمند شما با عنوان <strong className="text-slate-900">«{createdProductTitle}»</strong> با موفقیت در سیستم ثبت گردید. پس از بررسی کیفیت و تایید توسط تیم مدیریت، در فروشگاه و ویترین عمومی شما منتشر خواهد شد.
+                  </p>
+                </div>
+
+                {/* CTAs */}
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => router.push('/artist-panel/products')}
+                    className="flex-1 py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-teal-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>📦</span>
+                    <span>مشاهده در مدیریت آثار</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTitle('');
+                      setDescription('');
+                      setPrice('');
+                      setImages([]);
+                      setSpecialties([]);
+                      setSeoMetaTitle('');
+                      setSeoMetaDesc('');
+                      setSeoKeywords('');
+                      setStockQuantity(1);
+                      setSubmitStatus('idle');
+                    }}
+                    className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>➕</span>
+                    <span>ثبت محصول جدید دیگر</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
