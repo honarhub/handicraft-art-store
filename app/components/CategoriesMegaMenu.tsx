@@ -252,10 +252,36 @@ export default function CategoriesMegaMenu() {
   const [categories, setCategories] = useState<MasterCategory[]>(DEFAULT_CATEGORIES);
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string>(DEFAULT_CATEGORIES[0].id);
-  const [mobileExpandedId, setMobileExpandedId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  // Close menu on Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   // Fetch categories hierarchy with approved product counts
   useEffect(() => {
@@ -330,7 +356,7 @@ export default function CategoriesMegaMenu() {
             ? 'bg-slate-100 border-slate-300 shadow-xs text-emerald-800'
             : 'bg-transparent hover:bg-slate-100/90 border-transparent hover:border-slate-200'
         }`}
-        aria-label="منوی دسته‌بندی‌ها"
+        aria-label="منوی سایت"
         aria-expanded={isOpen}
       >
         <svg
@@ -489,7 +515,7 @@ export default function CategoriesMegaMenu() {
         </div>
       )}
 
-      {/* منوی آکاردئونی کشویی در موبایل */}
+      {/* منوی عمودی کشویی در موبایل (پیوندهای اصلی سایت) */}
       {isOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex" dir="rtl">
           {/* پس‌زمینه نیمه‌شفاف تار */}
@@ -499,20 +525,24 @@ export default function CategoriesMegaMenu() {
           />
 
           {/* بدنه دراور کشویی از راست */}
-          <div className="relative w-5/6 max-w-sm bg-white h-full shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-250">
+          <div className="relative w-4/5 max-w-xs sm:max-w-sm bg-white h-full shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-250 select-none">
             {/* سربرگ منوی موبایل */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
-              <div className="flex items-center gap-2">
-                <div className="text-xl font-black tracking-tight flex items-center select-none">
-                  <span className="text-black">هنر</span>
-                  <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded mr-1 text-base font-black">هاب</span>
-                </div>
-                <span className="text-xs font-bold text-slate-500 mr-2">دسته‌بندی‌های اصیل</span>
-              </div>
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/80">
+              <a 
+                href="/" 
+                onClick={() => setIsOpen(false)} 
+                className="text-xl font-black tracking-tight flex items-center select-none" 
+                dir="rtl"
+              >
+                <span className="text-black">هنر</span>
+                <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded mr-1 text-base font-black">
+                  هاب
+                </span>
+              </a>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors"
+                className="p-1.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-colors cursor-pointer"
                 aria-label="بستن منو"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,107 +551,169 @@ export default function CategoriesMegaMenu() {
               </button>
             </div>
 
-            {/* لیست آکاردئونی دسته‌ها */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {categories.map((cat) => {
-                const isExpanded = mobileExpandedId === cat.id;
-                return (
-                  <div key={cat.id} className="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-2xs">
-                    {/* ردیف والد آکاردئون */}
-                    <div className="flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
-                      <a
-                        href={`/products?specialty=${encodeURIComponent(cat.id)}`}
-                        onClick={() => setIsOpen(false)}
-                        className="flex items-center gap-2.5 text-xs font-bold text-slate-800 flex-1"
-                      >
-                        <CraftCategoryIcon name={cat.name} className="w-4 h-4 text-amber-700" />
-                        <span>{cat.name}</span>
-                      </a>
-                      {cat.children && cat.children.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setMobileExpandedId(isExpanded ? null : cat.id)}
-                          className="p-1 rounded-md text-slate-400 hover:text-slate-700 transition-colors"
-                          aria-label="باز و بسته کردن زیرمجموعه‌ها"
-                        >
-                          <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
+            {/* لیست عمودی گزینه‌های ناوبری اصلی */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
+              {/* صفحه اصلی */}
+              <a
+                href="/"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-emerald-50 text-slate-600 group-hover:text-emerald-600 flex items-center justify-center transition-colors shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-black text-slate-900 group-hover:text-emerald-700 transition-colors">صفحه اصلی</div>
+                  <div className="text-[11px] text-slate-400 font-medium">ویترین و برگزیده‌های هنرهاب</div>
+                </div>
+                <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
+              </a>
 
-                    {/* محتوای بازشونده آکاردئون */}
-                    {isExpanded && cat.children && cat.children.length > 0 && (
-                      <div className="p-2.5 bg-white border-t border-slate-100 space-y-1 animate-in fade-in duration-150">
-                        <a
-                          href={`/products?specialty=${encodeURIComponent(cat.id)}`}
-                          onClick={() => setIsOpen(false)}
-                          className="block px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100/60 transition-colors"
-                        >
-                          مشاهده همه آثار {cat.name} ←
-                        </a>
-                        {cat.children.map((sub) => (
-                          <a
-                            key={sub.id}
-                            href={`/products?specialty=${encodeURIComponent(sub.id)}`}
-                            onClick={() => setIsOpen(false)}
-                            className="flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-emerald-700 hover:bg-slate-50 transition-colors"
-                          >
-                            <span>{sub.name}</span>
-                            {sub.productCount !== undefined && (
-                              <span className="text-[11px] text-slate-400">({sub.productCount} اثر)</span>
-                            )}
-                          </a>
-                        ))}
-                      </div>
-                    )}
+              {/* گالری آثار */}
+              <a
+                href="/products"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center transition-colors shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-black text-slate-900 group-hover:text-teal-700 transition-colors">گالری آثار</div>
+                  <div className="text-[11px] text-slate-400 font-medium">مشاهده و خرید تمامی دست‌سازه‌ها</div>
+                </div>
+                <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
+              </a>
+
+              {/* وبلاگ */}
+              <a
+                href="/blog"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center transition-colors shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-black text-slate-900 group-hover:text-indigo-700 transition-colors">وبلاگ</div>
+                  <div className="text-[11px] text-slate-400 font-medium">مقالات تخصصی و اخبار صنایع دستی</div>
+                </div>
+                <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
+              </a>
+
+              {/* درباره ما */}
+              <a
+                href="/about"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center transition-colors shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-black text-slate-900 group-hover:text-amber-800 transition-colors">درباره ما</div>
+                  <div className="text-[11px] text-slate-400 font-medium">داستان و ارزش‌های هنرهاب</div>
+                </div>
+                <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
+              </a>
+
+              {/* پشتیبانی */}
+              <a
+                href="/support"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center transition-colors shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-black text-slate-900 group-hover:text-sky-800 transition-colors">پشتیبانی</div>
+                  <div className="text-[11px] text-slate-400 font-medium">راهنمایی و ارتباط با ما</div>
+                </div>
+                <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
+              </a>
+
+              <div className="my-2 border-t border-slate-100"></div>
+
+              {/* پنل هنرمندان */}
+              <a
+                href="/artist-panel/login"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-950 transition-all group shadow-2xs hover:shadow-xs"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-black text-emerald-900">پنل هنرمندان</span>
+                    <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">ویژه</span>
                   </div>
-                );
-              })}
+                  <div className="text-[11px] text-emerald-700 font-medium">ورود و عرضه مستقیم آثار هنری</div>
+                </div>
+                <span className="text-xs text-emerald-600 group-hover:translate-x-0.5 transition-transform">←</span>
+              </a>
 
-              {/* پیوندهای عمومی سایت در موبایل */}
-              <div className="pt-4 border-t border-slate-200 space-y-1">
-                <div className="text-xs font-black text-slate-400 px-1 mb-2">پیوندهای اصلی</div>
+              {/* پنل ادمین */}
+              <a
+                href="/admin"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-all group border border-transparent hover:border-slate-100"
+              >
+                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center transition-colors shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-slate-800">پنل مدیریت</div>
+                  <div className="text-[11px] text-slate-400 font-medium">بخش نظارت و ادمین</div>
+                </div>
+                <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
+              </a>
+            </div>
+
+            {/* بخش پایین دراور: ورود و دسترسی سریع به سبد خرید و علاقمندی */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/70 space-y-2.5">
+              <a
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>ورود / ثبت‌نام در هنرهاب</span>
+              </a>
+
+              <div className="grid grid-cols-2 gap-2 text-center">
                 <a
-                  href="/products"
+                  href="/cart"
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100"
+                  className="py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                 >
-                  گالری آثار
+                  <span>🛒</span>
+                  <span>سبد خرید</span>
                 </a>
                 <a
-                  href="/blog"
+                  href="/wishlist"
                   onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100"
+                  className="py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-rose-700 hover:border-rose-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                 >
-                  وبلاگ
-                </a>
-                <a
-                  href="/about"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100"
-                >
-                  درباره ما
-                </a>
-                <a
-                  href="/artist-panel/login"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50/70 hover:bg-emerald-100"
-                >
-                  پنل هنرمندان
-                </a>
-                <a
-                  href="/admin"
-                  onClick={() => setIsOpen(false)}
-                  className="block px-3 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-                >
-                  پنل ادمین
+                  <span>❤️</span>
+                  <span>علاقه‌مندی‌ها</span>
                 </a>
               </div>
             </div>
