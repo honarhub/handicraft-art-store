@@ -20,74 +20,96 @@ interface Product {
 
 export default function FeaturedRecentCarousel({ products }: { products: Product[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isAutoScrollActive, setIsAutoScrollActive] = useState(true);
+  const [isInView, setIsInView] = useState(false);
+
   const mobileContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const isScrollingProgrammatically = useRef(false);
-  const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Smoothly scroll mobile container to specific item
+  // Permanently disable auto-scroll upon any direct user touch or interaction
+  const handleUserInteraction = useCallback(() => {
+    setIsAutoScrollActive(false);
+  }, []);
+
+  // Detect whether carousel is currently inside the visible screen viewport
+  useEffect(() => {
+    const el = mobileContainerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Smoothly scroll container horizontally WITHOUT affecting window vertical scroll
   const scrollToIndex = useCallback((index: number) => {
-    if (!mobileContainerRef.current) return;
+    const container = mobileContainerRef.current;
     const targetItem = itemRefs.current[index];
-    if (targetItem) {
-      isScrollingProgrammatically.current = true;
-      targetItem.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center'
-      });
-      setActiveIndex(index);
-      setTimeout(() => {
-        isScrollingProgrammatically.current = false;
-      }, 500);
-    }
+    if (!container || !targetItem) return;
+
+    isScrollingProgrammatically.current = true;
+    setActiveIndex(index);
+
+    // Calculate exact pixel offset relative to container viewport to prevent page jumping
+    const itemRect = targetItem.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const diff = (itemRect.left + itemRect.width / 2) - (containerRect.left + containerRect.width / 2);
+
+    container.scrollBy({
+      left: diff,
+      behavior: 'smooth'
+    });
+
+    setTimeout(() => {
+      isScrollingProgrammatically.current = false;
+    }, 450);
   }, []);
 
   const handleNext = useCallback(() => {
+    handleUserInteraction();
     if (products.length <= 1) return;
     const next = (activeIndex + 1) % products.length;
     scrollToIndex(next);
-  }, [activeIndex, products.length, scrollToIndex]);
+  }, [activeIndex, products.length, scrollToIndex, handleUserInteraction]);
 
   const handlePrev = useCallback(() => {
+    handleUserInteraction();
     if (products.length <= 1) return;
     const prev = activeIndex === 0 ? products.length - 1 : activeIndex - 1;
     scrollToIndex(prev);
-  }, [activeIndex, products.length, scrollToIndex]);
+  }, [activeIndex, products.length, scrollToIndex, handleUserInteraction]);
 
-  // 3-second auto-scroll on mobile
+  // 3-second auto-scroll: ONLY when active, in viewport, and not manually interacted with
   useEffect(() => {
-    if (products.length <= 1 || isPaused) return;
+    if (!isAutoScrollActive || !isInView || products.length <= 1) return;
 
     const timer = setInterval(() => {
       setActiveIndex((prev) => {
         const next = (prev + 1) % products.length;
-        if (mobileContainerRef.current) {
-          const target = itemRefs.current[next];
-          if (target) {
-            isScrollingProgrammatically.current = true;
-            target.scrollIntoView({
-              behavior: 'smooth',
-              block: 'nearest',
-              inline: 'center'
-            });
-            setTimeout(() => {
-              isScrollingProgrammatically.current = false;
-            }, 500);
-          }
-        }
+        scrollToIndex(next);
         return next;
       });
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [products.length, isPaused]);
+  }, [isAutoScrollActive, isInView, products.length, scrollToIndex]);
 
   // Real-time synchronization of active index while dragging/swiping
   const handleMobileScroll = () => {
-    if (isScrollingProgrammatically.current || !mobileContainerRef.current) return;
+    if (!isScrollingProgrammatically.current) {
+      // User scrolled manually with their finger/touch! Permanently disable auto-scroll
+      setIsAutoScrollActive(false);
+    }
+
     const container = mobileContainerRef.current;
+    if (!container) return;
     const containerCenter = container.getBoundingClientRect().left + container.clientWidth / 2;
 
     let closestIdx = activeIndex;
@@ -107,24 +129,6 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
     if (closestIdx !== activeIndex) {
       setActiveIndex(closestIdx);
     }
-  };
-
-  // Pause on touch interaction so user can smoothly read or quickly swipe
-  const handleTouchStart = () => {
-    setIsPaused(true);
-    if (pauseTimeoutRef.current) {
-      clearTimeout(pauseTimeoutRef.current);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (pauseTimeoutRef.current) {
-      clearTimeout(pauseTimeoutRef.current);
-    }
-    // Resume auto-scroll after 3.5 seconds of inactivity
-    pauseTimeoutRef.current = setTimeout(() => {
-      setIsPaused(false);
-    }, 3500);
   };
 
   if (!products || products.length === 0) {
@@ -210,17 +214,13 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
   return (
     <div>
       {/* -------------------- MOBILE VIEW (Horizontal Auto-Scroll Carousel with Touch) -------------------- */}
-      <div 
-        className="block md:hidden relative"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className="block md:hidden relative">
         {/* Horizontal Scroll Track */}
         <div 
           ref={mobileContainerRef}
           onScroll={handleMobileScroll}
+          onTouchStart={handleUserInteraction}
+          onMouseDown={handleUserInteraction}
           className="flex overflow-x-auto gap-4 px-2 pb-5 pt-1 snap-x snap-mandatory scrollbar-hide touch-pan-x"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
@@ -238,7 +238,7 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
           ))}
         </div>
 
-        {/* Floating Arrow Controls on Mobile for quick navigation */}
+        {/* Floating Controls on Mobile for quick navigation */}
         {products.length > 1 && (
           <div className="flex items-center justify-between px-2 pt-1 pb-2">
             {/* Dots Pagination */}
@@ -247,7 +247,10 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => scrollToIndex(idx)}
+                  onClick={() => {
+                    handleUserInteraction();
+                    scrollToIndex(idx);
+                  }}
                   className={`transition-all duration-300 rounded-full cursor-pointer ${
                     activeIndex === idx 
                       ? 'w-6 h-2 bg-emerald-600 shadow-sm' 
@@ -263,7 +266,7 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
               <button
                 type="button"
                 onClick={handlePrev}
-                className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-xs active:scale-95 transition-all"
+                className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-xs active:scale-95 transition-all cursor-pointer"
                 aria-label="اثر قبلی"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -271,7 +274,7 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
               <button
                 type="button"
                 onClick={handleNext}
-                className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-xs active:scale-95 transition-all"
+                className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-700 flex items-center justify-center shadow-xs active:scale-95 transition-all cursor-pointer"
                 aria-label="اثر بعدی"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
