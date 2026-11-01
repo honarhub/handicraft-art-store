@@ -21,8 +21,8 @@ export function proxy(request: NextRequest) {
 
   // Check if the current hostname starts with the admin subdomain
   if (hostname.startsWith(`${adminSubdomain}.`)) {
-    // If we are already on an /admin path, don't rewrite to avoid infinite loops
-    if (!url.pathname.startsWith('/admin')) {
+    // If we are already on an /admin path or accessing uploaded static media, don't rewrite
+    if (!url.pathname.startsWith('/admin') && !url.pathname.startsWith('/uploads')) {
       // Rewrite the URL to point to the /admin folder in the Next.js app directory
       url.pathname = `/admin${url.pathname}`;
       return NextResponse.rewrite(url);
@@ -35,12 +35,13 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except for internal static files and uploaded media:
      * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - uploads (user/artist uploaded media)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|uploads).*)',
   ],
 };

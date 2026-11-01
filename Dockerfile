@@ -35,7 +35,11 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Ensure upload directories exist and are owned by nextjs user
+RUN mkdir -p ./public/uploads/artists ./public/uploads/products ./public/uploads/support ./public/uploads/blog \
+    && chown -R nextjs:nodejs ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next

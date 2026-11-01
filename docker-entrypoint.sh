@@ -15,5 +15,8 @@ else
   echo "Notice: DATABASE_URL is not set, skipping prisma db push."
 fi
 
+echo "==> [HonarHub] Ensuring uploads directories exist..."
+mkdir -p ./public/uploads/artists ./public/uploads/products ./public/uploads/support ./public/uploads/blog 2>/dev/null || true
+
 echo "==> [HonarHub] Starting Next.js application server..."
 exec node server.js
