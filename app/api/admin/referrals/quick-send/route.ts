@@ -16,7 +16,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { target, channel = 'auto', code: clientProvidedCode, isCustom = false } = body;
+    const { target, channel = 'auto', code: clientProvidedCode, isCustom = false, artistName } = body;
+
+    const cleanArtistName = typeof artistName === 'string' && artistName.trim() ? artistName.trim() : undefined;
 
     if (!target || typeof target !== 'string' || !target.trim()) {
       return NextResponse.json({ error: 'لطفاً شماره موبایل یا آدرس ایمیل متقاضی را وارد کنید.' }, { status: 400 });
@@ -109,7 +111,8 @@ export async function POST(req: Request) {
       const smsResult = await sendReferralInviteSms({
         mobile: normalizedPhone,
         referralCode: newCode,
-        registerUrl
+        registerUrl,
+        recipientName: cleanArtistName
       });
 
       if (!smsResult.success) {
@@ -118,19 +121,22 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: smsResult.error || 'خطا در ارسال پیامک دعوت‌نامه' }, { status: 500 });
       }
 
+      const toUserText = cleanArtistName ? `برای ${cleanArtistName} (${normalizedPhone})` : `به شماره ${normalizedPhone}`;
       return NextResponse.json({
         success: true,
-        message: `کد معرف «${newCode}» با موفقیت صادر و از طریق پیامک به شماره ${normalizedPhone} ارسال شد.`,
+        message: `کد معرف «${newCode}» با موفقیت صادر و از طریق پیامک ${toUserText} ارسال شد.`,
         code: createdReferral,
         channel: 'sms',
-        target: normalizedPhone
+        target: normalizedPhone,
+        artistName: cleanArtistName
       });
     } else {
       const emailResult = await sendReferralInviteEmail({
         toEmail: cleanTarget,
         referralCode: newCode,
         registerUrl,
-        senderName: 'مدیریت سایت'
+        senderName: 'مدیریت سایت',
+        recipientName: cleanArtistName
       });
 
       if (!emailResult.success) {
@@ -139,12 +145,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: emailResult.error || 'خطا در ارسال ایمیل دعوت‌نامه' }, { status: 500 });
       }
 
+      const toUserText = cleanArtistName ? `برای ${cleanArtistName} (${cleanTarget.toLowerCase()})` : `به ${cleanTarget.toLowerCase()}`;
       return NextResponse.json({
         success: true,
-        message: `کد معرف «${newCode}» با موفقیت صادر و از طریق ایمیل به ${cleanTarget.toLowerCase()} ارسال شد.`,
+        message: `کد معرف «${newCode}» با موفقیت صادر و از طریق ایمیل ${toUserText} ارسال شد.`,
         code: createdReferral,
         channel: 'email',
-        target: cleanTarget.toLowerCase()
+        target: cleanTarget.toLowerCase(),
+        artistName: cleanArtistName
       });
     }
   } catch (error: any) {

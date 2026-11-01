@@ -52,10 +52,11 @@ export interface SmsResult {
  */
 export async function sendSmsIrVerify(options: {
   mobile: string;
-  code: string;
+  code?: string;
   apiKey: string;
   templateId: string | number;
   paramName?: string;
+  parameters?: Array<{ name: string; value: string }>;
 }): Promise<SmsResult> {
   const normalized = normalizePhoneNumber(options.mobile);
   if (!isValidIranianMobile(normalized)) {
@@ -68,6 +69,12 @@ export async function sendSmsIrVerify(options: {
   }
 
   const paramName = (options.paramName || 'Code').trim();
+  const parametersPayload = options.parameters || [
+    {
+      name: paramName,
+      value: (options.code || '').toString().trim()
+    }
+  ];
 
   try {
     const res = await fetch('https://api.sms.ir/v1/send/verify', {
@@ -80,12 +87,7 @@ export async function sendSmsIrVerify(options: {
       body: JSON.stringify({
         mobile: normalized,
         templateId: templateIdNum,
-        parameters: [
-          {
-            name: paramName,
-            value: options.code.toString().trim()
-          }
-        ]
+        parameters: parametersPayload
       })
     });
 
@@ -124,11 +126,12 @@ export async function sendSmsIrVerify(options: {
  */
 export async function sendFarazSmsPattern(options: {
   mobile: string;
-  code: string;
+  code?: string;
   apiKey: string;
   lineNumber: string;
   patternCode: string;
   paramName?: string;
+  attributes?: Record<string, string>;
 }): Promise<SmsResult> {
   const normalized = normalizePhoneNumber(options.mobile);
   if (!isValidIranianMobile(normalized)) {
@@ -146,6 +149,9 @@ export async function sendFarazSmsPattern(options: {
   }
 
   const paramName = (options.paramName || 'code').trim();
+  const attributesPayload = options.attributes || {
+    [paramName]: (options.code || '').toString().trim()
+  };
 
   try {
     const res = await fetch('https://api.iranpayamak.com/ws/v1/sms/pattern', {
@@ -160,9 +166,7 @@ export async function sendFarazSmsPattern(options: {
         line_number: lineNumber,
         recipient: normalized,
         number_format: 'english',
-        attributes: {
-          [paramName]: options.code.toString().trim()
-        }
+        attributes: attributesPayload
       })
     });
 
@@ -589,6 +593,7 @@ export async function sendReferralInviteSms(options: {
   mobile: string;
   referralCode: string;
   registerUrl: string;
+  recipientName?: string;
 }): Promise<SmsResult> {
   const normalized = normalizePhoneNumber(options.mobile);
   if (!isValidIranianMobile(normalized)) {
@@ -603,6 +608,8 @@ export async function sendReferralInviteSms(options: {
   let apiKey: string | null = null;
   let templateId: string | null = null;
   let paramName = 'Code';
+  let smsReferralWithNameTemplateId: string | null = null;
+  let smsReferralNameParamName = 'name';
 
   // FarazSMS
   let farazApiKey: string | null = null;
@@ -611,6 +618,8 @@ export async function sendReferralInviteSms(options: {
   let farazOtpParamName = 'code';
   let farazReferralPatternCode: string | null = null;
   let farazReferralParamName = 'code';
+  let farazReferralWithNamePatternCode: string | null = null;
+  let farazReferralNameParamName = 'name';
 
   try {
     const { default: prisma } = await import('@/lib/prisma');
@@ -627,6 +636,8 @@ export async function sendReferralInviteSms(options: {
       farazOtpParamName = settings.farazSmsOtpParamName || 'code';
       farazReferralPatternCode = settings.farazSmsReferralPatternCode || settings.farazSmsPatternCode || process.env.FARAZSMS_REFERRAL_PATTERN_CODE || process.env.FARAZSMS_PATTERN_CODE || null;
       farazReferralParamName = settings.farazSmsReferralParamName || settings.farazSmsOtpParamName || 'code';
+      farazReferralWithNamePatternCode = settings.farazSmsReferralWithNamePatternCode || null;
+      farazReferralNameParamName = settings.farazSmsReferralNameParamName || 'name';
 
       // SMS.ir
       if (smsIsSandbox) {
@@ -637,6 +648,8 @@ export async function sendReferralInviteSms(options: {
 
       templateId = settings.smsReferralTemplateId || settings.smsTemplateId || process.env.SMSIR_REFERRAL_TEMPLATE_ID || process.env.SMSIR_TEMPLATE_ID || null;
       paramName = settings.smsReferralParamName || 'Code';
+      smsReferralWithNameTemplateId = settings.smsReferralWithNameTemplateId || null;
+      smsReferralNameParamName = settings.smsReferralNameParamName || 'name';
     }
   } catch (err) {
     console.warn('[SMS Referral] Could not load SiteSettings, checking env...', err);
@@ -649,25 +662,50 @@ export async function sendReferralInviteSms(options: {
     };
   }
 
+  const cleanRecipientName = options.recipientName?.trim();
+
   // --- FARAZSMS PROVIDER ---
   if (smsProvider === 'farazsms') {
     if (!farazApiKey) farazApiKey = process.env.FARAZSMS_API_KEY || null;
     if (!farazLineNumber) farazLineNumber = process.env.FARAZSMS_LINE_NUMBER || null;
     if (!farazReferralPatternCode) farazReferralPatternCode = process.env.FARAZSMS_REFERRAL_PATTERN_CODE || process.env.FARAZSMS_PATTERN_CODE || null;
 
-    if (farazApiKey && farazLineNumber && farazReferralPatternCode) {
-      let result = await sendFarazSmsPattern({
-        mobile: normalized,
-        code: options.referralCode,
-        apiKey: farazApiKey,
-        lineNumber: farazLineNumber,
-        patternCode: farazReferralPatternCode,
-        paramName: farazReferralParamName
-      });
+    if (farazApiKey && farazLineNumber) {
+      let result: SmsResult | null = null;
 
-      // Smart Fallback: If dedicated referral pattern failed (e.g. 404 unapproved/not found), retry with primary verified OTP pattern
-      if (!result.success && farazPatternCode && farazReferralPatternCode !== farazPatternCode) {
-        console.warn(`[FarazSMS] Referral pattern '${farazReferralPatternCode}' failed (${result.error}). Retrying with primary OTP pattern '${farazPatternCode}'...`);
+      // 1. Try pattern with name if artistName was entered and pattern is configured
+      if (cleanRecipientName && farazReferralWithNamePatternCode) {
+        result = await sendFarazSmsPattern({
+          mobile: normalized,
+          apiKey: farazApiKey,
+          lineNumber: farazLineNumber,
+          patternCode: farazReferralWithNamePatternCode,
+          attributes: {
+            [farazReferralNameParamName || 'name']: cleanRecipientName,
+            [farazReferralParamName || 'code']: options.referralCode
+          }
+        });
+
+        if (!result.success) {
+          console.warn(`[FarazSMS] Referral with name pattern '${farazReferralWithNamePatternCode}' failed (${result.error}). Retrying with default referral pattern...`);
+        }
+      }
+
+      // 2. Standard referral pattern (without name or fallback)
+      if ((!result || !result.success) && farazReferralPatternCode) {
+        result = await sendFarazSmsPattern({
+          mobile: normalized,
+          code: options.referralCode,
+          apiKey: farazApiKey,
+          lineNumber: farazLineNumber,
+          patternCode: farazReferralPatternCode,
+          paramName: farazReferralParamName
+        });
+      }
+
+      // 3. Smart Fallback: If dedicated referral pattern failed (e.g. 404 unapproved/not found), retry with primary verified OTP pattern
+      if ((!result || !result.success) && farazPatternCode && farazReferralPatternCode !== farazPatternCode) {
+        console.warn(`[FarazSMS] Referral pattern '${farazReferralPatternCode}' failed (${result?.error}). Retrying with primary OTP pattern '${farazPatternCode}'...`);
         const fallbackRes = await sendFarazSmsPattern({
           mobile: normalized,
           code: options.referralCode,
@@ -681,8 +719,8 @@ export async function sendReferralInviteSms(options: {
         }
       }
 
-      if (!result.success) {
-        return result;
+      if (!result?.success) {
+        return result || { success: false, error: 'خطا در ارسال پیامک با فراز اس‌ام‌اس' };
       }
 
       return {
@@ -693,7 +731,7 @@ export async function sendReferralInviteSms(options: {
 
     // Mock fallback
     console.log('====================================================');
-    console.log(`[FARAZ-SMS REFERRAL MOCK] Invitation to ${normalized}`);
+    console.log(`[FARAZ-SMS REFERRAL MOCK] Invitation to ${normalized}${cleanRecipientName ? ` (${cleanRecipientName})` : ''}`);
     console.log(`Code: ${options.referralCode} | Link: ${options.registerUrl}`);
     console.log('====================================================');
     return {
@@ -714,17 +752,33 @@ export async function sendReferralInviteSms(options: {
   }
 
   // 1. Live credentials provided (calls real sms.ir endpoint with referralCode as parameter value; max length is 25 chars)
-  if (apiKey && templateId) {
-    const result = await sendSmsIrVerify({
-      mobile: normalized,
-      code: options.referralCode,
-      apiKey,
-      templateId,
-      paramName
-    });
+  if (apiKey && (templateId || (cleanRecipientName && smsReferralWithNameTemplateId))) {
+    let result: SmsResult | null = null;
 
-    if (!result.success) {
-      return result;
+    if (cleanRecipientName && smsReferralWithNameTemplateId) {
+      result = await sendSmsIrVerify({
+        mobile: normalized,
+        apiKey,
+        templateId: smsReferralWithNameTemplateId,
+        parameters: [
+          { name: smsReferralNameParamName || 'name', value: cleanRecipientName },
+          { name: paramName || 'Code', value: options.referralCode }
+        ]
+      });
+    }
+
+    if ((!result || !result.success) && templateId) {
+      result = await sendSmsIrVerify({
+        mobile: normalized,
+        code: options.referralCode,
+        apiKey,
+        templateId,
+        paramName
+      });
+    }
+
+    if (!result?.success) {
+      return result || { success: false, error: 'خطا در ارسال پیامک با sms.ir' };
     }
 
     const isSandboxKey =
@@ -749,7 +803,7 @@ export async function sendReferralInviteSms(options: {
 
   // 2. Mock mode for dev/local
   console.log('====================================================');
-  console.log(`[SMS-REFERRAL MOCK] Invitation to ${normalized}`);
+  console.log(`[SMS-REFERRAL MOCK] Invitation to ${normalized}${cleanRecipientName ? ` (${cleanRecipientName})` : ''}`);
   console.log(`Code: ${options.referralCode} | Link: ${options.registerUrl}`);
   console.log('====================================================');
 

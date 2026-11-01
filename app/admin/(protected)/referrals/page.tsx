@@ -94,12 +94,14 @@ export default function AdminReferralsPage() {
   const [quickSendMode, setQuickSendMode] = useState<'auto' | 'custom'>('auto');
   const [quickSendCode, setQuickSendCode] = useState('');
   const [quickSendCustomCode, setQuickSendCustomCode] = useState('');
+  const [quickSendArtistName, setQuickSendArtistName] = useState('');
   const [quickSendTarget, setQuickSendTarget] = useState('');
   const [quickSendLoading, setQuickSendLoading] = useState(false);
   const [quickSendError, setQuickSendError] = useState('');
 
   // Send Invite Modal state
   const [sendModalCode, setSendModalCode] = useState<string | null>(null);
+  const [sendArtistName, setSendArtistName] = useState('');
   const [sendTarget, setSendTarget] = useState('');
   const [sendLoading, setSendLoading] = useState(false);
   const [sendError, setSendError] = useState('');
@@ -248,6 +250,7 @@ export default function AdminReferralsPage() {
         body: JSON.stringify({
           code: sendModalCode,
           target: sendTarget.trim(),
+          artistName: sendArtistName.trim() || undefined,
         }),
       });
 
@@ -259,6 +262,7 @@ export default function AdminReferralsPage() {
 
       setSendModalCode(null);
       setSendTarget('');
+      setSendArtistName('');
       showToast(data.message || 'دعوت‌نامه با موفقیت ارسال شد.');
     } catch {
       setSendError('خطای غیرمنتظره در برقراری ارتباط با سرور.');
@@ -271,6 +275,7 @@ export default function AdminReferralsPage() {
     setQuickSendMode('auto');
     setQuickSendCode(generateClientCode());
     setQuickSendCustomCode('');
+    setQuickSendArtistName('');
     setQuickSendTarget('');
     setQuickSendError('');
     setShowQuickSendModal(true);
@@ -308,6 +313,7 @@ export default function AdminReferralsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           target: quickSendTarget.trim(),
+          artistName: quickSendArtistName.trim() || undefined,
           code: activeCode,
           isCustom: quickSendMode === 'custom'
         })
@@ -321,6 +327,7 @@ export default function AdminReferralsPage() {
 
       setShowQuickSendModal(false);
       setQuickSendTarget('');
+      setQuickSendArtistName('');
       setQuickSendCode('');
       setQuickSendCustomCode('');
       showToast(data.message || `کد معرف «${activeCode}» با موفقیت صادر و ارسال شد.`);
@@ -1000,6 +1007,30 @@ export default function AdminReferralsPage() {
                 </span>
               </div>
 
+              {/* Artist Name Input (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>نام هنرمند:</span>
+                  <span className="text-[11px] font-normal text-slate-400">اختیاری</span>
+                </label>
+                <input
+                  type="text"
+                  value={sendArtistName}
+                  onChange={(e) => setSendArtistName(e.target.value)}
+                  placeholder="مثال: عباس یا استاد رنجبر"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl font-sans text-sm focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                  {sendArtistName.trim() ? (
+                    <span className="text-emerald-700 font-bold">
+                      ✓ در پیامک و ایمیل عبارت «{sendArtistName.trim()} عزیز» درج خواهد شد.
+                    </span>
+                  ) : (
+                    <span>در صورت خالی بودن، عبارت پیش‌فرض «هنرمند گرامی» در پیامک و ایمیل درج خواهد شد.</span>
+                  )}
+                </p>
+              </div>
+
               {/* Target Input */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -1160,6 +1191,30 @@ export default function AdminReferralsPage() {
 
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-600 leading-relaxed">
                 ✨ پس از ثبت، این کد تنها در صورت ارسال موفق پیامک یا ایمیل به عنوان معرف مدیر کل در سیستم ثبت و فعال خواهد شد.
+              </div>
+
+              {/* Artist Name Input (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>نام هنرمند:</span>
+                  <span className="text-[11px] font-normal text-slate-400">اختیاری</span>
+                </label>
+                <input
+                  type="text"
+                  value={quickSendArtistName}
+                  onChange={(e) => setQuickSendArtistName(e.target.value)}
+                  placeholder="مثال: عباس یا استاد رنجبر"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl font-sans text-sm focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                  {quickSendArtistName.trim() ? (
+                    <span className="text-emerald-700 font-bold">
+                      ✓ در پیامک و ایمیل عبارت «{quickSendArtistName.trim()} عزیز» درج خواهد شد.
+                    </span>
+                  ) : (
+                    <span>در صورت خالی بودن، عبارت پیش‌فرض «هنرمند گرامی» در پیامک و ایمیل درج خواهد شد.</span>
+                  )}
+                </p>
               </div>
 
               {/* Target Input */}

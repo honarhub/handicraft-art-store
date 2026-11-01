@@ -21,6 +21,10 @@ export interface SmsSettingsProps {
     farazSmsOtpParamName?: string;
     farazSmsReferralPatternCode?: string | null;
     farazSmsReferralParamName?: string;
+    farazSmsReferralWithNamePatternCode?: string | null;
+    farazSmsReferralNameParamName?: string;
+    smsReferralWithNameTemplateId?: string | null;
+    smsReferralNameParamName?: string;
     // Security & Anti-abuse
     otpResendIntervalSeconds?: number;
     otpMaxPerHourPerPhone?: number;
@@ -60,6 +64,10 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   const [farazSmsOtpParamName, setFarazSmsOtpParamName] = useState(initialSettings.farazSmsOtpParamName || 'code');
   const [farazSmsReferralPatternCode, setFarazSmsReferralPatternCode] = useState(initialSettings.farazSmsReferralPatternCode || '');
   const [farazSmsReferralParamName, setFarazSmsReferralParamName] = useState(initialSettings.farazSmsReferralParamName || 'code');
+  const [farazSmsReferralWithNamePatternCode, setFarazSmsReferralWithNamePatternCode] = useState(initialSettings.farazSmsReferralWithNamePatternCode || '');
+  const [farazSmsReferralNameParamName, setFarazSmsReferralNameParamName] = useState(initialSettings.farazSmsReferralNameParamName || 'name');
+  const [smsReferralWithNameTemplateId, setSmsReferralWithNameTemplateId] = useState(initialSettings.smsReferralWithNameTemplateId || '');
+  const [smsReferralNameParamName, setSmsReferralNameParamName] = useState(initialSettings.smsReferralNameParamName || 'name');
 
   // Anti-abuse & timing settings
   const [otpResendIntervalSeconds, setOtpResendIntervalSeconds] = useState(initialSettings.otpResendIntervalSeconds ?? 60);
@@ -94,6 +102,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.smsOtpParamName !== undefined) setSmsOtpParamName(initialSettings.smsOtpParamName || 'Code');
       if (initialSettings.smsReferralTemplateId !== undefined) setSmsReferralTemplateId(initialSettings.smsReferralTemplateId || '');
       if (initialSettings.smsReferralParamName !== undefined) setSmsReferralParamName(initialSettings.smsReferralParamName || 'Code');
+      if (initialSettings.smsReferralWithNameTemplateId !== undefined) setSmsReferralWithNameTemplateId(initialSettings.smsReferralWithNameTemplateId || '');
+      if (initialSettings.smsReferralNameParamName !== undefined) setSmsReferralNameParamName(initialSettings.smsReferralNameParamName || 'name');
       if (initialSettings.smsLineNumber !== undefined) setSmsLineNumber(initialSettings.smsLineNumber || '');
 
       // FarazSMS
@@ -103,6 +113,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.farazSmsOtpParamName !== undefined) setFarazSmsOtpParamName(initialSettings.farazSmsOtpParamName || 'code');
       if (initialSettings.farazSmsReferralPatternCode !== undefined) setFarazSmsReferralPatternCode(initialSettings.farazSmsReferralPatternCode || '');
       if (initialSettings.farazSmsReferralParamName !== undefined) setFarazSmsReferralParamName(initialSettings.farazSmsReferralParamName || 'code');
+      if (initialSettings.farazSmsReferralWithNamePatternCode !== undefined) setFarazSmsReferralWithNamePatternCode(initialSettings.farazSmsReferralWithNamePatternCode || '');
+      if (initialSettings.farazSmsReferralNameParamName !== undefined) setFarazSmsReferralNameParamName(initialSettings.farazSmsReferralNameParamName || 'name');
 
       // Limits
       if (initialSettings.otpResendIntervalSeconds !== undefined) setOtpResendIntervalSeconds(initialSettings.otpResendIntervalSeconds);
@@ -150,6 +162,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         smsOtpParamName,
         smsReferralTemplateId,
         smsReferralParamName,
+        smsReferralWithNameTemplateId,
+        smsReferralNameParamName,
         smsLineNumber,
         // FarazSMS
         farazSmsApiKey,
@@ -158,6 +172,8 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         farazSmsOtpParamName,
         farazSmsReferralPatternCode,
         farazSmsReferralParamName,
+        farazSmsReferralWithNamePatternCode,
+        farazSmsReferralNameParamName,
         // Rate limits
         otpResendIntervalSeconds: Number(otpResendIntervalSeconds),
         otpMaxPerHourPerPhone: Number(otpMaxPerHourPerPhone),
@@ -582,7 +598,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
               {/* Faraz Referral Param Name */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  نام متغیر در الگوی دعوت‌نامه
+                  نام متغیر کد در الگوی دعوت‌نامه
                 </label>
                 <input
                   type="text"
@@ -596,6 +612,42 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                   نام متغیر جایگزین شونده با کد معرف در متن دعوت‌نامه (پیش‌فرض: <span className="font-mono font-bold">code</span>).
                 </p>
               </div>
+
+              {/* Faraz Referral With Name Pattern Code */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  الگوی پیامک دعوت نامه با نام (اختیاری)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsReferralWithNamePatternCode}
+                  onChange={(e) => setFarazSmsReferralWithNamePatternCode(e.target.value.trim())}
+                  placeholder="مثال: 9VK1P8QX2M"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  کد الگوی تایید شده برای دعوت‌نامه با نام هنرمند. در صورت وارد کردن نام هنرمند در صدور آنی، از این پترن استفاده می‌شود.
+                </p>
+              </div>
+
+              {/* Faraz Referral Name Param Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر «نام هنرمند» در الگو
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsReferralNameParamName}
+                  onChange={(e) => setFarazSmsReferralNameParamName(e.target.value.trim())}
+                  placeholder="name"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام متغیری که در متن پترن برای نام هنرمند تعریف کرده‌اید (پیش‌فرض: <span className="font-mono font-bold">name</span>).
+                </p>
+              </div>
             </div>
 
             {/* Template Help Guide for FarazSMS */}
@@ -604,13 +656,22 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                 <span>💡 راهنمای ثبت پترن در پنل فراز اس‌ام‌اس:</span>
               </div>
               <p className="text-slate-600 leading-relaxed">
-                در پنل فراز اس‌ام‌اس از منوی <strong>ارسال بر اساس پترن &gt; ثبت الگوی جدید</strong>، می‌توانید الگوی مورد نظر را با ساختار زیر ثبت کنید:
+                در پنل فراز اس‌ام‌اس از منوی <strong>ارسال بر اساس پترن &gt; ثبت الگوی جدید</strong>، می‌توانید الگوهای مورد نظر را با ساختار نمونه زیر ثبت کنید:
               </p>
-              <div className="p-3 bg-white rounded-xl border border-slate-200 font-mono text-[12px] text-slate-800 select-all" dir="rtl">
-                کد تایید شما در هنرهاب: %code%
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-bold text-slate-700">۱. نمونه الگوی کد اعتبارسنجی (OTP) یا دعوت‌نامه بدون نام:</div>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 font-mono text-[12px] text-slate-800 select-all" dir="rtl">
+                  کد تایید شما در هنرهاب: %code%
+                </div>
+              </div>
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[11px] font-bold text-slate-700">۲. نمونه الگوی پیامک دعوت‌نامه با نام هنرمند:</div>
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200 font-mono text-[12px] text-slate-800 select-all" dir="rtl">
+                  %name% عزیز، شما به هنرهاب دعوت شده‌اید. کد معرف اختصاصی شما: %code%
+                </div>
               </div>
               <p className="text-[11px] text-slate-500">
-                پس از تایید الگو توسط ناظر سامانه، شناسه چند کاراکتری انگلیسی آن (مثلاً <span className="font-mono font-bold">SJ3FgPrE0C</span>) را در فیلد «کد الگوی اعتبارسنجی OTP» قرار دهید.
+                پس از تایید هر الگو توسط ناظر سامانه، شناسه چند کاراکتری انگلیسی آن (مثلاً <span className="font-mono font-bold">SJ3FgPrE0C</span>) را در فیلد مربوطه قرار دهید.
               </p>
             </div>
           </div>
@@ -811,6 +872,42 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   نام متغیر کد معرف در قالب (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
+                </p>
+              </div>
+
+              {/* Referral SMS With Name Template ID */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  قالب پیامک دعوت‌نامه با نام هنرمند (اختیاری)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsReferralWithNameTemplateId}
+                  onChange={(e) => setSmsReferralWithNameTemplateId(e.target.value.replace(/\D/g, ''))}
+                  placeholder="مثال: 100666"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  شناسه قالب پیامک دعوت با نام هنرمند در صورت وارد کردن نام در صدور آنی.
+                </p>
+              </div>
+
+              {/* Referral SMS Name Param Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر «نام هنرمند» در قالب sms.ir
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsReferralNameParamName}
+                  onChange={(e) => setSmsReferralNameParamName(e.target.value)}
+                  placeholder="name"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام پارامتر نام در قالب sms.ir (پیش‌فرض: <span className="font-mono font-bold">name</span>).
                 </p>
               </div>
 

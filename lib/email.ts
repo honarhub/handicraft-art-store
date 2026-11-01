@@ -552,8 +552,9 @@ export function renderReferralInviteEmailHtml(options: {
   referralCode: string;
   registerUrl: string;
   senderName?: string;
+  recipientName?: string;
 }): string {
-  const { referralCode, senderName } = options;
+  const { referralCode, senderName, recipientName } = options;
 
   // Dynamically resolve baseUrl from options.registerUrl without hardcoding domain
   let baseUrl = '';
@@ -579,6 +580,9 @@ export function renderReferralInviteEmailHtml(options: {
   const inviterText = (senderName && senderName.trim()) 
     ? `از سوی <strong>${senderName.trim()}</strong>` 
     : 'از سوی <strong>مدیریت سایت</strong>';
+
+  const recipientNameTrimmed = recipientName?.trim();
+  const greetingText = recipientNameTrimmed ? `${recipientNameTrimmed} عزیز؛` : 'هنرمند گرامی؛';
 
   return `
 <!DOCTYPE html>
@@ -628,7 +632,7 @@ export function renderReferralInviteEmailHtml(options: {
           <tr>
             <td style="padding: 30px 28px 24px 28px;">
               <p style="margin: 0 0 10px 0; font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.6;">
-                هنرمند گرامی؛
+                ${greetingText}
               </p>
               <p style="margin: 0 0 20px 0; font-size: 13.5px; line-height: 1.8; color: #475569;">
                 شما ${inviterText} به پلتفرم تخصصی دست‌سازه‌ها و هنرهای اصیل ایرانی «هنرهاب» دعوت شده‌اید.
@@ -705,6 +709,7 @@ export async function sendReferralInviteEmail(options: {
   referralCode: string;
   registerUrl: string;
   senderName?: string;
+  recipientName?: string;
 }): Promise<EmailSendResult> {
   const emailTrimmed = options.toEmail.trim().toLowerCase();
   const config = await getEmailConfig();
@@ -719,7 +724,7 @@ export async function sendReferralInviteEmail(options: {
   // 1. Sandbox / Mock Mode
   if (config.emailIsSandbox) {
     console.log('====================================================');
-    console.log(`[EMAIL-REFERRAL-SANDBOX-MOCK] Invitation to ${emailTrimmed}`);
+    console.log(`[EMAIL-REFERRAL-SANDBOX-MOCK] Invitation to ${emailTrimmed}${options.recipientName ? ` (${options.recipientName})` : ''}`);
     console.log(`Code: ${options.referralCode} | Link: ${options.registerUrl}`);
     console.log('====================================================');
     return {
@@ -742,7 +747,8 @@ export async function sendReferralInviteEmail(options: {
         html: renderReferralInviteEmailHtml({
           referralCode: options.referralCode,
           registerUrl: options.registerUrl,
-          senderName: options.senderName
+          senderName: options.senderName,
+          recipientName: options.recipientName
         })
       });
 

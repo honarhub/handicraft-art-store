@@ -16,7 +16,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { code, target, channel = 'auto' } = body;
+    const { code, target, channel = 'auto', artistName } = body;
+
+    const cleanArtistName = typeof artistName === 'string' && artistName.trim() ? artistName.trim() : undefined;
 
     if (!code || typeof code !== 'string') {
       return NextResponse.json({ error: 'کد معرف نامعتبر است.' }, { status: 400 });
@@ -93,16 +95,18 @@ export async function POST(req: Request) {
       const smsResult = await sendReferralInviteSms({
         mobile: normalizedPhone,
         referralCode: cleanCode,
-        registerUrl
+        registerUrl,
+        recipientName: cleanArtistName
       });
 
       if (!smsResult.success) {
         return NextResponse.json({ error: smsResult.error || 'خطا در ارسال پیامک دعوت‌نامه' }, { status: 500 });
       }
 
+      const toUserText = cleanArtistName ? `برای ${cleanArtistName} (${normalizedPhone})` : `به شماره ${normalizedPhone}`;
       return NextResponse.json({
         success: true,
-        message: `پیامک دعوت‌نامه حاوی لینک اختصاصی ثبت‌نام با موفقیت به شماره ${normalizedPhone} ارسال شد.`,
+        message: `پیامک دعوت‌نامه حاوی لینک اختصاصی ثبت‌نام با موفقیت ${toUserText} ارسال شد.`,
         channel: 'sms',
         target: normalizedPhone
       });
@@ -117,16 +121,18 @@ export async function POST(req: Request) {
         toEmail: cleanTarget,
         referralCode: cleanCode,
         registerUrl,
-        senderName
+        senderName,
+        recipientName: cleanArtistName
       });
 
       if (!emailResult.success) {
         return NextResponse.json({ error: emailResult.error || 'خطا در ارسال ایمیل دعوت‌نامه' }, { status: 500 });
       }
 
+      const toUserText = cleanArtistName ? `برای ${cleanArtistName} (${cleanTarget.toLowerCase()})` : `به آدرس ${cleanTarget.toLowerCase()}`;
       return NextResponse.json({
         success: true,
-        message: `ایمیل دعوت‌نامه با موفقیت به آدرس ${cleanTarget.toLowerCase()} ارسال شد.`,
+        message: `ایمیل دعوت‌نامه با موفقیت ${toUserText} ارسال شد.`,
         channel: 'email',
         target: cleanTarget.toLowerCase()
       });

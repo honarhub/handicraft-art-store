@@ -346,12 +346,16 @@ model SiteSettings {
   smsLineNumber            String?
 
   // FarazSMS (IranPayamak / IPPanel) Settings
-  farazSmsApiKey              String?
-  farazSmsLineNumber          String?    // شماره خط فرستنده (مثلا 3000505 یا 5000...)
-  farazSmsPatternCode         String?    // کد الگوی تایید شده برای OTP
-  farazSmsOtpParamName        String     @default("code") // نام متغیر در الگوی OTP
-  farazSmsReferralPatternCode String?    // کد الگوی تایید شده برای ارسال دعوت‌نامه
-  farazSmsReferralParamName   String     @default("code") // نام متغیر در الگوی دعوت‌نامه
+  farazSmsApiKey                      String?
+  farazSmsLineNumber                  String?    // شماره خط فرستنده (مثلا 3000505 یا 5000...)
+  farazSmsPatternCode                 String?    // کد الگوی تایید شده برای OTP
+  farazSmsOtpParamName                String     @default("code") // نام متغیر در الگوی OTP
+  farazSmsReferralPatternCode         String?    // کد الگوی تایید شده برای ارسال دعوت‌نامه
+  farazSmsReferralParamName           String     @default("code") // نام متغیر در الگوی دعوت‌نامه
+  farazSmsReferralWithNamePatternCode String?    // کد الگوی تایید شده برای ارسال دعوت‌نامه با نام هنرمند
+  farazSmsReferralNameParamName       String     @default("name") // نام متغیر نام هنرمند در الگو
+  smsReferralWithNameTemplateId       String?    // شناسه قالب پیامک دعوت‌نامه با نام هنرمند در sms.ir
+  smsReferralNameParamName            String     @default("name") // نام متغیر نام هنرمند در قالب sms.ir
   otpResendIntervalSeconds Int        @default(60)
   otpMaxPerHourPerPhone    Int        @default(5)
   otpMaxPerTenMinPerIp     Int        @default(10)

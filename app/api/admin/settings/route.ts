@@ -53,6 +53,10 @@ export async function PATCH(request: Request) {
       farazSmsOtpParamName,
       farazSmsReferralPatternCode,
       farazSmsReferralParamName,
+      farazSmsReferralWithNamePatternCode,
+      farazSmsReferralNameParamName,
+      smsReferralWithNameTemplateId,
+      smsReferralNameParamName,
       otpResendIntervalSeconds,
       otpMaxPerHourPerPhone,
       otpMaxPerTenMinPerIp,
@@ -84,6 +88,10 @@ export async function PATCH(request: Request) {
     if (farazSmsOtpParamName !== undefined) updateData.farazSmsOtpParamName = (farazSmsOtpParamName || 'code').trim();
     if (farazSmsReferralPatternCode !== undefined) updateData.farazSmsReferralPatternCode = farazSmsReferralPatternCode ? farazSmsReferralPatternCode.trim() : null;
     if (farazSmsReferralParamName !== undefined) updateData.farazSmsReferralParamName = (farazSmsReferralParamName || 'code').trim();
+    if (farazSmsReferralWithNamePatternCode !== undefined) updateData.farazSmsReferralWithNamePatternCode = farazSmsReferralWithNamePatternCode ? farazSmsReferralWithNamePatternCode.trim() : null;
+    if (farazSmsReferralNameParamName !== undefined) updateData.farazSmsReferralNameParamName = (farazSmsReferralNameParamName || 'name').trim();
+    if (smsReferralWithNameTemplateId !== undefined) updateData.smsReferralWithNameTemplateId = smsReferralWithNameTemplateId ? smsReferralWithNameTemplateId.toString().trim() : null;
+    if (smsReferralNameParamName !== undefined) updateData.smsReferralNameParamName = (smsReferralNameParamName || 'name').trim();
     if (otpResendIntervalSeconds !== undefined) updateData.otpResendIntervalSeconds = Math.max(10, Number(otpResendIntervalSeconds) || 60);
     if (otpMaxPerHourPerPhone !== undefined) updateData.otpMaxPerHourPerPhone = Math.max(1, Number(otpMaxPerHourPerPhone) || 5);
     if (otpMaxPerTenMinPerIp !== undefined) updateData.otpMaxPerTenMinPerIp = Math.max(1, Number(otpMaxPerTenMinPerIp) || 10);
