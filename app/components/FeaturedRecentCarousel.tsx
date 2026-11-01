@@ -221,7 +221,7 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
           onScroll={handleMobileScroll}
           onTouchStart={handleUserInteraction}
           onMouseDown={handleUserInteraction}
-          className="flex overflow-x-auto gap-4 px-2 pb-5 pt-1 snap-x snap-mandatory scrollbar-hide touch-pan-x"
+          className="flex overflow-x-auto gap-4 px-2 pb-5 pt-1 snap-x snap-mandatory scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {products.map((product, idx) => (

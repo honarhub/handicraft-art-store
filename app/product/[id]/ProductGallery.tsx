@@ -118,7 +118,7 @@ export default function ProductGallery({ mediaUrls, title }: { mediaUrls: string
           ref={sliderRef}
           onScroll={handleScroll}
           dir="ltr"
-          className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide touch-pan-x"
+          className="flex w-full h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollSnapStop: 'always' }}
         >
           {mediaUrls.map((url, idx) => {
