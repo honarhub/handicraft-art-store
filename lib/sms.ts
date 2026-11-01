@@ -169,15 +169,21 @@ export async function sendFarazSmsPattern(options: {
     const data = await res.json().catch(() => null);
 
     if (res.ok && (data?.status === 'success' || data?.status === 200 || data?.data)) {
+      const msgId = typeof data?.data === 'number' 
+        ? data.data 
+        : (data?.data?.id && typeof data.data.id === 'number' ? data.data.id : undefined);
+
       return {
         success: true,
-        messageId: typeof data.data === 'number' ? data.data : undefined,
+        messageId: msgId,
         cost: 1
       };
     }
 
     let errorMsg = '';
-    if (data?.messages) {
+    if (data?.message && typeof data.message === 'string') {
+      errorMsg = data.message;
+    } else if (data?.messages) {
       if (typeof data.messages === 'string') {
         errorMsg = data.messages;
       } else if (Array.isArray(data.messages)) {
@@ -189,7 +195,9 @@ export async function sendFarazSmsPattern(options: {
       errorMsg = Object.values(data.errors).flat().join(' - ');
     }
 
-    if (res.status === 401) {
+    if (res.status === 404) {
+      errorMsg = errorMsg ? `${errorMsg} (کد الگوی «${patternCode}» در پنل فراز اس‌ام‌اس یافت نشد یا هنوز تایید نشده است)` : `کد الگوی «${patternCode}» در پنل فراز اس‌ام‌اس یافت نشد یا هنوز تایید نشده است.`;
+    } else if (res.status === 401) {
       errorMsg = 'کلید Api-Key فراز اس‌ام‌اس نامعتبر یا منقضی شده است.';
     } else if (res.status === 403) {
       errorMsg = 'دسترسی کلید Api-Key در فراز اس‌ام‌اس مسدود است یا اعتبار حساب کافی نیست.';
@@ -199,7 +207,7 @@ export async function sendFarazSmsPattern(options: {
       errorMsg = `خطای سامانه فراز اس‌ام‌اس (${res.status})`;
     }
 
-    console.error('[FarazSMS Error]', { status: res.status, data });
+    console.error('[FarazSMS Error]', { status: res.status, data, errorMsg });
     return { success: false, error: errorMsg };
   } catch (err: any) {
     console.error('[FarazSMS Network Error]', err);
@@ -599,6 +607,8 @@ export async function sendReferralInviteSms(options: {
   // FarazSMS
   let farazApiKey: string | null = null;
   let farazLineNumber: string | null = null;
+  let farazPatternCode: string | null = null;
+  let farazOtpParamName = 'code';
   let farazReferralPatternCode: string | null = null;
   let farazReferralParamName = 'code';
 
@@ -613,6 +623,8 @@ export async function sendReferralInviteSms(options: {
       // FarazSMS
       farazApiKey = settings.farazSmsApiKey || process.env.FARAZSMS_API_KEY || null;
       farazLineNumber = settings.farazSmsLineNumber || process.env.FARAZSMS_LINE_NUMBER || null;
+      farazPatternCode = settings.farazSmsPatternCode || process.env.FARAZSMS_PATTERN_CODE || null;
+      farazOtpParamName = settings.farazSmsOtpParamName || 'code';
       farazReferralPatternCode = settings.farazSmsReferralPatternCode || settings.farazSmsPatternCode || process.env.FARAZSMS_REFERRAL_PATTERN_CODE || process.env.FARAZSMS_PATTERN_CODE || null;
       farazReferralParamName = settings.farazSmsReferralParamName || settings.farazSmsOtpParamName || 'code';
 
@@ -644,7 +656,7 @@ export async function sendReferralInviteSms(options: {
     if (!farazReferralPatternCode) farazReferralPatternCode = process.env.FARAZSMS_REFERRAL_PATTERN_CODE || process.env.FARAZSMS_PATTERN_CODE || null;
 
     if (farazApiKey && farazLineNumber && farazReferralPatternCode) {
-      const result = await sendFarazSmsPattern({
+      let result = await sendFarazSmsPattern({
         mobile: normalized,
         code: options.referralCode,
         apiKey: farazApiKey,
@@ -652,6 +664,22 @@ export async function sendReferralInviteSms(options: {
         patternCode: farazReferralPatternCode,
         paramName: farazReferralParamName
       });
+
+      // Smart Fallback: If dedicated referral pattern failed (e.g. 404 unapproved/not found), retry with primary verified OTP pattern
+      if (!result.success && farazPatternCode && farazReferralPatternCode !== farazPatternCode) {
+        console.warn(`[FarazSMS] Referral pattern '${farazReferralPatternCode}' failed (${result.error}). Retrying with primary OTP pattern '${farazPatternCode}'...`);
+        const fallbackRes = await sendFarazSmsPattern({
+          mobile: normalized,
+          code: options.referralCode,
+          apiKey: farazApiKey,
+          lineNumber: farazLineNumber,
+          patternCode: farazPatternCode,
+          paramName: farazOtpParamName || 'code'
+        });
+        if (fallbackRes.success) {
+          result = fallbackRes;
+        }
+      }
 
       if (!result.success) {
         return result;
