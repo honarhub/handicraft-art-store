@@ -13,7 +13,7 @@ export interface EmailSendResult {
  */
 export async function getEmailConfig() {
   let resendApiKey: string | null = null;
-  let emailFromAddress = 'no-reply@honarhub.ir';
+  let emailFromAddress = 'no-reply@honarhub.com';
   let emailFromName = 'هنرهاب';
   let isEmailServiceActive = true;
   let emailIsSandbox = false;
@@ -25,7 +25,7 @@ export async function getEmailConfig() {
       isEmailServiceActive = settings.isEmailServiceActive;
       emailIsSandbox = Boolean(settings.emailIsSandbox);
       resendApiKey = settings.resendApiKey || process.env.RESEND_API_KEY || null;
-      emailFromAddress = settings.emailFromAddress || process.env.RESEND_FROM_EMAIL || 'no-reply@honarhub.ir';
+      emailFromAddress = settings.emailFromAddress || process.env.RESEND_FROM_EMAIL || 'no-reply@honarhub.com';
       emailFromName = settings.emailFromName || process.env.RESEND_FROM_NAME || 'هنرهاب';
     }
   } catch (err) {
@@ -33,7 +33,7 @@ export async function getEmailConfig() {
   }
 
   if (!resendApiKey) resendApiKey = process.env.RESEND_API_KEY || null;
-  if (!emailFromAddress) emailFromAddress = process.env.RESEND_FROM_EMAIL || 'no-reply@honarhub.ir';
+  if (!emailFromAddress) emailFromAddress = process.env.RESEND_FROM_EMAIL || 'no-reply@honarhub.com';
 
   return {
     isEmailServiceActive,
@@ -147,20 +147,20 @@ export function renderOtpEmailHtml(code: string): string {
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="padding: 0 6px;">
-                          <a href="mailto:support@honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
-                            ✉️ support@honarhub.ir
+                          <a href="mailto:support@honarhub.com" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            ✉️ support@honarhub.com
                           </a>
                         </td>
                         <td style="color: #cbd5e1; font-size: 11px;">|</td>
                         <td style="padding: 0 6px;">
-                          <a href="https://honarhub.ir/support" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                          <a href="https://honarhub.com/support" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
                             💬 تماس با پشتیبانی
                           </a>
                         </td>
                         <td style="color: #cbd5e1; font-size: 11px;">|</td>
                         <td style="padding: 0 6px;">
-                          <a href="https://honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
-                            🌐 honarhub.ir
+                          <a href="https://honarhub.com" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            🌐 honarhub.com
                           </a>
                         </td>
                       </tr>
@@ -289,20 +289,20 @@ export function renderPasswordResetEmailHtml(code: string): string {
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                       <tr>
                         <td style="padding: 0 6px;">
-                          <a href="mailto:support@honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
-                            ✉️ support@honarhub.ir
+                          <a href="mailto:support@honarhub.com" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            ✉️ support@honarhub.com
                           </a>
                         </td>
                         <td style="color: #cbd5e1; font-size: 11px;">|</td>
                         <td style="padding: 0 6px;">
-                          <a href="https://honarhub.ir/support" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                          <a href="https://honarhub.com/support" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
                             💬 تماس با پشتیبانی
                           </a>
                         </td>
                         <td style="color: #cbd5e1; font-size: 11px;">|</td>
                         <td style="padding: 0 6px;">
-                          <a href="https://honarhub.ir" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
-                            🌐 honarhub.ir
+                          <a href="https://honarhub.com" style="font-size: 11px; color: #059669; text-decoration: none; font-weight: 600;">
+                            🌐 honarhub.com
                           </a>
                         </td>
                       </tr>
@@ -566,7 +566,7 @@ export function renderReferralInviteEmailHtml(options: {
     }
   }
   if (!baseUrl) {
-    baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://honarhub.ir';
+    baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://honarhub.com';
   }
 
   // 2. Use 'invite' as the single concise query parameter (prevents email sanitizers from stripping it)
@@ -682,7 +682,7 @@ export function renderReferralInviteEmailHtml(options: {
           <tr>
             <td style="background-color: #f8fafc; border-top: 1px solid #f1f5f9; padding: 16px 28px; text-align: center;">
               <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.8;">
-                پشتیبانی: <a href="mailto:support@honarhub.ir" style="color: #64748b; text-decoration: none;">support@honarhub.ir</a><br>
+                پشتیبانی: <a href="mailto:support@honarhub.com" style="color: #64748b; text-decoration: none;">support@honarhub.com</a><br>
                 © تمامی حقوق محفوظ است — خانواده دست‌سازه‌های ایرانی هنرهاب
               </p>
             </td>

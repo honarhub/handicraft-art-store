@@ -91,7 +91,7 @@ export async function PATCH(request: Request) {
     if (isEmailServiceActive !== undefined) updateData.isEmailServiceActive = Boolean(isEmailServiceActive);
     if (emailIsSandbox !== undefined) updateData.emailIsSandbox = Boolean(emailIsSandbox);
     if (resendApiKey !== undefined) updateData.resendApiKey = resendApiKey ? resendApiKey.trim() : null;
-    if (emailFromAddress !== undefined) updateData.emailFromAddress = emailFromAddress ? emailFromAddress.trim() : 'no-reply@honarhub.ir';
+    if (emailFromAddress !== undefined) updateData.emailFromAddress = emailFromAddress ? emailFromAddress.trim() : 'no-reply@honarhub.com';
     if (emailFromName !== undefined) updateData.emailFromName = emailFromName ? emailFromName.trim() : 'هنرهاب';
 
     const settings = await prisma.siteSettings.upsert({

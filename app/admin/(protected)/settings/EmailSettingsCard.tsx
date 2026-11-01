@@ -18,7 +18,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
   const [emailIsSandbox, setEmailIsSandbox] = useState(initialSettings.emailIsSandbox ?? false);
   const [resendApiKey, setResendApiKey] = useState(initialSettings.resendApiKey || '');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [emailFromAddress, setEmailFromAddress] = useState(initialSettings.emailFromAddress || 'no-reply@honarhub.ir');
+  const [emailFromAddress, setEmailFromAddress] = useState(initialSettings.emailFromAddress || 'no-reply@honarhub.com');
   const [emailFromName, setEmailFromName] = useState(initialSettings.emailFromName || 'هنرهاب');
 
   const [saving, setSaving] = useState(false);
@@ -35,7 +35,7 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
       if (initialSettings.isEmailServiceActive !== undefined) setIsEmailServiceActive(initialSettings.isEmailServiceActive);
       if (initialSettings.emailIsSandbox !== undefined) setEmailIsSandbox(Boolean(initialSettings.emailIsSandbox));
       if (initialSettings.resendApiKey !== undefined) setResendApiKey(initialSettings.resendApiKey || '');
-      if (initialSettings.emailFromAddress !== undefined) setEmailFromAddress(initialSettings.emailFromAddress || 'no-reply@honarhub.ir');
+      if (initialSettings.emailFromAddress !== undefined) setEmailFromAddress(initialSettings.emailFromAddress || 'no-reply@honarhub.com');
       if (initialSettings.emailFromName !== undefined) setEmailFromName(initialSettings.emailFromName || 'هنرهاب');
     }
   }, [initialSettings]);
@@ -311,11 +311,11 @@ export default function EmailSettingsCard({ initialSettings, onSave }: EmailSett
               dir="ltr"
               value={emailFromAddress}
               onChange={(e) => setEmailFromAddress(e.target.value)}
-              placeholder="no-reply@honarhub.ir"
+              placeholder="no-reply@honarhub.com"
               className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-slate-800"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              پیش‌فرض پیشنهادی: <span className="font-mono font-bold text-slate-600">no-reply@honarhub.ir</span>
+              پیش‌فرض پیشنهادی: <span className="font-mono font-bold text-slate-600">no-reply@honarhub.com</span>
             </p>
           </div>
 

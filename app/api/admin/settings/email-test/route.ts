@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     if (settings?.emailFromName) fromNameToUse = settings.emailFromName;
 
     if (!fromEmailToUse) {
-      fromEmailToUse = 'no-reply@honarhub.ir';
+      fromEmailToUse = 'no-reply@honarhub.com';
     }
 
     // If in Production mode, an API key is required
