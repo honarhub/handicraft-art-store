@@ -7,6 +7,7 @@ import Link from 'next/link';
 interface ArtistSidebarNavProps {
   initialUnreadFeedbackCount: number;
   verificationLevel?: number;
+  onNavigate?: () => void;
 }
 
 const MEDAL_THEMES: Record<number, {
@@ -103,7 +104,7 @@ function NavMedalLevelIcon({ level }: { level: number }) {
   );
 }
 
-export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificationLevel = 0 }: ArtistSidebarNavProps) {
+export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificationLevel = 0, onNavigate }: ArtistSidebarNavProps) {
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState<number>(initialUnreadFeedbackCount);
   const [level, setLevel] = useState<number>(verificationLevel);
@@ -197,6 +198,7 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
           <Link
             key={item.href}
             href={item.href}
+            onClick={() => onNavigate?.()}
             className={`px-4 py-3 rounded-lg font-medium text-sm flex items-center justify-between transition-colors ${
               isActive
                 ? 'bg-teal-700 text-white shadow-md'

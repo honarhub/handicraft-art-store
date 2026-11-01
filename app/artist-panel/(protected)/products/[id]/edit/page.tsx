@@ -211,48 +211,54 @@ export default function ArtistEditProductPage() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto" dir="rtl">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="p-3 sm:p-6 md:p-8 max-w-4xl mx-auto w-full" dir="rtl">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">ویرایش اثر</h2>
-          <p className="text-slate-500 mt-1 text-sm">تغییرات شما پس از تایید مدیریت در سایت اعمال خواهد شد و محصول لایو قطع نخواهد شد.</p>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">ویرایش اثر</h2>
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm">تغییرات شما پس از تایید مدیریت در سایت اعمال خواهد شد و محصول لایو قطع نخواهد شد.</p>
         </div>
-        <button onClick={() => router.back()} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm transition-colors">
-          انصراف و بازگشت
+        <button 
+          onClick={() => router.back()} 
+          className="self-end sm:self-auto bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <span>←</span>
+          <span>انصراف و بازگشت</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden p-6 md:p-8">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200 overflow-hidden p-4 sm:p-6 md:p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             
             {/* Gallery */}
-            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-              <h4 className="font-bold text-slate-800 mb-2">گالری محصول (حداکثر ۵ فایل)</h4>
+            <div className="md:col-span-2 bg-slate-50/80 p-4 sm:p-6 rounded-2xl border border-slate-200">
+              <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-1.5">گالری محصول (حداکثر ۵ فایل)</h4>
               <p className="text-xs text-slate-500 mb-4 leading-relaxed">
                 شما می‌توانید تا ۵ عکس یا فیلم برای محصول خود قرار دهید. عکس‌های موجود حفظ می‌شوند و می‌توانید عکس جدید اضافه فرمایید.
               </p>
-              <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex flex-wrap gap-3 sm:gap-4 items-center">
                 {images.map((img, idx) => (
-                  <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-200 group">
+                  <div key={idx} className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-slate-200 group shadow-xs">
                     {img.startsWith('data:video') || img.endsWith('.mp4') ? (
                       <video src={img} className="w-full h-full object-cover" />
                     ) : (
-                      <img src={img} className="w-full h-full object-cover" />
+                      <img src={img} className="w-full h-full object-cover" alt="" />
                     )}
                     <button 
                       type="button"
                       onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                      className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm text-sm font-bold"
+                      title="حذف فایل"
                     >
                       ×
                     </button>
                   </div>
                 ))}
                 {images.length < 5 && (
-                  <label className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-teal-600 hover:border-teal-400 hover:bg-teal-50 cursor-pointer transition-all">
+                  <label className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:text-teal-600 hover:border-teal-400 hover:bg-teal-50 cursor-pointer transition-all">
                     <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleManualUpload} />
-                    <span className="text-3xl">+</span>
+                    <span className="text-2xl sm:text-3xl font-light">+</span>
+                    <span className="text-[10px] text-slate-400 font-bold mt-0.5">افزودن</span>
                   </label>
                 )}
               </div>
@@ -260,59 +266,80 @@ export default function ArtistEditProductPage() {
 
             {/* Title */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">عنوان اثر <span className="text-red-500">*</span></label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none transition-all" required />
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">عنوان اثر <span className="text-red-500">*</span></label>
+              <input 
+                type="text" 
+                value={title} 
+                onChange={e => setTitle(e.target.value)} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-base font-medium focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
+                required 
+              />
             </div>
 
             {/* Base Price & Stock */}
             <div className="md:col-span-1">
-              <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه اثر (تومان) <span className="text-red-500">*</span></label>
-              <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5,000,000" required />
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">قیمت پایه اثر (تومان) <span className="text-red-500">*</span></label>
+              <input 
+                type="text" 
+                inputMode="numeric"
+                value={formattedPrice} 
+                onChange={handlePriceChange} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-base font-bold focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
+                placeholder="مثلا: ۵,۰۰۰,۰۰۰" 
+                required 
+              />
+              {price ? (
+                <div className="text-xs text-teal-900 font-bold mt-2 bg-teal-50 px-3 py-1.5 rounded-lg border border-teal-200/70 inline-flex items-center gap-1.5">
+                  <span>💰 معادل:</span>
+                  <span className="font-black text-teal-700">{Number(price).toLocaleString('fa-IR')} تومان</span>
+                </div>
+              ) : null}
             </div>
 
             <div className="md:col-span-1">
-              <label className="block text-sm font-bold text-slate-700 mb-2">موجودی انبار (تعداد) <span className="text-red-500">*</span></label>
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">موجودی انبار (تعداد) <span className="text-red-500">*</span></label>
               <input 
                 type="number" 
                 min="0" 
+                inputMode="numeric"
                 value={stockQuantity} 
                 onChange={e => setStockQuantity(Number(e.target.value))} 
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-base font-bold focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
                 required 
               />
             </div>
 
             {/* Shipping Mode Selector */}
-            <div className="md:col-span-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-              <label className="block text-sm font-bold text-slate-800 mb-2">نحوه ارسال سفارش</label>
+            <div className="md:col-span-2 bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">نحوه ارسال سفارش</label>
               <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                 ارسال آثار توسط هنرمند به صورت مستقیم از کارگاه انجام می‌شود. ارسال از انبار مرکزی تنها توسط مدیریت سایت قابل فعال‌سازی است.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div
-                  className="p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 border-emerald-500 bg-emerald-50/60 text-emerald-950 ring-2 ring-emerald-500/20"
+                  className="p-3.5 sm:p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 border-emerald-500 bg-emerald-50/70 text-emerald-950 ring-2 ring-emerald-500/20"
                 >
-                  <span className="text-xl">🎨</span>
+                  <span className="text-xl shrink-0">🎨</span>
                   <div>
-                    <div className="font-bold text-sm flex items-center gap-2">
+                    <div className="font-bold text-xs sm:text-sm flex items-center gap-2">
                       <span>ارسال مستقیم از کارگاه هنرمند</span>
                       <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">پیش‌فرض هنرمند</span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">محصول در کارگاه شماست و پس از ثبت سفارش توسط خودتان ارسال می‌گردد.</div>
+                    <div className="text-[11px] sm:text-xs text-slate-600 mt-1">محصول در کارگاه شماست و پس از ثبت سفارش توسط خودتان ارسال می‌گردد.</div>
                   </div>
                 </div>
 
                 <div
-                  className="p-4 rounded-xl border-2 text-right flex items-start gap-3 border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60"
+                  className="p-3.5 sm:p-4 rounded-xl border-2 text-right flex items-start gap-3 border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60"
                   title="این گزینه پس از تحویل کالا به انبار مرکزی، صرفاً توسط مدیریت سایت فعال می‌گردد"
                 >
-                  <span className="text-xl grayscale">📦</span>
+                  <span className="text-xl shrink-0 grayscale">📦</span>
                   <div>
-                    <div className="font-bold text-sm flex items-center gap-1.5">
+                    <div className="font-bold text-xs sm:text-sm flex items-center gap-1.5">
                       <span>ارسال توسط هنرهاب (انبار مرکزی)</span>
                       <span className="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-normal">غیرفعال برای هنرمند</span>
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">این گزینه منوط به تحویل کالا به انبار هنرهاب بوده و توسط مدیریت فعال می‌شود.</div>
+                    <div className="text-[11px] sm:text-xs text-slate-400 mt-1">این گزینه منوط به تحویل کالا به انبار هنرهاب بوده و توسط مدیریت فعال می‌شود.</div>
                   </div>
                 </div>
               </div>
@@ -331,55 +358,89 @@ export default function ArtistEditProductPage() {
 
             {/* Specialties */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌ها و سبک‌های دسته‌بندی</label>
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">تخصص‌ها و سبک‌های دسته‌بندی</label>
               <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
             </div>
 
             {/* Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">توضیحات اثر</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none leading-relaxed" rows={5}></textarea>
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">توضیحات اثر</label>
+              <textarea 
+                value={description} 
+                onChange={e => setDescription(e.target.value)} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-base font-normal leading-relaxed focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
+                rows={5}
+              ></textarea>
             </div>
 
             {/* SEO */}
-            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4 relative">
-              <div className="flex justify-between items-start mb-4">
+            <div className="md:col-span-2 bg-slate-50/80 p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-4 relative">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2">
                 <div>
-                  <h4 className="font-black text-slate-800 flex items-center gap-2">
-                    <span className="text-teal-600">🎯</span> سئو (SEO)
+                  <h4 className="font-black text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="text-teal-600">🎯</span> تنظیمات سئو در گوگل (اختیاری)
                   </h4>
-                  <p className="text-xs text-slate-500 mt-2 max-w-xl leading-relaxed">
-                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است.
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                    این مقادیر به نمایش حرفه‌ای اثر شما در نتایج جستجوی گوگل کمک می‌کند.
                   </p>
                 </div>
                 <button 
                   type="button" 
                   onClick={generateSeo}
                   disabled={seoLoading || !title || !artistAiEnabled}
-                  className="bg-teal-100 hover:bg-teal-200 text-teal-700 font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto bg-teal-100 hover:bg-teal-200 text-teal-800 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   title={!artistAiEnabled ? 'سرویس هوش مصنوعی موقتاً قطع می‌باشد' : undefined}
                 >
                   {seoLoading ? 'در حال تولید...' : !artistAiEnabled ? '✨ هوش مصنوعی (قطع موقت)' : '✨ تولید با هوش مصنوعی'}
                 </button>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">SEO Title</label>
-                <input type="text" value={seoMetaTitle} onChange={e => setSeoMetaTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">SEO Title</label>
+                <input 
+                  type="text" 
+                  value={seoMetaTitle} 
+                  onChange={e => setSeoMetaTitle(e.target.value)} 
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all" 
+                />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">SEO Description</label>
-                <input type="text" value={seoMetaDesc} onChange={e => setSeoMetaDesc(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">SEO Description</label>
+                <input 
+                  type="text" 
+                  value={seoMetaDesc} 
+                  onChange={e => setSeoMetaDesc(e.target.value)} 
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all" 
+                />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">SEO Keywords</label>
-                <input type="text" value={seoKeywords} onChange={e => setSeoKeywords(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">SEO Keywords</label>
+                <input 
+                  type="text" 
+                  value={seoKeywords} 
+                  onChange={e => setSeoKeywords(e.target.value)} 
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all" 
+                />
               </div>
             </div>
           </div>
 
           <div className="pt-6 border-t border-slate-100 flex gap-4">
-            <button type="submit" disabled={submitLoading} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-teal-200 transition-all disabled:opacity-50 cursor-pointer">
-              {submitLoading ? 'در حال ثبت...' : 'ثبت تغییرات و ارسال برای تایید'}
+            <button 
+              type="submit" 
+              disabled={submitLoading} 
+              className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {submitLoading ? (
+                <>
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>در حال ثبت تغییرات...</span>
+                </>
+              ) : (
+                <>
+                  <span>✓</span>
+                  <span>ثبت تغییرات و ارسال برای تایید مدیریت</span>
+                </>
+              )}
             </button>
           </div>
         </form>

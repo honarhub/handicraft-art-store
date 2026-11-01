@@ -240,7 +240,7 @@ export default function PreOrderManager({
 
                 {/* Price configuration & Capacity (when active) */}
                 {tier.active ? (
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     {/* Select Dropdown */}
                     <select
                       value={tier.priceType}
@@ -254,14 +254,14 @@ export default function PreOrderManager({
                         }
                         updateTier(tier.id, { priceType: newType, value: newValue });
                       }}
-                      className="w-[145px] shrink-0 text-xs font-bold border border-slate-300 rounded-lg px-2.5 py-2 bg-slate-50 focus:border-purple-500 outline-none cursor-pointer"
+                      className="w-full sm:w-[145px] shrink-0 text-xs font-bold text-slate-900 border border-slate-300 rounded-lg px-2.5 py-2 bg-slate-50 focus:border-purple-500 outline-none cursor-pointer"
                     >
                       <option value="PERCENTAGE">درصد از قیمت پایه</option>
                       <option value="FIXED">مبلغ ثابت (تومان)</option>
                     </select>
 
                     {/* Price Input with commas for FIXED and 5% up/down arrows for PERCENTAGE */}
-                    <div className="w-[155px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2 py-1 bg-white focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500">
+                    <div className="w-full sm:w-[155px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-200">
                       <input
                         type="text"
                         inputMode="numeric"
@@ -296,7 +296,7 @@ export default function PreOrderManager({
                           }
                         }}
                         placeholder={tier.priceType === 'PERCENTAGE' ? 'مثلا ۹۰' : 'مبلغ به تومان'}
-                        className="w-full text-xs font-bold outline-none bg-transparent"
+                        className="w-full text-xs font-bold text-slate-900 outline-none bg-transparent placeholder:text-slate-400 placeholder:font-normal"
                       />
 
                       {/* 5% Up/Down Stepper Arrows (Only in PERCENTAGE mode) */}
@@ -305,7 +305,7 @@ export default function PreOrderManager({
                           <button
                             type="button"
                             onClick={() => handleStepPercentage(tier.id, 5)}
-                            className="p-0.5 hover:bg-purple-100 text-slate-500 hover:text-purple-700 rounded transition-colors cursor-pointer"
+                            className="p-0.5 hover:bg-purple-100 text-slate-600 hover:text-purple-700 rounded transition-colors cursor-pointer"
                             title="افزایش ۵ درصدی (یا کلید فلش بالا)"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
@@ -313,7 +313,7 @@ export default function PreOrderManager({
                           <button
                             type="button"
                             onClick={() => handleStepPercentage(tier.id, -5)}
-                            className="p-0.5 hover:bg-purple-100 text-slate-500 hover:text-purple-700 rounded transition-colors cursor-pointer"
+                            className="p-0.5 hover:bg-purple-100 text-slate-600 hover:text-purple-700 rounded transition-colors cursor-pointer"
                             title="کاهش ۵ درصدی (یا کلید فلش پایین)"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -321,22 +321,22 @@ export default function PreOrderManager({
                         </div>
                       )}
 
-                      <span className="text-[11px] text-slate-400 font-bold shrink-0 mr-1 select-none">
+                      <span className="text-[11px] text-slate-500 font-bold shrink-0 mr-1 select-none">
                         {tier.priceType === 'PERCENTAGE' ? '٪' : 'تومان'}
                       </span>
                     </div>
 
                     {/* Calculated preview with fixed dimensions */}
-                    <div className="w-[180px] shrink-0 text-center text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                    <div className="w-full sm:w-[170px] shrink-0 text-center text-xs font-bold text-emerald-900 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
                       مبلغ نهایی: <span className="font-black text-emerald-700">{tier.calculatedPrice.toLocaleString('fa-IR')}</span> تومان
                     </div>
 
                     {/* Capacity limit for this specific tier */}
                     <div 
-                      className="w-[145px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2 py-1 bg-white focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500"
+                      className="w-full sm:w-[135px] shrink-0 flex items-center justify-between border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-200"
                       title="سقف پذیرش سفارش در این بازه زمانی (خالی = نامحدود)"
                     >
-                      <span className="text-[11px] text-slate-500 font-bold shrink-0 ml-1 select-none">
+                      <span className="text-[11px] text-slate-700 font-bold shrink-0 ml-1 select-none">
                         سقف:
                       </span>
                       <input
@@ -362,7 +362,7 @@ export default function PreOrderManager({
                           }
                         }}
                         placeholder="نامحدود"
-                        className="w-full text-center text-xs font-bold outline-none bg-transparent placeholder:text-slate-400 placeholder:font-normal"
+                        className="w-full text-center text-xs font-bold text-slate-900 outline-none bg-transparent placeholder:text-slate-400 placeholder:font-normal"
                       />
                       
                       {/* Up/down arrows for capacity */}

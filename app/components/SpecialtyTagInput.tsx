@@ -129,7 +129,7 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
         <div className="flex-1 min-w-[150px] relative">
           <input
             type="text"
-            className="w-full h-full p-2 outline-none text-slate-700 bg-transparent"
+            className="w-full h-full p-2 outline-none text-slate-900 font-medium placeholder:text-slate-400 bg-transparent text-sm sm:text-base"
             placeholder={selectedSpecialties.length === 0 ? "تخصص‌ها را تایپ و انتخاب کنید... (مثل: سفال‌گری)" : "تخصص دیگری اضافه کنید..."}
             value={query}
             onChange={e => setQuery(e.target.value)}

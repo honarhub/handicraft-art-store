@@ -249,39 +249,45 @@ export default function ArtistAddProductPage() {
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto" dir="rtl">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="p-3 sm:p-6 md:p-8 max-w-4xl mx-auto w-full" dir="rtl">
+      <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">ثبت اثر جدید</h2>
-          <p className="text-slate-500 mt-1 text-sm">محصولات پس از ثبت نیاز به تایید مدیریت دارند.</p>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">ثبت اثر جدید</h2>
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm">محصولات پس از ثبت نیاز به بررسی و تایید مدیریت دارند.</p>
         </div>
-        <button onClick={() => router.back()} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm transition-colors">
-          بازگشت به لیست
+        <button 
+          onClick={() => router.back()} 
+          className="self-end sm:self-auto bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <span>←</span>
+          <span>بازگشت به لیست آثار</span>
         </button>
       </div>
 
-      <div className="flex bg-slate-100 p-1 rounded-2xl mb-8 w-fit">
+      <div className="grid grid-cols-2 sm:flex bg-slate-100 p-1.5 rounded-2xl mb-6 sm:mb-8 w-full sm:w-fit gap-1">
         <button 
+          type="button"
           onClick={() => setActiveTab('ai')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'ai' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${activeTab === 'ai' ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
         >
-          <span className="text-lg">✨</span>
-          <span>ثبت سریع با هوش مصنوعی</span>
+          <span className="text-base sm:text-lg">✨</span>
+          <span>ثبت با هوش مصنوعی</span>
           {!artistAiEnabled && (
-            <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2 py-0.5 rounded-full">
-              غیرفعال موقت
+            <span className="text-[9px] sm:text-[10px] bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded-full">
+              غیرفعال
             </span>
           )}
         </button>
         <button 
+          type="button"
           onClick={() => setActiveTab('manual')}
-          className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'manual' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer text-center ${activeTab === 'manual' ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
         >
           ثبت دستی (سنتی)
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden p-6 md:p-8">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200 overflow-hidden p-4 sm:p-6 md:p-8">
         
         {activeTab === 'ai' && (
           <div className="mb-10 pb-10 border-b border-slate-100">
@@ -409,54 +415,82 @@ export default function ArtistAddProductPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">عنوان اثر <span className="text-red-500">*</span></label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-4 focus:ring-teal-50 outline-none transition-all" required />
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">عنوان اثر <span className="text-red-500">*</span></label>
+              <input 
+                type="text" 
+                value={title} 
+                onChange={e => setTitle(e.target.value)} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-base font-medium focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
+                placeholder="مثال: بشقاب میناکاری ۲۵ سانتی‌متری طرح اسلیمی"
+                required 
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">قیمت پایه (تومان)</label>
-              <input type="text" value={formattedPrice} onChange={handlePriceChange} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" placeholder="مثلا: 5,000,000" />
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">قیمت پایه (تومان)</label>
+              <input 
+                type="text" 
+                inputMode="numeric"
+                value={formattedPrice} 
+                onChange={handlePriceChange} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-base font-bold focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
+                placeholder="مثلا: ۵,۰۰۰,۰۰۰" 
+              />
+              {price ? (
+                <div className="text-xs text-teal-900 font-bold mt-2 bg-teal-50 px-3 py-1.5 rounded-lg border border-teal-200/70 inline-flex items-center gap-1.5">
+                  <span>💰 معادل:</span>
+                  <span className="font-black text-teal-700">{Number(price).toLocaleString('fa-IR')} تومان</span>
+                </div>
+              ) : null}
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">موجودی (تعداد)</label>
-              <input type="number" min="0" value={stockQuantity} onChange={e => setStockQuantity(Number(e.target.value))} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none" required />
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">موجودی آماده ارسال (تعداد) <span className="text-red-500">*</span></label>
+              <input 
+                type="number" 
+                min="0" 
+                inputMode="numeric"
+                value={stockQuantity} 
+                onChange={e => setStockQuantity(Number(e.target.value))} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-base font-bold focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
+                required 
+              />
             </div>
 
             {/* Shipping Mode */}
-            <div className="md:col-span-2 bg-slate-50 p-5 rounded-2xl border border-slate-200">
-              <label className="block text-sm font-bold text-slate-800 mb-2">نحوه ارسال سفارش</label>
+            <div className="md:col-span-2 bg-slate-50/80 p-4 sm:p-5 rounded-2xl border border-slate-200">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">نحوه ارسال سفارش</label>
               <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                 ارسال آثار توسط هنرمند به صورت مستقیم از کارگاه انجام می‌شود. ارسال از انبار مرکزی تنها توسط مدیریت سایت قابل فعال‌سازی است.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div
-                  className="p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 border-emerald-500 bg-emerald-50/60 text-emerald-950 ring-2 ring-emerald-500/20"
+                  className="p-3.5 sm:p-4 rounded-xl border-2 text-right transition-all flex items-start gap-3 border-emerald-500 bg-emerald-50/70 text-emerald-950 ring-2 ring-emerald-500/20"
                 >
-                  <span className="text-xl">🎨</span>
+                  <span className="text-xl shrink-0">🎨</span>
                   <div>
-                    <div className="font-bold text-sm flex items-center gap-2">
+                    <div className="font-bold text-xs sm:text-sm flex items-center gap-2">
                       <span>ارسال مستقیم از کارگاه هنرمند</span>
                       <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">پیش‌فرض هنرمند</span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">محصول در کارگاه شماست و پس از ثبت سفارش توسط خودتان ارسال می‌گردد.</div>
+                    <div className="text-[11px] sm:text-xs text-slate-600 mt-1">محصول در کارگاه شماست و پس از ثبت سفارش توسط خودتان ارسال می‌گردد.</div>
                   </div>
                 </div>
 
                 <div
-                  className="p-4 rounded-xl border-2 text-right flex items-start gap-3 border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60"
+                  className="p-3.5 sm:p-4 rounded-xl border-2 text-right flex items-start gap-3 border-slate-200 bg-slate-100/70 text-slate-400 cursor-not-allowed opacity-60"
                   title="این گزینه پس از تحویل کالا به انبار مرکزی، صرفاً توسط مدیریت سایت فعال می‌گردد"
                 >
-                  <span className="text-xl grayscale">📦</span>
+                  <span className="text-xl shrink-0 grayscale">📦</span>
                   <div>
-                    <div className="font-bold text-sm flex items-center gap-1.5">
+                    <div className="font-bold text-xs sm:text-sm flex items-center gap-1.5">
                       <span>ارسال توسط هنرهاب (انبار مرکزی)</span>
                       <span className="bg-slate-200 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-normal">غیرفعال برای هنرمند</span>
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">این گزینه منوط به تحویل کالا به انبار هنرهاب بوده و توسط مدیریت فعال می‌شود.</div>
+                    <div className="text-[11px] sm:text-xs text-slate-400 mt-1">این گزینه منوط به تحویل کالا به انبار هنرهاب بوده و توسط مدیریت فعال می‌شود.</div>
                   </div>
                 </div>
               </div>
@@ -474,23 +508,29 @@ export default function ArtistAddProductPage() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">تخصص‌های مرتبط</label>
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">تخصص‌های مرتبط</label>
               <SpecialtyTagInput selectedSpecialties={specialties} onChange={setSpecialties} />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-700 mb-2">توضیحات اثر</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-teal-500 outline-none leading-relaxed" rows={5}></textarea>
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-2">توضیحات اثر</label>
+              <textarea 
+                value={description} 
+                onChange={e => setDescription(e.target.value)} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 text-base font-normal leading-relaxed focus:border-teal-600 focus:ring-4 focus:ring-teal-500/10 outline-none transition-all shadow-xs" 
+                rows={5}
+                placeholder="توضیحات اثر، ابعاد، تکنیک و متریال ساخت، نحوه نگهداری و داستان خلق اثر..."
+              ></textarea>
             </div>
 
-            <div className="md:col-span-2 bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4 relative">
-              <div className="flex justify-between items-start mb-4">
+            <div className="md:col-span-2 bg-slate-50/80 p-4 sm:p-6 rounded-2xl border border-slate-200 space-y-4 relative">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-2">
                 <div>
-                  <h4 className="font-black text-slate-800 flex items-center gap-2">
-                    <span className="text-teal-600">🎯</span> سئو (SEO)
+                  <h4 className="font-black text-slate-900 text-sm sm:text-base flex items-center gap-2">
+                    <span className="text-teal-600">🎯</span> تنظیمات سئو در گوگل (اختیاری)
                   </h4>
-                  <p className="text-xs text-slate-500 mt-2 max-w-xl leading-relaxed">
-                    این مقادیر به بهتر دیده شدن محصول شما در گوگل کمک می‌کند و اختیاری است. در صورتی که دانشی در این زمینه ندارید، می‌توانید برای پر کردن خودکار این فیلدها از هوش مصنوعی استفاده کنید.
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl leading-relaxed">
+                    این مقادیر به نمایش حرفه‌ای اثر شما در نتایج جستجوی گوگل کمک می‌کند.
                   </p>
                 </div>
                 {activeTab === 'manual' && (
@@ -498,7 +538,7 @@ export default function ArtistAddProductPage() {
                     type="button" 
                     onClick={generateSeo}
                     disabled={seoLoading || !title || !artistAiEnabled}
-                    className="bg-teal-100 hover:bg-teal-200 text-teal-700 font-bold px-4 py-2 rounded-lg text-xs transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto bg-teal-100 hover:bg-teal-200 text-teal-800 font-bold px-4 py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     title={!artistAiEnabled ? 'سرویس هوش مصنوعی موقتاً قطع می‌باشد' : undefined}
                   >
                     {seoLoading ? 'در حال تولید...' : !artistAiEnabled ? '✨ هوش مصنوعی (قطع موقت)' : '✨ تولید با هوش مصنوعی'}
@@ -507,23 +547,55 @@ export default function ArtistAddProductPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">SEO Title</label>
-                <input type="text" value={seoMetaTitle} onChange={e => setSeoMetaTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">عنوان سئو (SEO Title)</label>
+                <input 
+                  type="text" 
+                  value={seoMetaTitle} 
+                  onChange={e => setSeoMetaTitle(e.target.value)} 
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all" 
+                  placeholder="عنوان نمایشی در گوگل (مثال: خرید گلدان سفالی دست‌ساز)"
+                />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">SEO Description</label>
-                <input type="text" value={seoMetaDesc} onChange={e => setSeoMetaDesc(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">توضیحات سئو (SEO Description)</label>
+                <input 
+                  type="text" 
+                  value={seoMetaDesc} 
+                  onChange={e => setSeoMetaDesc(e.target.value)} 
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all" 
+                  placeholder="توضیح کوتاه ۱ یا ۲ خطی برای نمایش در گوگل..."
+                />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">SEO Keywords</label>
-                <input type="text" value={seoKeywords} onChange={e => setSeoKeywords(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm outline-none" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">کلمات کلیدی سئو (SEO Keywords)</label>
+                <input 
+                  type="text" 
+                  value={seoKeywords} 
+                  onChange={e => setSeoKeywords(e.target.value)} 
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all" 
+                  placeholder="کلمات کلیدی با ویرگول جدا شوند (مثال: سفالگری، میناکاری، صنایع دستی)"
+                />
               </div>
             </div>
           </div>
 
           <div className="pt-6 border-t border-slate-100 flex gap-4">
-            <button type="submit" disabled={submitLoading} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-teal-200 transition-all disabled:opacity-50">
-              {submitLoading ? 'در حال ثبت...' : 'ارسال برای تایید'}
+            <button 
+              type="submit" 
+              disabled={submitLoading} 
+              className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 transition-all text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {submitLoading ? (
+                <>
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>در حال ثبت اثر...</span>
+                </>
+              ) : (
+                <>
+                  <span>✓</span>
+                  <span>ثبت و ارسال اثر برای تایید مدیریت</span>
+                </>
+              )}
             </button>
           </div>
         </form>
