@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 export type CategoryChild = {
   id: string;
@@ -252,9 +253,14 @@ export default function CategoriesMegaMenu() {
   const [categories, setCategories] = useState<MasterCategory[]>(DEFAULT_CATEGORIES);
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategoryId, setActiveCategoryId] = useState<string>(DEFAULT_CATEGORIES[0].id);
+  const [mounted, setMounted] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -515,19 +521,19 @@ export default function CategoriesMegaMenu() {
         </div>
       )}
 
-      {/* منوی عمودی کشویی در موبایل (پیوندهای اصلی سایت) */}
-      {isOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex" dir="rtl">
+      {/* منوی عمودی کشویی در موبایل (پیوندهای اصلی سایت) با createPortal برای خروج از محدودیت ارتفاع هدر */}
+      {mounted && isOpen && createPortal(
+        <div className="md:hidden fixed inset-0 z-[9999] flex" dir="rtl">
           {/* پس‌زمینه نیمه‌شفاف تار */}
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
             onClick={() => setIsOpen(false)}
           />
 
-          {/* بدنه دراور کشویی از راست */}
-          <div className="relative w-4/5 max-w-xs sm:max-w-sm bg-white h-full shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-250 select-none">
+          {/* بدنه دراور کشویی از راست با ارتفاع کامل ویوپورت موبایل */}
+          <div className="relative w-4/5 max-w-xs sm:max-w-sm bg-white h-[100dvh] max-h-[100dvh] shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-250 select-none">
             {/* سربرگ منوی موبایل */}
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/80">
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/80 shrink-0">
               <a 
                 href="/" 
                 onClick={() => setIsOpen(false)} 
@@ -551,8 +557,8 @@ export default function CategoriesMegaMenu() {
               </button>
             </div>
 
-            {/* لیست عمودی گزینه‌های ناوبری اصلی */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
+            {/* لیست عمودی گزینه‌های ناوبری اصلی با اسکرول مستقل */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-1.5 min-h-0">
               {/* صفحه اصلی */}
               <a
                 href="/"
@@ -686,7 +692,7 @@ export default function CategoriesMegaMenu() {
             </div>
 
             {/* بخش پایین دراور: ورود و دسترسی سریع به سبد خرید و علاقمندی */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50/70 space-y-2.5">
+            <div className="p-4 border-t border-slate-100 bg-slate-50/70 space-y-2.5 shrink-0">
               <a
                 href="/login"
                 onClick={() => setIsOpen(false)}
@@ -718,7 +724,8 @@ export default function CategoriesMegaMenu() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
