@@ -106,7 +106,7 @@ export async function POST(req: Request) {
 
     // 5. Hash Password & Create User + ArtistProfile
     const hashedPassword = await bcrypt.hash(password, 10);
-    const defaultName = name?.trim() || (isEmail ? normalizedTarget.split('@')[0] : `هنرمند ${normalizedTarget.slice(-4)}`);
+    const defaultName = name?.trim() || null;
 
     const newUser = await prisma.user.create({
       data: {
