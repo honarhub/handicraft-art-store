@@ -7,6 +7,15 @@ export function proxy(request: NextRequest) {
   // Get hostname of request (e.g. admin.localhost:3000, admin.mydomain.com)
   const hostname = request.headers.get('host') || '';
 
+  // 1. Redirect honarhub.ir or www to honarhub.com (ignore localhost)
+  if (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')) {
+    if (hostname.includes('honarhub.ir') || hostname.startsWith('www.')) {
+      const cleanHost = hostname.replace(/^www\./, '').replace('honarhub.ir', 'honarhub.com');
+      const targetUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${cleanHost}`);
+      return NextResponse.redirect(targetUrl, 308);
+    }
+  }
+
   // Define the admin subdomain string (e.g. 'admin')
   const adminSubdomain = 'admin';
 
