@@ -8,6 +8,7 @@ import DynamicProductRow from './components/DynamicProductRow';
 import SiteHeader from './components/SiteHeader';
 import SiteFooter from './components/SiteFooter';
 import HonarHubHero from './components/HonarHubHero';
+import FeaturedRecentCarousel from './components/FeaturedRecentCarousel';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,8 +46,11 @@ export default async function Home() {
         deletedAt: null,
         artist: { isActive: true, isDeleted: false, isApproved: true, verificationLevel: { gte: 2 } }
       },
-      include: { artist: { include: { user: true } } },
-      take: 6,
+      include: { 
+        artist: { include: { user: true } },
+        pricingTiers: true
+      },
+      take: 8,
       orderBy: { createdAt: 'desc' }
     });
   } catch (err) {
@@ -195,68 +199,19 @@ export default async function Home() {
           ))}
 
           {/* Featured Products (Recent) */}
-          <section id="marketplace" className="px-6 md:px-12">
-            <div className="flex justify-between items-end mb-12">
+          <section id="marketplace" className="px-4 sm:px-6 md:px-12">
+            <div className="flex justify-between items-end mb-8 md:mb-12">
               <div>
-                <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-3">آثار برگزیده اخیر</h2>
-                <p className="text-slate-500 font-medium">جدیدترین دست‌سازه‌های پلتفرم هنرهاب</p>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-800 mb-2 sm:mb-3">آثار برگزیده اخیر</h2>
+                <p className="text-slate-500 font-medium text-xs sm:text-sm">جدیدترین دست‌سازه‌های پلتفرم هنرهاب</p>
               </div>
-              <a href="/products" className="hidden md:flex text-emerald-600 font-bold hover:text-emerald-700 items-center gap-2 transition-colors">
+              <a href="/products" className="hidden md:flex text-emerald-600 font-bold hover:text-emerald-700 items-center gap-2 transition-colors text-sm sm:text-base">
                 گالری کامل
                 <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
               </a>
             </div>
 
-            {featuredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {featuredProducts.map((product) => (
-                  <a key={product.id} href={`/product/${product.id}`} className="group block bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-2">
-                    <div className="aspect-[4/5] w-full relative overflow-hidden bg-slate-100">
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.title} 
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
-                      />
-                      {/* Out of stock without pre-order: dimmed blurred overlay */}
-                      {product.stockQuantity <= 0 && !product.isPreOrderEnabled && (
-                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
-                          <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-xs sm:text-sm shadow-md">
-                            ناموجود
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Out of stock with pre-order enabled: crisp image with prominent badge */}
-                      {product.stockQuantity <= 0 && product.isPreOrderEnabled && (
-                        <div className="absolute top-3 right-3 z-10">
-                          <span className="bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md flex items-center gap-1.5">
-                            <span>✨</span>
-                            <span>امکان ثبت پیش‌سفارش</span>
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-8">
-                      <h3 className="text-xl font-black text-slate-800 mb-3 group-hover:text-emerald-600 transition-colors">{product.title}</h3>
-                      <div className="flex items-center gap-3">
-                        {product.artist?.user?.image ? (
-                          <img src={product.artist.user.image} alt={product.artist.user.name || ''} className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 shadow-sm" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm text-slate-400">👤</div>
-                        )}
-                        <span className="text-sm font-bold text-slate-600">{product.artist?.user?.name || 'هنرمند'}</span>
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-32 bg-white rounded-[3rem] border border-dashed border-slate-200">
-                <div className="text-5xl mb-6 opacity-50">🎨</div>
-                <h3 className="text-2xl font-black text-slate-700 mb-3">گالری در حال تجهیز است</h3>
-                <p className="text-slate-500 max-w-md mx-auto font-medium">به زودی آثار هنرمندان به این بخش اضافه خواهد شد.</p>
-              </div>
-            )}
+            <FeaturedRecentCarousel products={featuredProducts} />
           </section>
           
         </div>
