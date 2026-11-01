@@ -47,6 +47,12 @@ export async function PATCH(request: Request) {
       smsReferralTemplateId,
       smsReferralParamName,
       smsLineNumber,
+      farazSmsApiKey,
+      farazSmsLineNumber,
+      farazSmsPatternCode,
+      farazSmsOtpParamName,
+      farazSmsReferralPatternCode,
+      farazSmsReferralParamName,
       otpResendIntervalSeconds,
       otpMaxPerHourPerPhone,
       otpMaxPerTenMinPerIp,
@@ -72,6 +78,12 @@ export async function PATCH(request: Request) {
     if (smsReferralTemplateId !== undefined) updateData.smsReferralTemplateId = smsReferralTemplateId ? smsReferralTemplateId.toString().trim() : null;
     if (smsReferralParamName !== undefined) updateData.smsReferralParamName = (smsReferralParamName || 'Code').trim();
     if (smsLineNumber !== undefined) updateData.smsLineNumber = smsLineNumber ? smsLineNumber.trim() : null;
+    if (farazSmsApiKey !== undefined) updateData.farazSmsApiKey = farazSmsApiKey ? farazSmsApiKey.trim() : null;
+    if (farazSmsLineNumber !== undefined) updateData.farazSmsLineNumber = farazSmsLineNumber ? farazSmsLineNumber.trim() : null;
+    if (farazSmsPatternCode !== undefined) updateData.farazSmsPatternCode = farazSmsPatternCode ? farazSmsPatternCode.trim() : null;
+    if (farazSmsOtpParamName !== undefined) updateData.farazSmsOtpParamName = (farazSmsOtpParamName || 'code').trim();
+    if (farazSmsReferralPatternCode !== undefined) updateData.farazSmsReferralPatternCode = farazSmsReferralPatternCode ? farazSmsReferralPatternCode.trim() : null;
+    if (farazSmsReferralParamName !== undefined) updateData.farazSmsReferralParamName = (farazSmsReferralParamName || 'code').trim();
     if (otpResendIntervalSeconds !== undefined) updateData.otpResendIntervalSeconds = Math.max(10, Number(otpResendIntervalSeconds) || 60);
     if (otpMaxPerHourPerPhone !== undefined) updateData.otpMaxPerHourPerPhone = Math.max(1, Number(otpMaxPerHourPerPhone) || 5);
     if (otpMaxPerTenMinPerIp !== undefined) updateData.otpMaxPerTenMinPerIp = Math.max(1, Number(otpMaxPerTenMinPerIp) || 10);

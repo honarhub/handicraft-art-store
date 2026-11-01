@@ -333,9 +333,9 @@ model SiteSettings {
   dynamicRows              Json       @default("[]")
   artistAiEnabled          Boolean    @default(true)
 
-  // SMS & OTP (sms.ir) Settings
+  // SMS & OTP Providers Settings (sms.ir & farazsms)
   isMobileOtpActive        Boolean    @default(true)
-  smsProvider              String     @default("sms.ir")
+  smsProvider              String     @default("sms.ir") // "sms.ir" | "farazsms"
   smsIsSandbox             Boolean    @default(false)
   smsApiKey                String?
   smsSandboxApiKey         String?
@@ -344,6 +344,14 @@ model SiteSettings {
   smsReferralTemplateId    String?    // شناسه قالب پیامک دعوت‌نامه / ارسال کد معرف
   smsReferralParamName     String     @default("Code") // نام پارامتر در قالب پیامک
   smsLineNumber            String?
+
+  // FarazSMS (IranPayamak / IPPanel) Settings
+  farazSmsApiKey              String?
+  farazSmsLineNumber          String?    // شماره خط فرستنده (مثلا 3000505 یا 5000...)
+  farazSmsPatternCode         String?    // کد الگوی تایید شده برای OTP
+  farazSmsOtpParamName        String     @default("code") // نام متغیر در الگوی OTP
+  farazSmsReferralPatternCode String?    // کد الگوی تایید شده برای ارسال دعوت‌نامه
+  farazSmsReferralParamName   String     @default("code") // نام متغیر در الگوی دعوت‌نامه
   otpResendIntervalSeconds Int        @default(60)
   otpMaxPerHourPerPhone    Int        @default(5)
   otpMaxPerTenMinPerIp     Int        @default(10)

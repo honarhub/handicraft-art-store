@@ -117,6 +117,156 @@ export async function sendSmsIrVerify(options: {
 }
 
 /**
+ * Sends Pattern SMS via FarazSMS / IranPayamak / IPPanel API
+ * Documentation: https://docs.iranpayamak.com/
+ * Official Endpoint: POST https://api.iranpayamak.com/ws/v1/sms/pattern
+ * Headers: Api-Key: YOUR_API_KEY, Content-Type: application/json
+ */
+export async function sendFarazSmsPattern(options: {
+  mobile: string;
+  code: string;
+  apiKey: string;
+  lineNumber: string;
+  patternCode: string;
+  paramName?: string;
+}): Promise<SmsResult> {
+  const normalized = normalizePhoneNumber(options.mobile);
+  if (!isValidIranianMobile(normalized)) {
+    return { success: false, error: 'شماره تلفن همراه نامعتبر است.' };
+  }
+
+  const patternCode = (options.patternCode || '').trim();
+  if (!patternCode) {
+    return { success: false, error: 'کد الگوی فراز اس‌ام‌اس (Pattern Code) مشخص نشده است.' };
+  }
+
+  const lineNumber = (options.lineNumber || '').trim();
+  if (!lineNumber) {
+    return { success: false, error: 'شماره خط فرستنده فراز اس‌ام‌اس (line_number) مشخص نشده است.' };
+  }
+
+  const paramName = (options.paramName || 'code').trim();
+
+  try {
+    const res = await fetch('https://api.iranpayamak.com/ws/v1/sms/pattern', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Api-Key': options.apiKey.trim()
+      },
+      body: JSON.stringify({
+        code: patternCode,
+        line_number: lineNumber,
+        recipient: normalized,
+        number_format: 'english',
+        attributes: {
+          [paramName]: options.code.toString().trim()
+        }
+      })
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (res.ok && (data?.status === 'success' || data?.status === 200 || data?.data)) {
+      return {
+        success: true,
+        messageId: typeof data.data === 'number' ? data.data : undefined,
+        cost: 1
+      };
+    }
+
+    let errorMsg = '';
+    if (data?.messages) {
+      if (typeof data.messages === 'string') {
+        errorMsg = data.messages;
+      } else if (Array.isArray(data.messages)) {
+        errorMsg = data.messages.join(' - ');
+      } else if (typeof data.messages === 'object') {
+        errorMsg = Object.values(data.messages).flat().join(' - ');
+      }
+    } else if (data?.errors) {
+      errorMsg = Object.values(data.errors).flat().join(' - ');
+    }
+
+    if (res.status === 401) {
+      errorMsg = 'کلید Api-Key فراز اس‌ام‌اس نامعتبر یا منقضی شده است.';
+    } else if (res.status === 403) {
+      errorMsg = 'دسترسی کلید Api-Key در فراز اس‌ام‌اس مسدود است یا اعتبار حساب کافی نیست.';
+    } else if (res.status === 422 && !errorMsg) {
+      errorMsg = 'پارامترهای ارسالی با متغیرهای الگوی تعریف شده در فراز اس‌ام‌اس تطابق ندارد.';
+    } else if (!errorMsg) {
+      errorMsg = `خطای سامانه فراز اس‌ام‌اس (${res.status})`;
+    }
+
+    console.error('[FarazSMS Error]', { status: res.status, data });
+    return { success: false, error: errorMsg };
+  } catch (err: any) {
+    console.error('[FarazSMS Network Error]', err);
+    return { success: false, error: err.message || 'خطا در ارتباط با سرور فراز اس‌ام‌اس.' };
+  }
+}
+
+/**
+ * Checks account balance via FarazSMS / IranPayamak API
+ * Endpoint: GET https://api.iranpayamak.com/ws/v1/account/balance
+ */
+export async function checkFarazSmsBalance(apiKey: string): Promise<{ success: boolean; balance?: number; error?: string }> {
+  try {
+    const res = await fetch('https://api.iranpayamak.com/ws/v1/account/balance', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Api-Key': apiKey.trim()
+      }
+    });
+
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.status === 'success' && data?.data !== undefined) {
+      return { success: true, balance: Number(data.data) };
+    }
+
+    return { success: false, error: data?.messages || `خطا در دریافت موجودی (${res.status})` };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'خطای شبکه در بررسی موجودی فراز اس‌ام‌اس' };
+  }
+}
+
+/**
+ * Live test function for Admin Settings to verify FarazSMS credentials
+ */
+export async function testFarazSmsConnection(options: {
+  mobile: string;
+  apiKey: string;
+  lineNumber: string;
+  patternCode: string;
+  paramName?: string;
+  code?: string;
+  testCode?: string;
+}): Promise<SmsResult & { balance?: number }> {
+  const code = options.testCode || options.code || Math.floor(10000 + Math.random() * 90000).toString();
+  const sendRes = await sendFarazSmsPattern({
+    mobile: options.mobile,
+    code,
+    apiKey: options.apiKey,
+    lineNumber: options.lineNumber,
+    patternCode: options.patternCode,
+    paramName: options.paramName
+  });
+
+  let balance: number | undefined;
+  if (options.apiKey) {
+    const balRes = await checkFarazSmsBalance(options.apiKey);
+    if (balRes.success) balance = balRes.balance;
+  }
+
+  return {
+    ...sendRes,
+    balance
+  };
+}
+
+/**
  * Live test function for Admin Settings to verify SMS.ir credentials
  */
 export async function testSmsIrConnection(options: {
@@ -138,25 +288,42 @@ export async function testSmsIrConnection(options: {
 }
 
 /**
- * Sends OTP via SMS.ir (automatically loads SiteSettings from DB or process.env)
+ * Sends OTP via active SMS provider (SMS.ir or FarazSMS)
+ * Automatically loads SiteSettings from DB or process.env
  */
 export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult> {
   const normalized = normalizePhoneNumber(phone);
 
+  let smsProvider = 'sms.ir';
+  let isMobileOtpActive = true;
+  let smsIsSandbox = false;
+
+  // SMS.ir config
   let apiKey: string | null = null;
   let templateId: string | null = null;
   let paramName: string = 'Code';
-  let isMobileOtpActive = true;
-  let smsIsSandbox = false;
+
+  // FarazSMS config
+  let farazApiKey: string | null = null;
+  let farazLineNumber: string | null = null;
+  let farazPatternCode: string | null = null;
+  let farazOtpParamName: string = 'code';
 
   try {
     const { default: prisma } = await import('@/lib/prisma');
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
     if (settings) {
       isMobileOtpActive = settings.isMobileOtpActive;
+      smsProvider = settings.smsProvider || 'sms.ir';
       smsIsSandbox = Boolean(settings.smsIsSandbox);
       
-      // Auto-select key based on mode:
+      // FarazSMS fields
+      farazApiKey = settings.farazSmsApiKey || process.env.FARAZSMS_API_KEY || null;
+      farazLineNumber = settings.farazSmsLineNumber || process.env.FARAZSMS_LINE_NUMBER || null;
+      farazPatternCode = settings.farazSmsPatternCode || process.env.FARAZSMS_PATTERN_CODE || null;
+      farazOtpParamName = settings.farazSmsOtpParamName || 'code';
+
+      // SMS.ir fields
       if (smsIsSandbox) {
         apiKey = settings.smsSandboxApiKey || settings.smsApiKey || process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null;
       } else {
@@ -170,13 +337,6 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
     console.warn('[SMS] Could not load SiteSettings for SMS config, checking env...', err);
   }
 
-  if (!apiKey) {
-    apiKey = smsIsSandbox 
-      ? (process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null)
-      : (process.env.SMSIR_API_KEY || null);
-  }
-  if (!templateId) templateId = process.env.SMSIR_TEMPLATE_ID || null;
-
   if (!isMobileOtpActive) {
     return {
       success: false,
@@ -184,7 +344,51 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
     };
   }
 
-  // 1. Live credentials provided (calls real sms.ir endpoint)
+  // --- FARAZSMS PROVIDER ---
+  if (smsProvider === 'farazsms') {
+    if (!farazApiKey) farazApiKey = process.env.FARAZSMS_API_KEY || null;
+    if (!farazLineNumber) farazLineNumber = process.env.FARAZSMS_LINE_NUMBER || null;
+    if (!farazPatternCode) farazPatternCode = process.env.FARAZSMS_PATTERN_CODE || null;
+
+    if (farazApiKey && farazLineNumber && farazPatternCode) {
+      const result = await sendFarazSmsPattern({
+        mobile: normalized,
+        code,
+        apiKey: farazApiKey,
+        lineNumber: farazLineNumber,
+        patternCode: farazPatternCode,
+        paramName: farazOtpParamName
+      });
+
+      if (!result.success) {
+        return result;
+      }
+
+      return {
+        ...result,
+        mode: 'PRODUCTION'
+      };
+    }
+
+    // Mock fallback if Faraz credentials are not yet configured
+    console.log('====================================================');
+    console.log(`[FARAZ-SMS MOCK] Verification Code to ${normalized}: ${code}`);
+    console.log('====================================================');
+    return {
+      success: true,
+      mode: 'MOCK',
+      devCode: code
+    };
+  }
+
+  // --- SMS.IR PROVIDER ---
+  if (!apiKey) {
+    apiKey = smsIsSandbox 
+      ? (process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null)
+      : (process.env.SMSIR_API_KEY || null);
+  }
+  if (!templateId) templateId = process.env.SMSIR_TEMPLATE_ID || null;
+
   if (apiKey && templateId) {
     const result = await sendSmsIrVerify({
       mobile: normalized,
@@ -219,7 +423,7 @@ export async function sendSmsOtp(phone: string, code: string): Promise<SmsResult
     };
   }
 
-  // 2. Fallback when API Key or Template ID is empty (MOCK mode)
+  // Fallback when API Key or Template ID is empty (MOCK mode)
   return {
     success: true,
     mode: 'MOCK',
@@ -370,8 +574,8 @@ export function hasProfilePendingEdits(pendingEdits: any): boolean {
 }
 
 /**
- * Sends Referral Code invitation via SMS.ir Fast-Send (ارسال سریع)
- * Replaces the template parameter (default 'Code') with the full registration link containing the referral code.
+ * Sends Referral Code invitation via active SMS provider (SMS.ir or FarazSMS)
+ * Sends referralCode as the parameter value.
  */
 export async function sendReferralInviteSms(options: {
   mobile: string;
@@ -384,18 +588,35 @@ export async function sendReferralInviteSms(options: {
   }
 
   let isMobileOtpActive = true;
+  let smsProvider = 'sms.ir';
+  let smsIsSandbox = false;
+
+  // SMS.ir
   let apiKey: string | null = null;
   let templateId: string | null = null;
   let paramName = 'Code';
-  let smsIsSandbox = false;
+
+  // FarazSMS
+  let farazApiKey: string | null = null;
+  let farazLineNumber: string | null = null;
+  let farazReferralPatternCode: string | null = null;
+  let farazReferralParamName = 'code';
 
   try {
     const { default: prisma } = await import('@/lib/prisma');
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
     if (settings) {
       isMobileOtpActive = settings.isMobileOtpActive;
+      smsProvider = settings.smsProvider || 'sms.ir';
       smsIsSandbox = Boolean(settings.smsIsSandbox);
       
+      // FarazSMS
+      farazApiKey = settings.farazSmsApiKey || process.env.FARAZSMS_API_KEY || null;
+      farazLineNumber = settings.farazSmsLineNumber || process.env.FARAZSMS_LINE_NUMBER || null;
+      farazReferralPatternCode = settings.farazSmsReferralPatternCode || settings.farazSmsPatternCode || process.env.FARAZSMS_REFERRAL_PATTERN_CODE || process.env.FARAZSMS_PATTERN_CODE || null;
+      farazReferralParamName = settings.farazSmsReferralParamName || settings.farazSmsOtpParamName || 'code';
+
+      // SMS.ir
       if (smsIsSandbox) {
         apiKey = settings.smsSandboxApiKey || settings.smsApiKey || process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null;
       } else {
@@ -409,6 +630,52 @@ export async function sendReferralInviteSms(options: {
     console.warn('[SMS Referral] Could not load SiteSettings, checking env...', err);
   }
 
+  if (!isMobileOtpActive) {
+    return {
+      success: false,
+      error: 'سرویس ارسال پیامک موقتاً توسط مدیریت غیرفعال شده است.'
+    };
+  }
+
+  // --- FARAZSMS PROVIDER ---
+  if (smsProvider === 'farazsms') {
+    if (!farazApiKey) farazApiKey = process.env.FARAZSMS_API_KEY || null;
+    if (!farazLineNumber) farazLineNumber = process.env.FARAZSMS_LINE_NUMBER || null;
+    if (!farazReferralPatternCode) farazReferralPatternCode = process.env.FARAZSMS_REFERRAL_PATTERN_CODE || process.env.FARAZSMS_PATTERN_CODE || null;
+
+    if (farazApiKey && farazLineNumber && farazReferralPatternCode) {
+      const result = await sendFarazSmsPattern({
+        mobile: normalized,
+        code: options.referralCode,
+        apiKey: farazApiKey,
+        lineNumber: farazLineNumber,
+        patternCode: farazReferralPatternCode,
+        paramName: farazReferralParamName
+      });
+
+      if (!result.success) {
+        return result;
+      }
+
+      return {
+        ...result,
+        mode: 'PRODUCTION'
+      };
+    }
+
+    // Mock fallback
+    console.log('====================================================');
+    console.log(`[FARAZ-SMS REFERRAL MOCK] Invitation to ${normalized}`);
+    console.log(`Code: ${options.referralCode} | Link: ${options.registerUrl}`);
+    console.log('====================================================');
+    return {
+      success: true,
+      mode: 'MOCK',
+      devCode: options.referralCode
+    };
+  }
+
+  // --- SMS.IR PROVIDER ---
   if (!apiKey) {
     apiKey = smsIsSandbox 
       ? (process.env.SMSIR_SANDBOX_API_KEY || process.env.SMSIR_API_KEY || null)
@@ -416,13 +683,6 @@ export async function sendReferralInviteSms(options: {
   }
   if (!templateId) {
     templateId = process.env.SMSIR_REFERRAL_TEMPLATE_ID || process.env.SMSIR_TEMPLATE_ID || null;
-  }
-
-  if (!isMobileOtpActive) {
-    return {
-      success: false,
-      error: 'سرویس ارسال پیامک موقتاً توسط مدیریت غیرفعال شده است.'
-    };
   }
 
   // 1. Live credentials provided (calls real sms.ir endpoint with referralCode as parameter value; max length is 25 chars)

@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 export interface SmsSettingsProps {
   initialSettings: {
     isMobileOtpActive?: boolean;
+    smsProvider?: string;
     smsIsSandbox?: boolean;
     smsApiKey?: string | null;
     smsSandboxApiKey?: string | null;
@@ -13,6 +14,14 @@ export interface SmsSettingsProps {
     smsReferralTemplateId?: string | null;
     smsReferralParamName?: string;
     smsLineNumber?: string | null;
+    // FarazSMS
+    farazSmsApiKey?: string | null;
+    farazSmsLineNumber?: string | null;
+    farazSmsPatternCode?: string | null;
+    farazSmsOtpParamName?: string;
+    farazSmsReferralPatternCode?: string | null;
+    farazSmsReferralParamName?: string;
+    // Security & Anti-abuse
     otpResendIntervalSeconds?: number;
     otpMaxPerHourPerPhone?: number;
     otpMaxPerTenMinPerIp?: number;
@@ -23,8 +32,15 @@ export interface SmsSettingsProps {
 }
 
 export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettingsProps) {
-  // Form states
+  // Provider Selection: 'sms.ir' | 'farazsms'
+  const [smsProvider, setSmsProvider] = useState<'sms.ir' | 'farazsms'>(
+    (initialSettings.smsProvider === 'farazsms' ? 'farazsms' : 'sms.ir')
+  );
+
+  // General Status
   const [isMobileOtpActive, setIsMobileOtpActive] = useState(initialSettings.isMobileOtpActive ?? true);
+
+  // SMS.ir states
   const [smsIsSandbox, setSmsIsSandbox] = useState(initialSettings.smsIsSandbox ?? false);
   const [smsApiKey, setSmsApiKey] = useState(initialSettings.smsApiKey || '');
   const [showApiKey, setShowApiKey] = useState(false);
@@ -35,6 +51,15 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   const [smsReferralTemplateId, setSmsReferralTemplateId] = useState(initialSettings.smsReferralTemplateId || '');
   const [smsReferralParamName, setSmsReferralParamName] = useState(initialSettings.smsReferralParamName || 'Code');
   const [smsLineNumber, setSmsLineNumber] = useState(initialSettings.smsLineNumber || '');
+
+  // FarazSMS states
+  const [farazSmsApiKey, setFarazSmsApiKey] = useState(initialSettings.farazSmsApiKey || '');
+  const [showFarazApiKey, setShowFarazApiKey] = useState(false);
+  const [farazSmsLineNumber, setFarazSmsLineNumber] = useState(initialSettings.farazSmsLineNumber || '');
+  const [farazSmsPatternCode, setFarazSmsPatternCode] = useState(initialSettings.farazSmsPatternCode || '');
+  const [farazSmsOtpParamName, setFarazSmsOtpParamName] = useState(initialSettings.farazSmsOtpParamName || 'code');
+  const [farazSmsReferralPatternCode, setFarazSmsReferralPatternCode] = useState(initialSettings.farazSmsReferralPatternCode || '');
+  const [farazSmsReferralParamName, setFarazSmsReferralParamName] = useState(initialSettings.farazSmsReferralParamName || 'code');
 
   // Anti-abuse & timing settings
   const [otpResendIntervalSeconds, setOtpResendIntervalSeconds] = useState(initialSettings.otpResendIntervalSeconds ?? 60);
@@ -50,9 +75,17 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
   const [testLoading, setTestLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
 
+  // FarazSMS Balance check state
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [farazBalance, setFarazBalance] = useState<number | null>(null);
+  const [balanceMsg, setBalanceMsg] = useState<string | null>(null);
+
   // Sync state when initialSettings loads asynchronously from API
   React.useEffect(() => {
     if (initialSettings) {
+      if (initialSettings.smsProvider !== undefined) {
+        setSmsProvider(initialSettings.smsProvider === 'farazsms' ? 'farazsms' : 'sms.ir');
+      }
       if (initialSettings.isMobileOtpActive !== undefined) setIsMobileOtpActive(initialSettings.isMobileOtpActive);
       if (initialSettings.smsIsSandbox !== undefined) setSmsIsSandbox(Boolean(initialSettings.smsIsSandbox));
       if (initialSettings.smsApiKey !== undefined) setSmsApiKey(initialSettings.smsApiKey || '');
@@ -62,6 +95,16 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       if (initialSettings.smsReferralTemplateId !== undefined) setSmsReferralTemplateId(initialSettings.smsReferralTemplateId || '');
       if (initialSettings.smsReferralParamName !== undefined) setSmsReferralParamName(initialSettings.smsReferralParamName || 'Code');
       if (initialSettings.smsLineNumber !== undefined) setSmsLineNumber(initialSettings.smsLineNumber || '');
+
+      // FarazSMS
+      if (initialSettings.farazSmsApiKey !== undefined) setFarazSmsApiKey(initialSettings.farazSmsApiKey || '');
+      if (initialSettings.farazSmsLineNumber !== undefined) setFarazSmsLineNumber(initialSettings.farazSmsLineNumber || '');
+      if (initialSettings.farazSmsPatternCode !== undefined) setFarazSmsPatternCode(initialSettings.farazSmsPatternCode || '');
+      if (initialSettings.farazSmsOtpParamName !== undefined) setFarazSmsOtpParamName(initialSettings.farazSmsOtpParamName || 'code');
+      if (initialSettings.farazSmsReferralPatternCode !== undefined) setFarazSmsReferralPatternCode(initialSettings.farazSmsReferralPatternCode || '');
+      if (initialSettings.farazSmsReferralParamName !== undefined) setFarazSmsReferralParamName(initialSettings.farazSmsReferralParamName || 'code');
+
+      // Limits
       if (initialSettings.otpResendIntervalSeconds !== undefined) setOtpResendIntervalSeconds(initialSettings.otpResendIntervalSeconds);
       if (initialSettings.otpMaxPerHourPerPhone !== undefined) setOtpMaxPerHourPerPhone(initialSettings.otpMaxPerHourPerPhone);
       if (initialSettings.otpMaxPerTenMinPerIp !== undefined) setOtpMaxPerTenMinPerIp(initialSettings.otpMaxPerTenMinPerIp);
@@ -97,7 +140,9 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
 
     try {
       await onSave({
+        smsProvider,
         isMobileOtpActive,
+        // SMS.ir
         smsIsSandbox,
         smsApiKey,
         smsSandboxApiKey,
@@ -106,6 +151,14 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         smsReferralTemplateId,
         smsReferralParamName,
         smsLineNumber,
+        // FarazSMS
+        farazSmsApiKey,
+        farazSmsLineNumber,
+        farazSmsPatternCode,
+        farazSmsOtpParamName,
+        farazSmsReferralPatternCode,
+        farazSmsReferralParamName,
+        // Rate limits
         otpResendIntervalSeconds: Number(otpResendIntervalSeconds),
         otpMaxPerHourPerPhone: Number(otpMaxPerHourPerPhone),
         otpMaxPerTenMinPerIp: Number(otpMaxPerTenMinPerIp),
@@ -120,32 +173,58 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
     }
   };
 
-  // Live test SMS using the active key
+  // Live test SMS
   const handleRunTest = async () => {
     if (!testPhone.trim()) {
       alert('لطفاً شماره موبایل تستی را وارد کنید.');
       return;
     }
 
-    const activeKeyToTest = smsIsSandbox ? smsSandboxApiKey.trim() : smsApiKey.trim();
-    if (!activeKeyToTest) {
-      alert(`کلید اختصاصی مربوط به حالت ${smsIsSandbox ? 'سندباکس' : 'عملیاتی'} هنوز وارد نشده است.`);
-      return;
+    if (smsProvider === 'sms.ir') {
+      const activeKeyToTest = smsIsSandbox ? smsSandboxApiKey.trim() : smsApiKey.trim();
+      if (!activeKeyToTest) {
+        alert(`کلید اختصاصی مربوط به حالت ${smsIsSandbox ? 'سندباکس' : 'عملیاتی'} هنوز وارد نشده است.`);
+        return;
+      }
+    } else {
+      if (!farazSmsApiKey.trim()) {
+        alert('کلید Api-Key فراز اس‌ام‌اس هنوز وارد نشده است.');
+        return;
+      }
+      if (!farazSmsLineNumber.trim()) {
+        alert('شماره خط فرستنده فراز اس‌ام‌اس هنوز وارد نشده است.');
+        return;
+      }
+      if (!farazSmsPatternCode.trim()) {
+        alert('کد الگوی فراز اس‌ام‌اس وارد نشده است.');
+        return;
+      }
     }
 
     setTestLoading(true);
     setTestResult(null);
 
     try {
+      const payload: any = {
+        provider: smsProvider,
+        phone: testPhone.trim()
+      };
+
+      if (smsProvider === 'sms.ir') {
+        payload.apiKey = smsIsSandbox ? smsSandboxApiKey.trim() : smsApiKey.trim();
+        payload.templateId = smsTemplateId.trim();
+        payload.paramName = smsOtpParamName.trim();
+      } else {
+        payload.farazApiKey = farazSmsApiKey.trim();
+        payload.farazLineNumber = farazSmsLineNumber.trim();
+        payload.farazPatternCode = farazSmsPatternCode.trim();
+        payload.farazOtpParamName = farazSmsOtpParamName.trim();
+      }
+
       const res = await fetch('/api/admin/settings/sms-test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: testPhone.trim(),
-          apiKey: activeKeyToTest,
-          templateId: smsTemplateId.trim(),
-          paramName: smsOtpParamName.trim()
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -155,6 +234,9 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
           message: data.message || 'پیامک اعتبارسنجی با موفقیت ارسال شد.',
           data: data.data
         });
+        if (data.data?.balance !== undefined) {
+          setFarazBalance(data.data.balance);
+        }
       } else {
         setTestResult({
           success: false,
@@ -171,7 +253,43 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
     }
   };
 
-  const isConfigured = Boolean(smsApiKey.trim() && smsTemplateId.trim());
+  // Check FarazSMS Account Balance
+  const handleCheckFarazBalance = async () => {
+    const key = farazSmsApiKey.trim();
+    if (!key) {
+      alert('لطفاً ابتدا کلید Api-Key فراز اس‌ام‌اس را وارد کنید.');
+      return;
+    }
+
+    setBalanceLoading(true);
+    setBalanceMsg(null);
+
+    try {
+      const res = await fetch('/api/admin/settings/sms-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check_balance',
+          farazApiKey: key
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFarazBalance(data.balance);
+        setBalanceMsg(data.message || `موجودی: ${data.balance?.toLocaleString('fa-IR')} ریال`);
+      } else {
+        setBalanceMsg(`❌ خطا: ${data.error || 'عدم دسترسی به مانده حساب'}`);
+      }
+    } catch {
+      setBalanceMsg('❌ خطا در برقراری ارتباط با سرور.');
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
+
+  const isSmsIrConfigured = Boolean(smsApiKey.trim() && smsTemplateId.trim());
+  const isFarazConfigured = Boolean(farazSmsApiKey.trim() && farazSmsLineNumber.trim() && farazSmsPatternCode.trim());
+  const isCurrentProviderConfigured = smsProvider === 'sms.ir' ? isSmsIrConfigured : isFarazConfigured;
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8 mt-8 font-sans" dir="rtl">
@@ -183,24 +301,28 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
           </div>
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-lg font-black text-slate-800">سامانه پیامک و رمز یکبار مصرف (SMS.ir)</h3>
+              <h3 className="text-lg font-black text-slate-800">سامانه پیامک و رمز یکبار مصرف (SMS & OTP)</h3>
               <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
                 isMobileOtpActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
               }`}>
                 {isMobileOtpActive ? 'سرویس فعال' : 'سرویس متوقف'}
               </span>
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                !isConfigured
+                !isCurrentProviderConfigured
                   ? 'bg-slate-100 text-slate-600'
-                  : smsIsSandbox
+                  : (smsProvider === 'sms.ir' && smsIsSandbox)
                   ? 'bg-amber-100 text-amber-800'
                   : 'bg-emerald-100 text-emerald-800'
               }`}>
-                {!isConfigured ? '🧪 شبیه‌ساز آفلاین (Mock)' : smsIsSandbox ? '🟡 سندباکس SMS.ir' : '⚡ عملیاتی زنده'}
+                {!isCurrentProviderConfigured
+                  ? '🧪 شبیه‌ساز آفلاین (Mock)'
+                  : (smsProvider === 'sms.ir' && smsIsSandbox)
+                  ? '🟡 سندباکس SMS.ir'
+                  : `⚡ عملیاتی زنده (${smsProvider === 'farazsms' ? 'فراز اس‌ام‌اس' : 'SMS.ir'})`}
               </span>
             </div>
             <p className="text-slate-500 text-xs sm:text-sm mt-1.5 leading-relaxed">
-              مدیریت وب‌سرویس پیامکی sms.ir، تعیین کلید اتصال، فاصله‌های زمانی و اعمال دیواره آتش امنیتی در برابر حملات رگباری به OTP.
+              انتخاب و پیکربندی هم‌زمان سامانه‌های پیامک (SMS.ir و فراز اس‌ام‌اس / ایران‌پیامک)، الگوهای ارسال سریع OTP، دعوت‌نامه و دیواره آتش ضد حمله.
             </p>
           </div>
         </div>
@@ -237,221 +359,483 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
 
       {/* Main Settings Form */}
       <form onSubmit={handleSaveSmsSettings} className="mt-6 space-y-6">
-        {/* Environment Mode Selector */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          <label className="block text-xs font-black text-slate-800 mb-2">
-            محیط وب‌سرویس پیامک:
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        
+        {/* ==================== PROVIDER SELECTOR ==================== */}
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-2">
+              <span>📡 انتخاب سرویس‌دهنده پیامک فعال:</span>
+            </label>
+            <span className="text-[11px] text-slate-500 font-sans">
+              سرویس انتخابی برای ارسال کدهای OTP و دعوت‌نامه‌ها استفاده خواهد شد
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Provider 1: SMS.ir */}
             <button
               type="button"
-              onClick={() => setSmsIsSandbox(false)}
-              className={`p-3 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
-                !smsIsSandbox
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-sm ring-2 ring-emerald-500/20'
+              onClick={() => setSmsProvider('sms.ir')}
+              className={`p-4 rounded-2xl border text-right transition-all flex items-start gap-3.5 cursor-pointer ${
+                smsProvider === 'sms.ir'
+                  ? 'bg-blue-50/70 border-blue-400 text-blue-950 shadow-sm ring-2 ring-blue-500/20'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
               }`}
             >
-              <span className="text-2xl shrink-0 mt-0.5">🚀</span>
-              <div>
-                <div className="font-bold text-xs flex items-center gap-1.5">
-                  <span>محیط عملیاتی (Production)</span>
-                  {!smsIsSandbox && <span className="bg-emerald-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${
+                smsProvider === 'sms.ir' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                📨
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-black text-xs sm:text-sm flex items-center justify-between gap-1.5">
+                  <span>سامانه SMS.ir (ایده‌پردازان)</span>
+                  {smsProvider === 'sms.ir' && (
+                    <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      فعال در سیستم
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                  پیامک واقعی به تلفن همراه کاربر ارسال می‌شود. هیچ کدی روی کنسول یا صفحه نمایش داده نمی‌شود.
+                  ارسال سریع بر اساس شناسه عددی قالب (Template ID) با احراز هویت اختصاصی x-api-key و پشتیبانی از سندباکس.
                 </p>
               </div>
             </button>
 
+            {/* Provider 2: FarazSMS */}
             <button
               type="button"
-              onClick={() => setSmsIsSandbox(true)}
-              className={`p-3 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
-                smsIsSandbox
-                  ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
+              onClick={() => setSmsProvider('farazsms')}
+              className={`p-4 rounded-2xl border text-right transition-all flex items-start gap-3.5 cursor-pointer ${
+                smsProvider === 'farazsms'
+                  ? 'bg-emerald-50/70 border-emerald-400 text-emerald-950 shadow-sm ring-2 ring-emerald-500/20'
                   : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
               }`}
             >
-              <span className="text-2xl shrink-0 mt-0.5">🧪</span>
-              <div>
-                <div className="font-bold text-xs flex items-center gap-1.5">
-                  <span>محیط سندباکس تستی (SMS.ir Sandbox)</span>
-                  {smsIsSandbox && <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${
+                smsProvider === 'farazsms' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                ⚡
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-black text-xs sm:text-sm flex items-center justify-between gap-1.5">
+                  <span>سامانه فراز اس‌ام‌اس (FarazSMS / IPPanel)</span>
+                  {smsProvider === 'farazsms' && (
+                    <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                      فعال در سیستم
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                  وب‌سرویس sms.ir واقعی فراخوانی و اعتبارسنجی می‌شود اما پیامک مخابراتی ارسال نمی‌شود. کد دریافتی صرفاً روی لوکال‌هاست نمایش داده می‌شود.
+                  وب‌سرویس پترن ایران‌پیامک و فراز اس‌ام‌اس بر اساس مستندات docs.iranpayamak.com با سرعت بالا و عبور از بلک‌لیست.
                 </p>
               </div>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Production API Key */}
-          <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                <span>🚀 کلید API عملیاتی (<span className="font-mono text-emerald-700" dir="ltr">x-api-key</span>)</span>
-                {!smsIsSandbox && (
-                  <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
-                    کلید فعال فعلی
-                  </span>
-                )}
+        {/* ==================== PROVIDER CONFIG: FARAZSMS ==================== */}
+        {smsProvider === 'farazsms' && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="bg-emerald-50/50 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs sm:text-sm font-black text-emerald-950 flex items-center gap-1.5">
+                  <span>⚡ پیکربندی اختصاصی فراز اس‌ام‌اس (IranPayamak API)</span>
+                </h4>
+                <p className="text-[11px] text-emerald-800 mt-1 leading-relaxed">
+                  مستندات وب‌سرویس پترن: <a href="https://docs.iranpayamak.com/" target="_blank" rel="noreferrer" className="underline font-bold text-emerald-900" dir="ltr">https://docs.iranpayamak.com/</a>
+                </p>
+              </div>
+
+              {/* Balance Check Button */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleCheckFarazBalance}
+                  disabled={balanceLoading || !farazSmsApiKey.trim()}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {balanceLoading ? (
+                    <span>در حال استعلام...</span>
+                  ) : (
+                    <>
+                      <span>💰 استعلام موجودی شارژ</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {balanceMsg && (
+              <div className={`p-3 rounded-xl border text-xs font-bold ${
+                farazBalance !== null ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-red-50 text-red-900 border-red-200'
+              }`}>
+                {balanceMsg}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Faraz API Key */}
+              <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <span>🔑 کلید وب‌سرویس (<span className="font-mono text-emerald-700" dir="ltr">Api-Key</span>)</span>
+                    <span className="bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">الزامی</span>
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-sans">پنل فراز اس‌ام‌اس &gt; توسعه‌دهندگان &gt; کلید دسترسی</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showFarazApiKey ? 'text' : 'password'}
+                    dir="ltr"
+                    value={farazSmsApiKey}
+                    onChange={(e) => setFarazSmsApiKey(e.target.value)}
+                    placeholder="کلید API صادر شده از بخش کلید دسترسی پنل فراز اس‌ام‌اس..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowFarazApiKey(!showFarazApiKey)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                    title={showFarazApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
+                  >
+                    {renderEyeIcon(showFarazApiKey)}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  این کلید در هدر <span className="font-mono font-bold" dir="ltr">Api-Key</span> به آدرس <span className="font-mono text-slate-600" dir="ltr">https://api.iranpayamak.com/ws/v1/sms/pattern</span> ارسال می‌شود.
+                </p>
+              </div>
+
+              {/* Faraz Sender Line Number */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شماره خط فرستنده اختصاصی (<span className="font-mono text-emerald-700" dir="ltr">line_number</span>)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsLineNumber}
+                  onChange={(e) => setFarazSmsLineNumber(e.target.value)}
+                  placeholder="مثال: 3000505 یا 5000..."
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  شماره خط خدماتی یا اختصاصی فعال در پنل شما که ارسال پترن از طریق آن انجام می‌شود.
+                </p>
+              </div>
+
+              {/* Faraz OTP Pattern Code */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  کد الگوی اعتبارسنجی OTP (<span className="font-mono text-emerald-700" dir="ltr">code</span>)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsPatternCode}
+                  onChange={(e) => setFarazSmsPatternCode(e.target.value.trim())}
+                  placeholder="مثال: SJ3FgPrE0C"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  کد اختصاصی الگوی تایید شده برای ارسال کد ورود و ثبت‌نام در بخش «ارسال بر اساس پترن».
+                </p>
+              </div>
+
+              {/* Faraz OTP Param Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر کد در الگوی OTP
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsOtpParamName}
+                  onChange={(e) => setFarazSmsOtpParamName(e.target.value.trim())}
+                  placeholder="code"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام متغیری که در متن پترن تعریف کرده‌اید (پیش‌فرض: <span className="font-mono font-bold">code</span>).
+                </p>
+              </div>
+
+              {/* Faraz Referral Pattern Code */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  کد الگوی پیامک دعوت‌نامه با کد معرف (اختیاری)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsReferralPatternCode}
+                  onChange={(e) => setFarazSmsReferralPatternCode(e.target.value.trim())}
+                  placeholder="مثال: X7K9L2M1Q"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  کد الگوی تایید شده جهت ارسال دعوت‌نامه. در صورت خالی بودن، از پترن پیش‌فرض کد استفاده می‌شود.
+                </p>
+              </div>
+
+              {/* Faraz Referral Param Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر در الگوی دعوت‌نامه
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={farazSmsReferralParamName}
+                  onChange={(e) => setFarazSmsReferralParamName(e.target.value.trim())}
+                  placeholder="code"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام متغیر جایگزین شونده با کد معرف در متن دعوت‌نامه (پیش‌فرض: <span className="font-mono font-bold">code</span>).
+                </p>
+              </div>
+            </div>
+
+            {/* Template Help Guide for FarazSMS */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl text-xs space-y-2">
+              <div className="font-black text-slate-800 flex items-center gap-1.5">
+                <span>💡 راهنمای ثبت پترن در پنل فراز اس‌ام‌اس:</span>
+              </div>
+              <p className="text-slate-600 leading-relaxed">
+                در پنل فراز اس‌ام‌اس از منوی <strong>ارسال بر اساس پترن &gt; ثبت الگوی جدید</strong>، می‌توانید الگوی مورد نظر را با ساختار زیر ثبت کنید:
+              </p>
+              <div className="p-3 bg-white rounded-xl border border-slate-200 font-mono text-[12px] text-slate-800 select-all" dir="rtl">
+                کد تایید شما در هنرهاب: %code%
+              </div>
+              <p className="text-[11px] text-slate-500">
+                پس از تایید الگو توسط ناظر سامانه، شناسه چند کاراکتری انگلیسی آن (مثلاً <span className="font-mono font-bold">SJ3FgPrE0C</span>) را در فیلد «کد الگوی اعتبارسنجی OTP» قرار دهید.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== PROVIDER CONFIG: SMS.IR ==================== */}
+        {smsProvider === 'sms.ir' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Environment Mode Selector */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <label className="block text-xs font-black text-slate-800 mb-2">
+                محیط وب‌سرویس SMS.ir:
               </label>
-              <span className="text-[11px] text-slate-400 font-sans">مخصوص ارسال پیامک واقعی به کاربران</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSmsIsSandbox(false)}
+                  className={`p-3 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
+                    !smsIsSandbox
+                      ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-sm ring-2 ring-blue-500/20'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0 mt-0.5">🚀</span>
+                  <div>
+                    <div className="font-bold text-xs flex items-center gap-1.5">
+                      <span>محیط عملیاتی (Production)</span>
+                      {!smsIsSandbox && <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      پیامک واقعی به تلفن همراه کاربر ارسال می‌شود. هیچ کدی روی کنسول یا صفحه نمایش داده نمی‌شود.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSmsIsSandbox(true)}
+                  className={`p-3 rounded-xl border text-right transition-all flex items-start gap-3 cursor-pointer ${
+                    smsIsSandbox
+                      ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-sm ring-2 ring-amber-500/20'
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0 mt-0.5">🧪</span>
+                  <div>
+                    <div className="font-bold text-xs flex items-center gap-1.5">
+                      <span>محیط سندباکس تستی (SMS.ir Sandbox)</span>
+                      {smsIsSandbox && <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-sans">انتخاب‌شده</span>}
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                      وب‌سرویس sms.ir واقعی فراخوانی و اعتبارسنجی می‌شود اما پیامک مخابراتی ارسال نمی‌شود. کد دریافتی صرفاً روی لوکال‌هاست نمایش داده می‌شود.
+                    </p>
+                  </div>
+                </button>
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                dir="ltr"
-                value={smsApiKey}
-                onChange={(e) => setSmsApiKey(e.target.value)}
-                placeholder="کلید عملیاتی اصلی صادر شده از sms.ir..."
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-slate-800"
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
-                title={showApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
-              >
-                {renderEyeIcon(showApiKey)}
-              </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Production API Key */}
+              <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <span>🚀 کلید API عملیاتی (<span className="font-mono text-blue-700" dir="ltr">x-api-key</span>)</span>
+                    {!smsIsSandbox && (
+                      <span className="bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                        کلید فعال فعلی
+                      </span>
+                    )}
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-sans">مخصوص ارسال پیامک واقعی به کاربران</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    dir="ltr"
+                    value={smsApiKey}
+                    onChange={(e) => setSmsApiKey(e.target.value)}
+                    placeholder="کلید عملیاتی اصلی صادر شده از sms.ir..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                    title={showApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
+                  >
+                    {renderEyeIcon(showApiKey)}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  این کلید در زمان انتخاب «محیط عملیاتی» به طور خودکار جهت ارسال پیامک واقعی استفاده می‌شود.
+                </p>
+              </div>
+
+              {/* Sandbox API Key */}
+              <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                    <span>🧪 کلید API سندباکس تستی (<span className="font-mono text-amber-700" dir="ltr">x-api-key</span>)</span>
+                    {smsIsSandbox && (
+                      <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
+                        کلید فعال فعلی
+                      </span>
+                    )}
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-sans">مخصوص تست اتصال بدون ارسال پیامک</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showSandboxApiKey ? 'text' : 'password'}
+                    dir="ltr"
+                    value={smsSandboxApiKey}
+                    onChange={(e) => setSmsSandboxApiKey(e.target.value)}
+                    placeholder="کلید سندباکس (تستی) صادر شده از sms.ir..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSandboxApiKey(!showSandboxApiKey)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                    title={showSandboxApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
+                  >
+                    {renderEyeIcon(showSandboxApiKey)}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  این کلید در زمان انتخاب «محیط سندباکس تستی» به طور خودکار جهت آزمایش اتصال وب‌سرویس استفاده می‌شود.
+                </p>
+              </div>
+
+              {/* Template ID */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شناسه قالب ارسال سریع (Template ID)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsTemplateId}
+                  onChange={(e) => setSmsTemplateId(e.target.value.replace(/\D/g, ''))}
+                  placeholder="مثال: 100234"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  شناسه عددی قالب اعتبارسنجی تایید شده در بخش «ارسال سریع» پنل sms.ir.
+                </p>
+              </div>
+
+              {/* Parameter Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر کد در قالب
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsOtpParamName}
+                  onChange={(e) => setSmsOtpParamName(e.target.value)}
+                  placeholder="Code"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام متغیری که در متن قالب خود قرار داده‌اید (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
+                </p>
+              </div>
+
+              {/* Referral SMS Template ID */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شناسه قالب پیامک دعوت‌نامه با کد معرف (اختیاری)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsReferralTemplateId}
+                  onChange={(e) => setSmsReferralTemplateId(e.target.value.replace(/\D/g, ''))}
+                  placeholder="مثال: 100555"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  شناسه قالب ارسال سریع برای دعوت هنرمندان با کد معرف. در صورت خالی بودن، از قالب پیش‌فرض ارسال کد استفاده خواهد شد.
+                </p>
+              </div>
+
+              {/* Referral SMS Parameter Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  نام متغیر کد معرف در قالب
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsReferralParamName}
+                  onChange={(e) => setSmsReferralParamName(e.target.value)}
+                  placeholder="Code"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  نام متغیر کد معرف در قالب (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
+                </p>
+              </div>
+
+              {/* Dedicated Line Number */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  شماره خط اختصاصی فرستنده (اختیاری)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={smsLineNumber}
+                  onChange={(e) => setSmsLineNumber(e.target.value)}
+                  placeholder="مثال: 30007777 یا 9999..."
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-slate-800"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  فقط در صورت ارسال پیامک‌های عادی انبوه کاربرد دارد؛ در ارسال سریع OTP نیازی به خط اختصاصی نیست.
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1.5">
-              این کلید در زمان انتخاب «محیط عملیاتی» به طور خودکار جهت ارسال پیامک واقعی استفاده می‌شود.
-            </p>
           </div>
+        )}
 
-          {/* Sandbox API Key */}
-          <div className="md:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                <span>🧪 کلید API سندباکس تستی (<span className="font-mono text-amber-700" dir="ltr">x-api-key</span>)</span>
-                {smsIsSandbox && (
-                  <span className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-sans font-bold">
-                    کلید فعال فعلی
-                  </span>
-                )}
-              </label>
-              <span className="text-[11px] text-slate-400 font-sans">مخصوص تست اتصال بدون ارسال پیامک</span>
-            </div>
-            <div className="relative">
-              <input
-                type={showSandboxApiKey ? 'text' : 'password'}
-                dir="ltr"
-                value={smsSandboxApiKey}
-                onChange={(e) => setSmsSandboxApiKey(e.target.value)}
-                placeholder="کلید سندباکس (تستی) صادر شده از sms.ir..."
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
-              />
-              <button
-                type="button"
-                onClick={() => setShowSandboxApiKey(!showSandboxApiKey)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
-                title={showSandboxApiKey ? 'مخفی کردن کلید' : 'نمایش کلید'}
-              >
-                {renderEyeIcon(showSandboxApiKey)}
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1.5">
-              این کلید در زمان انتخاب «محیط سندباکس تستی» به طور خودکار جهت آزمایش اتصال وب‌سرویس استفاده می‌شود.
-            </p>
-          </div>
-
-          {/* Template ID */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              شناسه قالب ارسال سریع (Template ID)
-            </label>
-            <input
-              type="text"
-              dir="ltr"
-              value={smsTemplateId}
-              onChange={(e) => setSmsTemplateId(e.target.value.replace(/\D/g, ''))}
-              placeholder="مثال: 100234"
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">
-              شناسه عددی قالب اعتبارسنجی تایید شده در بخش «ارسال سریع» پنل sms.ir.
-            </p>
-          </div>
-
-          {/* Parameter Name */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              نام متغیر کد در قالب
-            </label>
-            <input
-              type="text"
-              dir="ltr"
-              value={smsOtpParamName}
-              onChange={(e) => setSmsOtpParamName(e.target.value)}
-              placeholder="Code"
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">
-              نام متغیری که در متن قالب خود قرار داده‌اید (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
-            </p>
-          </div>
-
-          {/* Referral SMS Template ID */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              شناسه قالب پیامک دعوت‌نامه با کد معرف (اختیاری)
-            </label>
-            <input
-              type="text"
-              dir="ltr"
-              value={smsReferralTemplateId}
-              onChange={(e) => setSmsReferralTemplateId(e.target.value.replace(/\D/g, ''))}
-              placeholder="مثال: 100555"
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">
-              شناسه قالب ارسال سریع برای دعوت هنرمندان با کد معرف. در صورت خالی بودن، از قالب پیش‌فرض ارسال کد استفاده خواهد شد.
-            </p>
-          </div>
-
-          {/* Referral SMS Parameter Name */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              نام متغیر لینک معرف در قالب
-            </label>
-            <input
-              type="text"
-              dir="ltr"
-              value={smsReferralParamName}
-              onChange={(e) => setSmsReferralParamName(e.target.value)}
-              placeholder="Code"
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">
-              به جای کد، لینک کامل ثبت‌نام با کد معرف در این متغیر قرار می‌گیرد (پیش‌فرض: <span className="font-mono font-bold">Code</span>).
-            </p>
-          </div>
-
-          {/* Dedicated Line Number */}
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              شماره خط اختصاصی فرستنده (اختیاری)
-            </label>
-            <input
-              type="text"
-              dir="ltr"
-              value={smsLineNumber}
-              onChange={(e) => setSmsLineNumber(e.target.value)}
-              placeholder="مثال: 30007777 یا 9999..."
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-xl font-mono text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none text-slate-800"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">
-              فقط در صورت ارسال پیامک‌های عادی انبوه یا اطلاع‌رسانی‌ها کاربرد دارد؛ در ارسال سریع OTP نیازی به خط اختصاصی نیست.
-            </p>
-          </div>
-        </div>
-
-        {/* Security & Anti-abuse Settings Box */}
+        {/* ==================== SECURITY & ANTI-ABUSE SETTINGS ==================== */}
         <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
           <div className="flex items-center gap-2">
             <span className="text-base">🛡️</span>
@@ -532,7 +916,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         <div className="flex items-center justify-between pt-2">
           {saveSuccess ? (
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
-              ✓ تنظیمات پیامک با موفقیت ذخیره شد
+              ✓ تنظیمات سامانه پیامک با موفقیت ذخیره شد
             </span>
           ) : <div />}
 
@@ -546,7 +930,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         </div>
       </form>
 
-      {/* Live Test Box */}
+      {/* ==================== LIVE TEST BOX ==================== */}
       <div className="mt-8 pt-6 border-t border-slate-200">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
@@ -554,13 +938,23 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
             <h4 className="text-sm font-black text-slate-800">تست زنده اتصال و ارسال پیامک اعتبارسنجی</h4>
           </div>
           <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-            smsIsSandbox ? 'bg-amber-100 text-amber-900 border border-amber-200' : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+            smsProvider === 'farazsms'
+              ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+              : smsIsSandbox
+              ? 'bg-amber-100 text-amber-900 border border-amber-200'
+              : 'bg-blue-100 text-blue-900 border border-blue-200'
           }`}>
-            کلید فعال برای تست: {smsIsSandbox ? '🟡 کلید سندباکس تستی' : '🟢 کلید عملیاتی اصلی'}
+            سرویس فعال برای تست: {
+              smsProvider === 'farazsms'
+                ? '🟢 سامانه فراز اس‌ام‌اس'
+                : smsIsSandbox
+                ? '🟡 کلید سندباکس SMS.ir'
+                : '🔵 کلید عملیاتی SMS.ir'
+            }
           </span>
         </div>
         <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-          برای اطمینان از صحت کلید API و شناسه قالب، یک شماره موبایل وارد کنید تا یک کد تستی به‌صورت آنی ارسال و نتیجه اتصال آزمایش شود:
+          برای اطمینان از صحت کلید API، شماره خط و شناسه الگو، یک شماره موبایل وارد کنید تا یک کد تستی به‌صورت آنی ارسال و نتیجه آزمایش شود:
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -578,7 +972,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
             disabled={testLoading || !testPhone.trim()}
             className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
           >
-            {testLoading ? 'در حال تست و ارسال...' : smsIsSandbox ? 'ارسال تست با کلید سندباکس' : 'ارسال تست با کلید عملیاتی'}
+            {testLoading ? 'در حال تست و ارسال...' : `ارسال تست از طریق ${smsProvider === 'farazsms' ? 'فراز اس‌ام‌اس' : 'SMS.ir'}`}
           </button>
         </div>
 
@@ -594,17 +988,19 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
             </div>
             {testResult.data && (
               <div className="mt-2 pt-2 border-t border-emerald-200 flex flex-wrap gap-4 text-[11px] font-mono text-emerald-800" dir="ltr">
-                {testResult.data.messageId && <span>MessageId: {testResult.data.messageId}</span>}
+                {testResult.data.provider && <span>Provider: {testResult.data.provider}</span>}
+                {testResult.data.messageId && <span>MessageId / Ref: {testResult.data.messageId}</span>}
                 {testResult.data.cost && <span>Cost: {testResult.data.cost} SMS</span>}
                 {testResult.data.testCode && <span>Code: {testResult.data.testCode}</span>}
                 {testResult.data.receptor && <span>Receptor: {testResult.data.receptor}</span>}
+                {testResult.data.balance !== undefined && <span>Credit Balance: {Number(testResult.data.balance).toLocaleString()} Rials</span>}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Recent Security Logs */}
+      {/* ==================== RECENT SECURITY LOGS ==================== */}
       {initialSettings.recentOtpLogs && initialSettings.recentOtpLogs.length > 0 && (
         <div className="mt-8 pt-6 border-t border-slate-200">
           <div className="flex items-center justify-between mb-3">
