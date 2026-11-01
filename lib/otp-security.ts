@@ -84,6 +84,28 @@ export async function checkAndEnforceOtpLimits(
     };
   }
 
+  // Profile SMS kill switch check
+  if (!isEmail && type === 'PROFILE_OTP' && settings.isProfileSmsActive === false) {
+    await prisma.otpRequestLog.create({
+      data: {
+        ip: clientIp,
+        target: normalizedTarget,
+        type,
+        status: 'DISABLED',
+        reason: 'ارسال پیامک تایید یا تغییر پروفایل توسط مدیریت غیرفعال شده است.'
+      }
+    });
+
+    return {
+      allowed: false,
+      status: 403,
+      error: 'ارسال پیامک تایید یا تغییر پروفایل توسط مدیریت غیرفعال شده است.',
+      isMobileOtpDisabled: true,
+      siteSettings: settings,
+      clientIp
+    };
+  }
+
   if (isEmail && settings.isEmailServiceActive === false) {
     await prisma.otpRequestLog.create({
       data: {

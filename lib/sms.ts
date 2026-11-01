@@ -349,6 +349,7 @@ export async function sendSmsOtp(
 
   let smsProvider = 'sms.ir';
   let isMobileOtpActive = true;
+  let isProfileSmsActive = true;
   let smsIsSandbox = false;
 
   // SMS.ir config
@@ -371,6 +372,7 @@ export async function sendSmsOtp(
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
     if (settings) {
       isMobileOtpActive = settings.isMobileOtpActive;
+      isProfileSmsActive = settings.isProfileSmsActive ?? true;
       smsProvider = settings.smsProvider || 'sms.ir';
       smsIsSandbox = Boolean(settings.smsIsSandbox);
       
@@ -406,6 +408,13 @@ export async function sendSmsOtp(
   }
 
   const isProfileVerify = purpose === 'PROFILE_VERIFY';
+
+  if (isProfileVerify && !isProfileSmsActive) {
+    return {
+      success: false,
+      error: 'ارسال پیامک تایید یا تغییر پروفایل موقتاً توسط مدیریت غیرفعال شده است.'
+    };
+  }
 
   // --- FARAZSMS PROVIDER ---
   if (smsProvider === 'farazsms') {
@@ -693,6 +702,7 @@ export async function sendReferralInviteSms(options: {
   }
 
   let isMobileOtpActive = true;
+  let isProfileSmsActive = true;
   let smsProvider = 'sms.ir';
   let smsIsSandbox = false;
 
@@ -718,6 +728,7 @@ export async function sendReferralInviteSms(options: {
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
     if (settings) {
       isMobileOtpActive = settings.isMobileOtpActive;
+      isProfileSmsActive = settings.isProfileSmsActive ?? true;
       smsProvider = settings.smsProvider || 'sms.ir';
       smsIsSandbox = Boolean(settings.smsIsSandbox);
       

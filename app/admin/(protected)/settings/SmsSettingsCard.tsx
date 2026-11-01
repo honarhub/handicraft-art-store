@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 export interface SmsSettingsProps {
   initialSettings: {
     isMobileOtpActive?: boolean;
+    isProfileSmsActive?: boolean;
     smsProvider?: string;
     smsIsSandbox?: boolean;
     smsApiKey?: string | null;
@@ -47,6 +48,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
 
   // General Status
   const [isMobileOtpActive, setIsMobileOtpActive] = useState(initialSettings.isMobileOtpActive ?? true);
+  const [isProfileSmsActive, setIsProfileSmsActive] = useState(initialSettings.isProfileSmsActive ?? true);
 
   // SMS.ir states
   const [smsIsSandbox, setSmsIsSandbox] = useState(initialSettings.smsIsSandbox ?? false);
@@ -103,6 +105,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
         setSmsProvider(initialSettings.smsProvider === 'farazsms' ? 'farazsms' : 'sms.ir');
       }
       if (initialSettings.isMobileOtpActive !== undefined) setIsMobileOtpActive(initialSettings.isMobileOtpActive);
+      if (initialSettings.isProfileSmsActive !== undefined) setIsProfileSmsActive(initialSettings.isProfileSmsActive);
       if (initialSettings.smsIsSandbox !== undefined) setSmsIsSandbox(Boolean(initialSettings.smsIsSandbox));
       if (initialSettings.smsApiKey !== undefined) setSmsApiKey(initialSettings.smsApiKey || '');
       if (initialSettings.smsSandboxApiKey !== undefined) setSmsSandboxApiKey(initialSettings.smsSandboxApiKey || '');
@@ -166,6 +169,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
       await onSave({
         smsProvider,
         isMobileOtpActive,
+        isProfileSmsActive,
         // SMS.ir
         smsIsSandbox,
         smsApiKey,
@@ -605,8 +609,13 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
 
               {/* Faraz Profile Pattern Code */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  کد الگوی تایید یا تغییر پروفایل هنرمند (اختیاری)
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>کد الگوی تایید یا تغییر پروفایل هنرمند (اختیاری)</span>
+                  {!isProfileSmsActive && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      ارسال پیامک پروفایل غیرفعال است
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
@@ -909,8 +918,13 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
 
               {/* Profile SMS Template ID */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  شناسه قالب پیامک تایید یا تغییر پروفایل (اختیاری)
+                <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>شناسه قالب پیامک تایید یا تغییر پروفایل (اختیاری)</span>
+                  {!isProfileSmsActive && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      ارسال پیامک پروفایل غیرفعال است
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
@@ -1035,6 +1049,66 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
             </div>
           </div>
         )}
+
+        {/* ==================== ARTIST PROFILE SMS SETTINGS ==================== */}
+        <div className="bg-gradient-to-r from-teal-50/70 to-slate-50 p-5 rounded-2xl border border-teal-200/80 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+                👤
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-black text-slate-800">
+                    ارسال پیامک برای تغییر یا تایید پروفایل هنرمند
+                  </h4>
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                    isProfileSmsActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {isProfileSmsActive ? '✅ ارسال پیامک فعال است' : '⚪ غیرفعال (ثبت مستقیم بدون پیامک)'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  کنترل پارامتریک ارسال پیامک کد تایید (OTP) هنگام تکمیل یا ویرایش اطلاعات پروفایل در پنل هنرمند.
+                </p>
+              </div>
+            </div>
+
+            {/* Toggle Switch */}
+            <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="text-xs font-bold text-slate-700">
+                {isProfileSmsActive ? 'فعال' : 'غیرفعال'}
+              </span>
+              <button
+                type="button"
+                dir="ltr"
+                onClick={() => setIsProfileSmsActive(!isProfileSmsActive)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  isProfileSmsActive ? 'bg-teal-600' : 'bg-slate-300'
+                }`}
+                title={isProfileSmsActive ? 'غیرفعال کردن ارسال پیامک تایید پروفایل' : 'فعال کردن ارسال پیامک تایید پروفایل'}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    isProfileSmsActive ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          <div className="p-3 bg-white/80 rounded-xl border border-slate-200 text-xs text-slate-600 leading-relaxed">
+            {isProfileSmsActive ? (
+              <span className="text-emerald-800 font-medium">
+                💡 <strong>وضعیت فعال:</strong> وقتی هنرمند فرم پروفایل خود را ثبت یا ویرایش می‌کند، یک پیامک حاوی کد تایید ۵ رقمی (با الگوی تایید پروفایل) به موبایلش ارسال می‌شود و پس از وارد کردن کد، پروفایل ذخیره می‌گردد.
+              </span>
+            ) : (
+              <span className="text-amber-800 font-medium">
+                ⚠️ <strong>وضعیت غیرفعال:</strong> ارسال پیامک برای تایید یا تغییر پروفایل موقتاً خاموش است. هنرمند می‌تواند بدون نیاز به دریافت کد پیامکی، مشخصات پروفایل خود را ثبت و ذخیره کند.
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* ==================== SECURITY & ANTI-ABUSE SETTINGS ==================== */}
         <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">

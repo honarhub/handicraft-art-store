@@ -97,6 +97,7 @@ export default function ArtistProfilePage() {
   const [isSsoUser, setIsSsoUser] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isProfileSmsActive, setIsProfileSmsActive] = useState(true);
 
   // Phone OTP Modal States (Required for every profile submission)
   const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
@@ -139,6 +140,9 @@ export default function ArtistProfilePage() {
       setIsSsoUser(Boolean(data.isSsoUser));
       setIsPhoneVerified(Boolean(data.isPhoneVerified));
       setIsEmailVerified(Boolean(data.isEmailVerified));
+      if (typeof data.isProfileSmsActive === 'boolean') {
+        setIsProfileSmsActive(data.isProfileSmsActive);
+      }
 
       if (hasProfilePendingEdits(data.pendingEdits)) {
         let edits = data.pendingEdits;
@@ -650,8 +654,12 @@ export default function ArtistProfilePage() {
     setFieldErrors({});
     setValidationErrors([]);
 
-    // For every profile submission, trigger phone OTP verification
-    await handleSendPhoneOtp();
+    // If profile SMS is active in admin settings, trigger phone OTP verification; otherwise save directly
+    if (isProfileSmsActive) {
+      await handleSendPhoneOtp();
+    } else {
+      await executeSaveProfile(false);
+    }
   };
 
   const executeSaveProfile = async (phoneVerifiedStatus: boolean) => {

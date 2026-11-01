@@ -335,6 +335,7 @@ model SiteSettings {
 
   // SMS & OTP Providers Settings (sms.ir & farazsms)
   isMobileOtpActive        Boolean    @default(true)
+  isProfileSmsActive       Boolean    @default(true) // ارسال پیامک برای تایید یا تغییر پروفایل هنرمند
   smsProvider              String     @default("sms.ir") // "sms.ir" | "farazsms"
   smsIsSandbox             Boolean    @default(false)
   smsApiKey                String?

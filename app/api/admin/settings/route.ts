@@ -38,6 +38,7 @@ export async function PATCH(request: Request) {
       dynamicRows,
       artistAiEnabled,
       isMobileOtpActive,
+      isProfileSmsActive,
       smsProvider,
       smsIsSandbox,
       smsApiKey,
@@ -77,6 +78,7 @@ export async function PATCH(request: Request) {
     if (dynamicRows !== undefined) updateData.dynamicRows = dynamicRows;
     if (artistAiEnabled !== undefined) updateData.artistAiEnabled = Boolean(artistAiEnabled);
     if (isMobileOtpActive !== undefined) updateData.isMobileOtpActive = Boolean(isMobileOtpActive);
+    if (isProfileSmsActive !== undefined) updateData.isProfileSmsActive = Boolean(isProfileSmsActive);
     if (smsProvider !== undefined) updateData.smsProvider = smsProvider;
     if (smsIsSandbox !== undefined) updateData.smsIsSandbox = Boolean(smsIsSandbox);
     if (smsApiKey !== undefined) updateData.smsApiKey = smsApiKey ? smsApiKey.trim() : null;

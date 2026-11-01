@@ -39,12 +39,19 @@ export async function GET(request: Request) {
     const isEmailVerified = Boolean(artist.user.emailVerified || isSsoUser);
     const isProfilePending = hasProfilePendingEdits(artist.pendingEdits);
 
+    const siteSettings = await prisma.siteSettings.findUnique({
+      where: { id: 'default' },
+      select: { isMobileOtpActive: true, isProfileSmsActive: true }
+    });
+    const isProfileSmsActive = (siteSettings?.isMobileOtpActive ?? true) && (siteSettings?.isProfileSmsActive ?? true);
+
     return NextResponse.json({
       ...artist,
       pendingEdits: isProfilePending ? artist.pendingEdits : null,
       isSsoUser,
       isPhoneVerified,
-      isEmailVerified
+      isEmailVerified,
+      isProfileSmsActive
     }, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'

@@ -152,8 +152,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           include: { user: true }
         });
 
-        // Notify artist via SMS if newly promoted to Level 2
-        if (isFullApproval && (artist.verificationLevel || 0) < 2) {
+        // Notify artist via SMS if newly promoted to Level 2 and profile SMS is active
+        const settings = await prisma.siteSettings.findUnique({
+          where: { id: 'default' },
+          select: { isMobileOtpActive: true, isProfileSmsActive: true }
+        });
+        const shouldSendSms = (settings?.isMobileOtpActive ?? true) && (settings?.isProfileSmsActive ?? true);
+
+        if (shouldSendSms && isFullApproval && (artist.verificationLevel || 0) < 2) {
           const recipientPhone = updatedArtist.user?.phoneNumber;
           if (recipientPhone) {
             const displayName = updatedArtist.brandName || updatedArtist.user?.name || 'هنرمند گرامی';
@@ -209,7 +215,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           include: { user: true }
         });
 
-        if ((artist.verificationLevel || 0) < 2) {
+        const settings = await prisma.siteSettings.findUnique({
+          where: { id: 'default' },
+          select: { isMobileOtpActive: true, isProfileSmsActive: true }
+        });
+        const shouldSendSms = (settings?.isMobileOtpActive ?? true) && (settings?.isProfileSmsActive ?? true);
+
+        if (shouldSendSms && (artist.verificationLevel || 0) < 2) {
           const recipientPhone = updatedArtist.user?.phoneNumber;
           if (recipientPhone) {
             const displayName = updatedArtist.brandName || updatedArtist.user?.name || 'هنرمند گرامی';
