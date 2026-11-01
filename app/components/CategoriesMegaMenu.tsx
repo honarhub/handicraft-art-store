@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 
 export type CategoryChild = {
   id: string;
@@ -256,6 +257,7 @@ export default function CategoriesMegaMenu() {
   const [mounted, setMounted] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -315,12 +317,13 @@ export default function CategoriesMegaMenu() {
       });
   }, []);
 
-  // Close menu on outside click
+  // Close menu on outside click - protects both container and portal drawer!
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current && containerRef.current.contains(target)) return;
+      if (drawerRef.current && drawerRef.current.contains(target)) return;
+      setIsOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
@@ -328,8 +331,9 @@ export default function CategoriesMegaMenu() {
     };
   }, []);
 
-  // Desktop hover handlers
+  // Desktop-only hover handlers (never interfere on mobile touch!)
   const handleMouseEnter = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
@@ -338,6 +342,7 @@ export default function CategoriesMegaMenu() {
   };
 
   const handleMouseLeave = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
     closeTimeoutRef.current = setTimeout(() => {
       setIsOpen(false);
     }, 180);
@@ -531,10 +536,13 @@ export default function CategoriesMegaMenu() {
           />
 
           {/* بدنه دراور کشویی از راست با ارتفاع کامل ویوپورت موبایل */}
-          <div className="relative w-4/5 max-w-xs sm:max-w-sm bg-white h-[100dvh] max-h-[100dvh] shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-250 select-none">
+          <div 
+            ref={drawerRef}
+            className="relative w-4/5 max-w-xs sm:max-w-sm bg-white h-[100dvh] max-h-[100dvh] shadow-2xl flex flex-col z-50 animate-in slide-in-from-right duration-250 select-none"
+          >
             {/* سربرگ منوی موبایل */}
             <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50/80 shrink-0">
-              <a 
+              <Link 
                 href="/" 
                 onClick={() => setIsOpen(false)} 
                 className="text-xl font-black tracking-tight flex items-center select-none" 
@@ -544,7 +552,7 @@ export default function CategoriesMegaMenu() {
                 <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded mr-1 text-base font-black">
                   هاب
                 </span>
-              </a>
+              </Link>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -560,7 +568,7 @@ export default function CategoriesMegaMenu() {
             {/* لیست عمودی گزینه‌های ناوبری اصلی با اسکرول مستقل */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1.5 min-h-0">
               {/* صفحه اصلی */}
-              <a
+              <Link
                 href="/"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
@@ -575,10 +583,10 @@ export default function CategoriesMegaMenu() {
                   <div className="text-[11px] text-slate-400 font-medium">ویترین و برگزیده‌های هنرهاب</div>
                 </div>
                 <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
-              </a>
+              </Link>
 
               {/* گالری آثار */}
-              <a
+              <Link
                 href="/products"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
@@ -593,10 +601,10 @@ export default function CategoriesMegaMenu() {
                   <div className="text-[11px] text-slate-400 font-medium">مشاهده و خرید تمامی دست‌سازه‌ها</div>
                 </div>
                 <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
-              </a>
+              </Link>
 
               {/* وبلاگ */}
-              <a
+              <Link
                 href="/blog"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
@@ -611,10 +619,10 @@ export default function CategoriesMegaMenu() {
                   <div className="text-[11px] text-slate-400 font-medium">مقالات تخصصی و اخبار صنایع دستی</div>
                 </div>
                 <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
-              </a>
+              </Link>
 
               {/* درباره ما */}
-              <a
+              <Link
                 href="/about"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
@@ -629,10 +637,10 @@ export default function CategoriesMegaMenu() {
                   <div className="text-[11px] text-slate-400 font-medium">داستان و ارزش‌های هنرهاب</div>
                 </div>
                 <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
-              </a>
+              </Link>
 
               {/* پشتیبانی */}
-              <a
+              <Link
                 href="/support"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-emerald-700 transition-all group border border-transparent hover:border-slate-100"
@@ -647,12 +655,12 @@ export default function CategoriesMegaMenu() {
                   <div className="text-[11px] text-slate-400 font-medium">راهنمایی و ارتباط با ما</div>
                 </div>
                 <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
-              </a>
+              </Link>
 
               <div className="my-2 border-t border-slate-100"></div>
 
               {/* پنل هنرمندان */}
-              <a
+              <Link
                 href="/artist-panel/login"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 text-emerald-950 transition-all group shadow-2xs hover:shadow-xs"
@@ -670,10 +678,10 @@ export default function CategoriesMegaMenu() {
                   <div className="text-[11px] text-emerald-700 font-medium">ورود و عرضه مستقیم آثار هنری</div>
                 </div>
                 <span className="text-xs text-emerald-600 group-hover:translate-x-0.5 transition-transform">←</span>
-              </a>
+              </Link>
 
               {/* پنل ادمین */}
-              <a
+              <Link
                 href="/admin"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-all group border border-transparent hover:border-slate-100"
@@ -688,12 +696,12 @@ export default function CategoriesMegaMenu() {
                   <div className="text-[11px] text-slate-400 font-medium">بخش نظارت و ادمین</div>
                 </div>
                 <span className="text-xs text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all">←</span>
-              </a>
+              </Link>
             </div>
 
             {/* بخش پایین دراور: ورود و دسترسی سریع به سبد خرید و علاقمندی */}
             <div className="p-4 border-t border-slate-100 bg-slate-50/70 space-y-2.5 shrink-0">
-              <a
+              <Link
                 href="/login"
                 onClick={() => setIsOpen(false)}
                 className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
@@ -702,25 +710,25 @@ export default function CategoriesMegaMenu() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 <span>ورود / ثبت‌نام در هنرهاب</span>
-              </a>
+              </Link>
 
               <div className="grid grid-cols-2 gap-2 text-center">
-                <a
+                <Link
                   href="/cart"
                   onClick={() => setIsOpen(false)}
-                  className="py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  className="py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>🛒</span>
                   <span>سبد خرید</span>
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/wishlist"
                   onClick={() => setIsOpen(false)}
-                  className="py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-rose-700 hover:border-rose-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  className="py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-rose-700 hover:border-rose-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>❤️</span>
                   <span>علاقه‌مندی‌ها</span>
-                </a>
+                </Link>
               </div>
             </div>
           </div>
