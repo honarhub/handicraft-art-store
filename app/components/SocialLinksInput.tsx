@@ -101,44 +101,66 @@ export default function SocialLinksInput({ socialLinks, onChange }: SocialLinksI
         const currentUsername = getUsername(url, meta.prefix);
 
         return (
-          <div key={platform} className="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-2xl border border-slate-200 shadow-xs">
-            {/* Logo and Name Badge */}
-            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 min-w-[125px] shrink-0">
-              <SocialIcon platform={plat} />
-              <span className="text-xs font-bold text-slate-700">{meta.name}</span>
+          <div key={platform} className="bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+            {/* Header: Platform Badge + Delete Button */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
+                  <SocialIcon platform={plat} />
+                </div>
+                <span className="text-xs sm:text-sm font-bold text-slate-800">{meta.name}</span>
+              </div>
+
+              {/* Remove button */}
+              <button 
+                type="button" 
+                onClick={() => handleRemove(plat)}
+                className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer font-bold"
+                title={`حذف ${meta.name}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                <span>حذف</span>
+              </button>
             </div>
 
-            {/* URL Input with prefix and YOUR_USERNAME hint */}
-            <div className="flex-1 flex items-center bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono dir-ltr focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-100 transition-all overflow-hidden" dir="ltr">
-              <span className="text-slate-900 font-bold select-none text-xs sm:text-sm shrink-0">{meta.prefix}</span>
+            {/* Input row: Mobile-first responsive layout */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white border border-slate-300 rounded-xl overflow-hidden focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all">
+              {/* Prefix (Badge on mobile, inline on desktop) */}
+              <div className="bg-slate-100/90 text-slate-600 px-3 py-1.5 sm:py-2.5 border-b sm:border-b-0 sm:border-l border-slate-200 text-xs font-mono select-none flex items-center justify-between sm:justify-start gap-1 shrink-0" dir="ltr">
+                <span className="font-semibold text-slate-700">{meta.prefix}</span>
+                <span className="text-[10px] text-slate-400 sm:hidden">پیشوند</span>
+              </div>
+
+              {/* Input for handle / username or pasted full url */}
               <input 
                 type="text" 
                 value={currentUsername} 
                 onChange={e => {
-                  let raw = e.target.value;
+                  let raw = e.target.value.trim();
                   // If pasted full URL, extract handle
                   if (raw.startsWith(meta.prefix)) {
                     raw = raw.slice(meta.prefix.length);
+                  } else if (raw.includes(meta.prefix.replace('https://', ''))) {
+                    const idx = raw.indexOf(meta.prefix.replace('https://', ''));
+                    raw = raw.slice(idx + meta.prefix.replace('https://', '').length);
                   }
                   raw = raw.replace(/^@/, '');
                   const fullUrl = raw.trim() ? `${meta.prefix}${raw.trim()}` : '';
                   onChange({ ...socialLinks, [plat]: fullUrl });
                 }}
-                className="flex-1 bg-transparent border-none outline-none text-slate-800 text-xs sm:text-sm font-mono placeholder:text-slate-400 placeholder:italic px-1 min-w-[100px]" 
+                className="flex-1 px-3 py-2.5 bg-transparent border-none outline-none text-slate-900 text-sm sm:text-base font-mono font-medium placeholder:text-slate-400 placeholder:font-normal placeholder:font-sans" 
                 dir="ltr" 
-                placeholder="YOUR_USERNAME"
+                placeholder="آیدی (مثلاً: art_shams یا @art_shams)"
               />
             </div>
 
-            {/* Remove button */}
-            <button 
-              type="button" 
-              onClick={() => handleRemove(plat)}
-              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors shrink-0"
-              title={`حذف ${meta.name}`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-            </button>
+            {/* Helper preview when username is entered */}
+            {currentUsername && (
+              <div className="text-[11px] text-teal-700 font-mono dir-ltr flex items-center gap-1.5 px-1 truncate" dir="ltr">
+                <span className="text-[10px] font-sans font-bold text-teal-800 shrink-0">🔗 پیش‌نمایش:</span>
+                <span className="truncate">{meta.prefix}{currentUsername}</span>
+              </div>
+            )}
           </div>
         );
       })}

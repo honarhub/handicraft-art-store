@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
+import ProductImageCropModal from '@/app/components/ProductImageCropModal';
 
 export default function AddProductPage() {
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai');
@@ -16,6 +17,10 @@ export default function AddProductPage() {
   const [seoMetaDesc, setSeoMetaDesc] = useState('');
   const [seoKeywords, setSeoKeywords] = useState('');
   const [image, setImage] = useState<string | null>(null);
+
+  // Crop states
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
 
   // UI States
   const [artists, setArtists] = useState<any[]>([]);
@@ -259,6 +264,62 @@ export default function AddProductPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
+            {/* تصویر شاخص محصول */}
+            <div className="md:col-span-2 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200">
+              <label className="block text-sm font-bold text-slate-800 mb-1.5">
+                تصویر شاخص محصول
+              </label>
+              <p className="text-xs text-slate-500 mb-3">
+                تصویر اصلی محصول برای نمایش در فروشگاه (پیشنهاد: کادر مستطیل ۴:۳).
+              </p>
+              {image ? (
+                <div className="relative w-36 h-28 rounded-2xl overflow-hidden border-2 border-purple-500 group shadow-xs">
+                  <img src={image} alt="محصول" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRawImageForCrop(image);
+                      setCropModalOpen(true);
+                    }}
+                    className="absolute bottom-1.5 left-1.5 bg-slate-900/80 hover:bg-purple-600 text-white text-[11px] px-2 py-1 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                    title="ویرایش و تنظیم کادربندی مستطیل"
+                  >
+                    <span>✏️ کادربندی</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImage(null)}
+                    className="absolute top-1.5 right-1.5 bg-rose-500 hover:bg-rose-600 text-white w-6 h-6 flex items-center justify-center rounded-full transition-colors shadow-xs cursor-pointer text-sm font-bold"
+                    title="حذف تصویر"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <label className="w-36 h-28 rounded-2xl border-2 border-dashed border-slate-300 hover:border-purple-500 hover:bg-purple-50/50 flex flex-col items-center justify-center text-slate-400 hover:text-purple-600 cursor-pointer transition-all">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const base64 = await fileToBase64(file);
+                        setRawImageForCrop(base64);
+                        setCropModalOpen(true);
+                      } catch (err) {
+                        console.error('Error loading file', err);
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                  <span className="text-2xl font-light">+</span>
+                  <span className="text-xs font-bold mt-1">افزودن تصویر</span>
+                </label>
+              )}
+            </div>
+
             {/* عنوان */}
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-slate-700 mb-2">عنوان محصول <span className="text-red-500">*</span></label>
@@ -325,6 +386,20 @@ export default function AddProductPage() {
           </div>
         </form>
       </div>
+
+      <ProductImageCropModal
+        isOpen={cropModalOpen}
+        imageSrc={rawImageForCrop}
+        onClose={() => {
+          setCropModalOpen(false);
+          setRawImageForCrop(null);
+        }}
+        onCropComplete={(croppedBase64) => {
+          setImage(croppedBase64);
+          setCropModalOpen(false);
+          setRawImageForCrop(null);
+        }}
+      />
     </div>
   );
 }

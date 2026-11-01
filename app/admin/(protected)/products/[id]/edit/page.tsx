@@ -4,6 +4,7 @@ import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
+import ProductImageCropModal from '@/app/components/ProductImageCropModal';
 
 export default function AdminProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -18,6 +19,12 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
   const [shippingMode, setShippingMode] = useState<'ARTIST_DIRECT' | 'HONARHUB_WAREHOUSE'>('ARTIST_DIRECT');
   const [isPreOrderEnabled, setIsPreOrderEnabled] = useState(false);
   const [preOrderTiers, setPreOrderTiers] = useState<PreOrderTier[]>(DEFAULT_PREORDER_TIERS);
+
+  // Product Image Crop Modal States
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [pendingCropQueue, setPendingCropQueue] = useState<string[]>([]);
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -37,7 +44,9 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
       return;
     }
 
-    const newImages: string[] = [];
+    const convertedImages: string[] = [];
+    const videoFiles: string[] = [];
+
     for (const file of files) {
       const isImage = file.type.startsWith('image/');
       const isVideo = file.type.startsWith('video/');
@@ -51,12 +60,54 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
       }
       try {
         const base64 = await fileToBase64(file);
-        newImages.push(base64);
+        if (isVideo) {
+          videoFiles.push(base64);
+        } else {
+          convertedImages.push(base64);
+        }
       } catch (err) {
         console.error('Error converting file', err);
       }
     }
-    setImages(prev => [...prev, ...newImages]);
+
+    if (videoFiles.length > 0) {
+      setImages(prev => [...prev, ...videoFiles]);
+    }
+
+    if (convertedImages.length > 0) {
+      const [first, ...rest] = convertedImages;
+      setEditingImageIndex(null);
+      setPendingCropQueue(rest);
+      setCropImageSrc(first);
+      setCropModalOpen(true);
+    }
+
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedBase64: string) => {
+    if (editingImageIndex !== null) {
+      setImages(prev => {
+        const next = [...prev];
+        next[editingImageIndex] = croppedBase64;
+        return next;
+      });
+      setEditingImageIndex(null);
+      setCropImageSrc(null);
+      setCropModalOpen(false);
+    } else {
+      setImages(prev => [...prev, croppedBase64]);
+
+      if (pendingCropQueue.length > 0) {
+        const [nextImage, ...remainingQueue] = pendingCropQueue;
+        setPendingCropQueue(remainingQueue);
+        setCropImageSrc(nextImage);
+        setCropModalOpen(true);
+      } else {
+        setCropImageSrc(null);
+        setCropModalOpen(false);
+      }
+    }
   };
 
   const makePrimary = (idx: number) => {
@@ -218,6 +269,23 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
                     </button>
                   )}
 
+                  {/* Edit / Crop Button (only for images) */}
+                  {!img.startsWith('data:video') && !img.endsWith('.mp4') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingImageIndex(idx);
+                        setCropImageSrc(img);
+                        setPendingCropQueue([]);
+                        setCropModalOpen(true);
+                      }}
+                      className="absolute top-1.5 right-1.5 bg-slate-900/80 hover:bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all text-xs cursor-pointer shadow-sm"
+                      title="ویرایش و تنظیم کادربندی مستطیل"
+                    >
+                      ✏️
+                    </button>
+                  )}
+
                   {/* Remove Button */}
                   <button 
                     type="button"
@@ -323,6 +391,18 @@ export default function AdminProductEditPage({ params }: { params: Promise<{ id:
           </button>
         </form>
       </div>
+
+      <ProductImageCropModal
+        isOpen={cropModalOpen}
+        imageSrc={cropImageSrc}
+        onClose={() => {
+          setCropModalOpen(false);
+          setCropImageSrc(null);
+          setEditingImageIndex(null);
+          setPendingCropQueue([]);
+        }}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }

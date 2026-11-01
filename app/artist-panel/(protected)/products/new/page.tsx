@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
+import ProductImageCropModal from '@/app/components/ProductImageCropModal';
 import { useRouter } from 'next/navigation';
 
 export default function ArtistAddProductPage() {
@@ -22,6 +23,12 @@ export default function ArtistAddProductPage() {
   const [seoKeywords, setSeoKeywords] = useState('');
   const [images, setImages] = useState<string[]>([]); // Array of base64 strings
   const [stockQuantity, setStockQuantity] = useState(1);
+
+  // Product Image Crop Modal States
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [pendingCropQueue, setPendingCropQueue] = useState<string[]>([]);
 
   // Helper for price formatting
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,7 +167,9 @@ export default function ArtistAddProductPage() {
       return;
     }
 
-    const newImages: string[] = [];
+    const convertedImages: string[] = [];
+    const videoFiles: string[] = [];
+
     for (const file of files) {
       // Check sizes: 5MB for image, 20MB for video
       const isImage = file.type.startsWith('image/');
@@ -176,12 +185,59 @@ export default function ArtistAddProductPage() {
 
       try {
         const base64 = await fileToBase64(file);
-        newImages.push(base64);
+        if (isVideo) {
+          videoFiles.push(base64);
+        } else {
+          convertedImages.push(base64);
+        }
       } catch (err) {
         console.error('Error converting file', err);
       }
     }
-    setImages(prev => [...prev, ...newImages]);
+
+    // Add videos directly
+    if (videoFiles.length > 0) {
+      setImages(prev => [...prev, ...videoFiles]);
+    }
+
+    // If images were selected, trigger rectangular crop modal for the first one and queue remaining
+    if (convertedImages.length > 0) {
+      const [first, ...rest] = convertedImages;
+      setEditingImageIndex(null); // new image mode
+      setPendingCropQueue(rest);
+      setCropImageSrc(first);
+      setCropModalOpen(true);
+    }
+
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedBase64: string) => {
+    if (editingImageIndex !== null) {
+      // Replacing existing image
+      setImages(prev => {
+        const next = [...prev];
+        next[editingImageIndex] = croppedBase64;
+        return next;
+      });
+      setEditingImageIndex(null);
+      setCropImageSrc(null);
+      setCropModalOpen(false);
+    } else {
+      // Adding newly cropped image
+      setImages(prev => [...prev, croppedBase64]);
+
+      // If more images queued from multi-upload, open next one
+      if (pendingCropQueue.length > 0) {
+        const [nextImage, ...remainingQueue] = pendingCropQueue;
+        setPendingCropQueue(remainingQueue);
+        setCropImageSrc(nextImage);
+        setCropModalOpen(true);
+      } else {
+        setCropImageSrc(null);
+        setCropModalOpen(false);
+      }
+    }
   };
 
   const generateSeo = async () => {
@@ -389,16 +445,43 @@ export default function ArtistAddProductPage() {
             </p>
             <div className="flex flex-wrap gap-4 items-center">
               {images.map((img, idx) => (
-                <div key={idx} className="relative w-24 h-24 rounded-xl overflow-hidden border border-slate-200 group">
+                <div key={idx} className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-slate-200 group shadow-2xs">
                   {img.startsWith('data:video') ? (
                     <video src={img} className="w-full h-full object-cover" />
                   ) : (
                     <img src={img} className="w-full h-full object-cover" />
                   )}
+
+                  {/* Primary cover indicator */}
+                  {idx === 0 && (
+                    <span className="absolute bottom-1 right-1 bg-teal-600/90 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-xs">
+                      کاور
+                    </span>
+                  )}
+
+                  {/* Edit / Crop Button (only for images) */}
+                  {!img.startsWith('data:video') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingImageIndex(idx);
+                        setCropImageSrc(img);
+                        setPendingCropQueue([]);
+                        setCropModalOpen(true);
+                      }}
+                      className="absolute bottom-1 left-1 bg-slate-900/80 hover:bg-teal-600 text-white text-[10px] p-1 rounded-md opacity-90 sm:opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                      title="ویرایش و تنظیم کادربندی مستطیل"
+                    >
+                      <span>✏️</span>
+                    </button>
+                  )}
+
+                  {/* Remove Button */}
                   <button 
                     type="button"
                     onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                    className="absolute top-1 right-1 bg-red-500 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm text-sm font-bold"
+                    title="حذف فایل"
                   >
                     ×
                   </button>
@@ -600,6 +683,18 @@ export default function ArtistAddProductPage() {
           </div>
         </form>
       </div>
+
+      <ProductImageCropModal
+        isOpen={cropModalOpen}
+        imageSrc={cropImageSrc}
+        onClose={() => {
+          setCropModalOpen(false);
+          setCropImageSrc(null);
+          setEditingImageIndex(null);
+          setPendingCropQueue([]);
+        }}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }
