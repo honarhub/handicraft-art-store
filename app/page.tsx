@@ -60,7 +60,7 @@ export default async function Home() {
   // 2. Fetch active Iranian artists
   try {
     topArtists = await prisma.artistProfile.findMany({
-      where: { isActive: true, isDeleted: false, isApproved: true },
+      where: { isActive: true, isDeleted: false, isApproved: true, verificationLevel: { gte: 2 } },
       include: { user: true },
       take: 10,
       orderBy: { createdAt: 'desc' }

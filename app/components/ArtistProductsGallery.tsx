@@ -754,12 +754,12 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             onClick={() => setIsCategoryOpen(false)}
           />
 
-          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
-            <div className="sm:hidden pt-3 pb-1 flex justify-center">
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl h-[52vh] max-h-[52vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200 select-none">
+            <div className="sm:hidden pt-2.5 pb-1 flex justify-center shrink-0">
               <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
             </div>
 
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between px-6 py-2.5 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🏷️</span>
                 <h3 className="font-black text-slate-900 text-base">دسته‌بندی و سبک هنری</h3>
@@ -767,29 +767,29 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
               <button
                 type="button"
                 onClick={() => setIsCategoryOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {/* Live Typing Search Input inside Bottom Sheet */}
-            <div className="p-4 border-b border-slate-100">
+            <div className="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
               <div className="relative">
                 <input
                   type="text"
-                  autoFocus
                   value={specialtySearch}
                   onChange={(e) => setSpecialtySearch(e.target.value)}
-                  placeholder="تایپ کنید تا دسته‌بندی فیلتر شود..."
-                  className="w-full bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-2xl py-2.5 pr-10 pl-8 text-xs font-medium outline-none transition-all focus:ring-2 focus:ring-emerald-200/50"
+                  placeholder="جستجو در دسته‌بندی‌ها..."
+                  style={{ fontSize: '16px' }}
+                  className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 pr-9 pl-8 text-base outline-none transition-all focus:ring-2 focus:ring-emerald-200/50"
                 />
-                <span className="absolute right-3.5 top-3 text-slate-400 text-xs pointer-events-none">🔍</span>
+                <span className="absolute right-3 top-2.5 text-slate-400 text-sm pointer-events-none">🔍</span>
                 {specialtySearch && (
                   <button
                     type="button"
                     onClick={() => setSpecialtySearch('')}
-                    className="absolute left-3 top-2.5 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+                    className="absolute left-2.5 top-2 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs transition-colors cursor-pointer"
                   >
                     ✕
                   </button>
@@ -798,7 +798,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             </div>
 
             {/* Scrollable Specialties List */}
-            <div className="p-4 overflow-y-auto space-y-1.5 flex-1 divide-y divide-slate-50">
+            <div className="p-4 overflow-y-auto space-y-1.5 flex-1 divide-y divide-slate-50 overscroll-contain touch-pan-y" onTouchStart={() => (document.activeElement as HTMLElement)?.blur?.()}>
               {/* Option: All */}
               <button
                 type="button"

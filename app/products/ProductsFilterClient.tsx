@@ -378,7 +378,7 @@ export default function ProductsFilterClient({
             }`}
           >
             <span>🎨</span>
-            <span>{artistId ? selectedArtistName : 'فیلتر هنرمند'}</span>
+            <span>{artistId ? selectedArtistName : 'نام هنرمند'}</span>
           </button>
         </div>
 
@@ -403,7 +403,7 @@ export default function ProductsFilterClient({
 
             {artistId && (
               <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-900 px-2.5 py-1 rounded-xl text-[11px] font-bold shadow-2xs">
-                <span>هنرمند: {selectedArtistName}</span>
+                <span>نام هنرمند: {selectedArtistName}</span>
                 <button type="button" onClick={() => setArtistId('')} className="text-blue-400 hover:text-red-500 cursor-pointer">✕</button>
               </span>
             )}
@@ -604,7 +604,7 @@ export default function ProductsFilterClient({
 
         {/* Searchable Artist Dropdown with Type-to-Search (Desktop) */}
         <div className="relative" ref={desktopArtistRef}>
-          <label className="block text-sm font-bold text-slate-900 mb-2">هنرمند</label>
+          <label className="block text-sm font-bold text-slate-900 mb-2">نام هنرمند</label>
           
           <button
             type="button"
@@ -899,36 +899,36 @@ export default function ProductsFilterClient({
       {isCategoryOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in" onClick={() => setIsCategoryOpen(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
-            <div className="flex items-center justify-between px-6 pb-3 border-b border-slate-100">
+          <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl h-[52vh] max-h-[52vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200 select-none">
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0" />
+            <div className="flex items-center justify-between px-6 pb-2.5 border-b border-slate-100 shrink-0">
               <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
                 <span>📁</span>
                 <span>انتخاب دسته‌بندی و تخصص</span>
               </h3>
-              <button type="button" onClick={() => setIsCategoryOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 font-bold">✕</button>
+              <button type="button" onClick={() => setIsCategoryOpen(false)} className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer">✕</button>
             </div>
 
             {/* Live Search Input */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50">
+            <div className="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
               <div className="relative">
                 <input
                   type="text"
                   value={specialtySearch}
                   onChange={e => setSpecialtySearch(e.target.value)}
-                  placeholder="تایپ نام تخصص: سفالگری، قلمزنی، گلیم..."
-                  className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl py-2.5 pr-9 pl-8 text-xs font-medium outline-none focus:border-emerald-500"
-                  autoFocus
+                  placeholder="جستجو در نام تخصص..."
+                  style={{ fontSize: '16px' }}
+                  className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl py-2 pr-9 pl-8 text-base outline-none focus:border-emerald-500"
                 />
-                <span className="absolute right-3 top-2.5 text-slate-400 text-xs">🔍</span>
+                <span className="absolute right-3 top-2.5 text-slate-400 text-sm pointer-events-none">🔍</span>
                 {specialtySearch && (
-                  <button type="button" onClick={() => setSpecialtySearch('')} className="absolute left-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                  <button type="button" onClick={() => setSpecialtySearch('')} className="absolute left-2.5 top-2 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs cursor-pointer">✕</button>
                 )}
               </div>
             </div>
 
             {/* Categories List */}
-            <div className="p-4 overflow-y-auto flex-1 space-y-2">
+            <div className="p-4 overflow-y-auto flex-1 space-y-2 overscroll-contain touch-pan-y" onTouchStart={() => (document.activeElement as HTMLElement)?.blur?.()}>
               <button
                 type="button"
                 onClick={() => {
@@ -1007,36 +1007,36 @@ export default function ProductsFilterClient({
       {isArtistOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in" onClick={() => setIsArtistOpen(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
-            <div className="flex items-center justify-between px-6 pb-3 border-b border-slate-100">
+          <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl h-[52vh] max-h-[52vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200 select-none">
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0" />
+            <div className="flex items-center justify-between px-6 pb-2.5 border-b border-slate-100 shrink-0">
               <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
                 <span>🎨</span>
-                <span>فیلتر بر اساس هنرمند</span>
+                <span>انتخاب نام هنرمند</span>
               </h3>
-              <button type="button" onClick={() => setIsArtistOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 font-bold">✕</button>
+              <button type="button" onClick={() => setIsArtistOpen(false)} className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer">✕</button>
             </div>
 
             {/* Live Search Input */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50">
+            <div className="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
               <div className="relative">
                 <input
                   type="text"
                   value={artistSearch}
                   onChange={e => setArtistSearch(e.target.value)}
-                  placeholder="تایپ نام یا برند هنرمند..."
-                  className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl py-2.5 pr-9 pl-8 text-xs font-medium outline-none focus:border-emerald-500"
-                  autoFocus
+                  placeholder="جستجو در نام یا برند هنرمند..."
+                  style={{ fontSize: '16px' }}
+                  className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl py-2 pr-9 pl-8 text-base outline-none focus:border-emerald-500"
                 />
-                <span className="absolute right-3 top-2.5 text-slate-400 text-xs">🔍</span>
+                <span className="absolute right-3 top-2.5 text-slate-400 text-sm pointer-events-none">🔍</span>
                 {artistSearch && (
-                  <button type="button" onClick={() => setArtistSearch('')} className="absolute left-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                  <button type="button" onClick={() => setArtistSearch('')} className="absolute left-2.5 top-2 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs cursor-pointer">✕</button>
                 )}
               </div>
             </div>
 
             {/* Artists List */}
-            <div className="p-4 overflow-y-auto flex-1 space-y-1.5">
+            <div className="p-4 overflow-y-auto flex-1 space-y-1.5 overscroll-contain touch-pan-y" onTouchStart={() => (document.activeElement as HTMLElement)?.blur?.()}>
               <button
                 type="button"
                 onClick={() => {
@@ -1180,7 +1180,7 @@ export default function ProductsFilterClient({
                   }}
                   className="w-full p-3.5 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 text-right flex items-center justify-between text-xs font-bold text-slate-800"
                 >
-                  <span>🎨 هنرمند: <strong className="text-blue-700">{selectedArtistName}</strong></span>
+                  <span>🎨 نام هنرمند: <strong className="text-blue-700">{selectedArtistName}</strong></span>
                   <span className="text-slate-400">تغییر ←</span>
                 </button>
               </div>

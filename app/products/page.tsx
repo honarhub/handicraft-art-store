@@ -133,7 +133,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   });
 
   const allArtists = await prisma.artistProfile.findMany({
-    where: { isActive: true, isDeleted: false },
+    where: { isActive: true, isDeleted: false, isApproved: true, verificationLevel: { gte: 2 } },
     include: { user: true },
     orderBy: { createdAt: 'desc' }
   });
