@@ -42,6 +42,11 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
   // Modals for Mobile Bottom Sheets
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isPriceOpen, setIsPriceOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+
+  // Live Search States for Specialties (Type to Filter)
+  const [specialtySearch, setSpecialtySearch] = useState('');
 
   // Calculate dynamic maximum price among artist products
   const maxPossiblePrice = useMemo(() => {
@@ -63,7 +68,8 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
 
   // Lock body scroll when any bottom sheet is open
   useEffect(() => {
-    if (isFilterOpen || isSortOpen) {
+    const isAnyOpen = isFilterOpen || isSortOpen || isPriceOpen || isCategoryOpen;
+    if (isAnyOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -71,7 +77,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isFilterOpen, isSortOpen]);
+  }, [isFilterOpen, isSortOpen, isPriceOpen, isCategoryOpen]);
 
   // Extract unique specialties from products and artist specialties
   const availableSpecialties = useMemo(() => {
@@ -97,6 +103,20 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
     return Array.from(map.values()).filter(s => s.count > 0 || artistSpecialties.some(as => as.id === s.id));
   }, [products, artistSpecialties]);
 
+  // Live Filter Specialties by Typing
+  const filteredSpecialties = useMemo(() => {
+    if (!specialtySearch.trim()) return availableSpecialties;
+    const s = specialtySearch.trim().toLowerCase();
+    return availableSpecialties.filter(sp => sp.name.toLowerCase().includes(s));
+  }, [availableSpecialties, specialtySearch]);
+
+  // Selected Specialty Display Name
+  const selectedSpecialtyName = useMemo(() => {
+    if (selectedSpecialty === 'all') return 'همه دسته‌ها';
+    const found = availableSpecialties.find(s => s.id === selectedSpecialty || s.name === selectedSpecialty);
+    return found ? found.name : selectedSpecialty;
+  }, [selectedSpecialty, availableSpecialties]);
+
   // Active filters count
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -117,6 +137,8 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
     setSortOption('newest');
     setIsFilterOpen(false);
     setIsSortOpen(false);
+    setIsPriceOpen(false);
+    setIsCategoryOpen(false);
   };
 
   // Filter and Sort Products
@@ -194,7 +216,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="جستجو در نام اثر یا سبک هنری..."
+            placeholder="جستجو در آثار یا دسته‌بندی هنری..."
             className="w-full bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-2xl py-3 pr-11 pl-10 text-xs sm:text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-emerald-200/50"
           />
           <span className="absolute right-3.5 top-3.5 text-slate-400 text-sm pointer-events-none">🔍</span>
@@ -210,49 +232,123 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
           )}
         </div>
 
-        {/* Action Buttons Bar: Filter Button, Sort Button, View Switch, Results Count */}
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
-          <div className="flex items-center gap-2">
-            {/* Filter Trigger Button */}
-            <button
-              type="button"
-              onClick={() => setIsFilterOpen(true)}
-              className={`relative px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeFiltersCount > 0
-                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-              </svg>
-              <span>فیلترها</span>
-              {activeFiltersCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-white text-emerald-700 font-mono text-[11px] font-black flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
+        {/* =========================================================================
+            HORIZONTAL SCROLLABLE BUTTONS BAR (Like Digikala, Torob, Snapp)
+            1. مرتب‌سازی (Sort)
+            2. فیلترها (All Filters + badge)
+            3. امکان پیش‌سفارش (Fast Toggle)
+            4. محدوده قیمت (Price Sheet)
+            5. موجود در انبار (Fast Toggle)
+            6. دسته‌بندی‌ها (Categories with live search)
+            ========================================================================= */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 scrollbar-hide -mx-1 px-1">
+          {/* Button 1: Sort */}
+          <button
+            type="button"
+            onClick={() => setIsSortOpen(true)}
+            className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              sortOption !== 'newest'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="21" y1="10" x2="7" y2="10"></line>
+              <line x1="21" y1="6" x2="3" y2="6"></line>
+              <line x1="21" y1="14" x2="11" y2="14"></line>
+              <line x1="21" y1="18" x2="15" y2="18"></line>
+            </svg>
+            <span>{SORT_LABELS[sortOption]}</span>
+          </button>
 
-            {/* Sort Trigger Button */}
-            <button
-              type="button"
-              onClick={() => setIsSortOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="21" y1="10" x2="7" y2="10"></line>
-                <line x1="21" y1="6" x2="3" y2="6"></line>
-                <line x1="21" y1="14" x2="11" y2="14"></line>
-                <line x1="21" y1="18" x2="15" y2="18"></line>
-              </svg>
-              <span className="hidden sm:inline">مرتب‌سازی:</span>
-              <span className="text-emerald-700 font-black">{SORT_LABELS[sortOption]}</span>
-            </button>
-          </div>
+          {/* Button 2: All Filters (Drawer Trigger) */}
+          <button
+            type="button"
+            onClick={() => setIsFilterOpen(true)}
+            className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              activeFiltersCount > 0
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+            <span>فیلترها</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-white text-emerald-700 text-[10px] font-black flex items-center justify-center">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
 
+          {/* Button 3: Pre-Order (Fast Toggle Pill) */}
+          <button
+            type="button"
+            onClick={() => setOnlyPreOrder(prev => !prev)}
+            className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              onlyPreOrder
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-amber-50 hover:text-amber-800'
+            }`}
+          >
+            <span>{onlyPreOrder ? '✓' : '✨'}</span>
+            <span>امکان پیش‌سفارش</span>
+          </button>
+
+          {/* Button 4: Price Range Modal */}
+          <button
+            type="button"
+            onClick={() => setIsPriceOpen(true)}
+            className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              maxPrice < maxPossiblePrice
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <span>💰</span>
+            <span>
+              {maxPrice < maxPossiblePrice
+                ? `تا ${maxPrice.toLocaleString('fa-IR')} تومان`
+                : 'محدوده قیمت'}
+            </span>
+          </button>
+
+          {/* Button 5: In Stock (Fast Toggle Pill) */}
+          <button
+            type="button"
+            onClick={() => setOnlyInStock(prev => !prev)}
+            className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              onlyInStock
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800'
+            }`}
+          >
+            <span>{onlyInStock ? '✓' : '📦'}</span>
+            <span>موجود در انبار</span>
+          </button>
+
+          {/* Button 6: Categories (Opens Category Modal with live typing search) */}
+          <button
+            type="button"
+            onClick={() => setIsCategoryOpen(true)}
+            className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              selectedSpecialty !== 'all'
+                ? 'bg-purple-700 text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <span>🏷️</span>
+            <span>{selectedSpecialty !== 'all' ? selectedSpecialtyName : 'دسته‌بندی‌ها'}</span>
+          </button>
+        </div>
+
+        {/* Sub-bar: View switch and results counter */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
           <div className="flex items-center gap-2">
-            {/* View Mode Toggle: Grid (2-col) vs Large Card (1-col) */}
+            <span className="text-[11px] font-bold text-slate-500">
+              نمایش:
+            </span>
             <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200">
               <button
                 type="button"
@@ -284,78 +380,14 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 </svg>
               </button>
             </div>
-
-            {/* Total Results Count */}
-            <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap">
-              {filteredProducts.length} اثر
-            </span>
           </div>
+
+          <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap">
+            {filteredProducts.length} اثر
+          </span>
         </div>
 
-        {/* -------------------- 2. HORIZONTAL QUICK CATEGORY CHIPS -------------------- */}
-        <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1 scrollbar-hide -mx-1 px-1">
-          {/* All */}
-          <button
-            type="button"
-            onClick={() => setSelectedSpecialty('all')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              selectedSpecialty === 'all'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-            }`}
-          >
-            همه آثار ({products.length})
-          </button>
-
-          {/* Quick In-Stock Chip */}
-          <button
-            type="button"
-            onClick={() => setOnlyInStock(prev => !prev)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
-              onlyInStock
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'
-            }`}
-          >
-            <span>{onlyInStock ? '✓' : '📦'}</span>
-            <span>فقط کالاهای موجود</span>
-          </button>
-
-          {/* Quick Pre-order Chip */}
-          <button
-            type="button"
-            onClick={() => setOnlyPreOrder(prev => !prev)}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
-              onlyPreOrder
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
-            }`}
-          >
-            <span>{onlyPreOrder ? '✓' : '✨'}</span>
-            <span>امکان پیش‌سفارش</span>
-          </button>
-
-          {/* Artist Specialties Chips */}
-          {availableSpecialties.map((spec) => {
-            const isSelected = selectedSpecialty === spec.id || selectedSpecialty === spec.name;
-            return (
-              <button
-                key={spec.id}
-                type="button"
-                onClick={() => setSelectedSpecialty(isSelected ? 'all' : spec.id)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-purple-700 text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
-              >
-                {spec.name} {spec.count > 0 && `(${spec.count})`}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* -------------------- 3. ACTIVE FILTERS PILLS -------------------- */}
+        {/* -------------------- ACTIVE FILTERS PILLS -------------------- */}
         {activeFiltersCount > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-xs">
             <span className="text-[11px] font-bold text-slate-400">فیلترهای فعال:</span>
@@ -369,7 +401,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
 
             {selectedSpecialty !== 'all' && (
               <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-lg text-[11px] font-bold">
-                <span>تخصص: {availableSpecialties.find(s => s.id === selectedSpecialty || s.name === selectedSpecialty)?.name || selectedSpecialty}</span>
+                <span>دسته‌بندی: {selectedSpecialtyName}</span>
                 <button type="button" onClick={() => setSelectedSpecialty('all')} className="text-purple-400 hover:text-red-500 cursor-pointer">✕</button>
               </span>
             )}
@@ -406,7 +438,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
         )}
       </div>
 
-      {/* -------------------- 4. PRODUCTS DISPLAY GRID -------------------- */}
+      {/* -------------------- 2. PRODUCTS DISPLAY GRID -------------------- */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-dashed border-slate-200 p-6 space-y-3">
           <span className="text-5xl block">🔍</span>
@@ -424,7 +456,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
           </button>
         </div>
       ) : viewMode === 'grid' ? (
-        /* 2-Column Mobile Grid, 3-4 Column Desktop */
+        /* 2-Column Mobile Grid, 3-Column Desktop */
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3.5 sm:gap-6">
           {filteredProducts.map((product) => {
             const isAvailable = product.stockQuantity > 0;
@@ -466,7 +498,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                     </div>
                   )}
 
-                  {/* Specialty Tag on top-left */}
+                  {/* Specialty Tag on bottom-right */}
                   {product.specialties && product.specialties.length > 0 && (
                     <div className="absolute bottom-2 right-2 sm:bottom-2.5 sm:right-2.5 z-10">
                       <span className="bg-white/90 backdrop-blur-xs text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-xs border border-white/60">
@@ -551,7 +583,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                         {product.specialties[0].name}
                       </span>
                     )}
-                    <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-emerald-700 transition-colors">
+                    <h3 className="font-bold text-slate-900 text-base sm:lg group-hover:text-emerald-700 transition-colors">
                       {product.title}
                     </h3>
                   </div>
@@ -582,23 +614,268 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
         </div>
       )}
 
-      {/* -------------------- 5. MOBILE FILTER BOTTOM SHEET (DRAWER) -------------------- */}
+      {/* -------------------- 3. MOBILE SORT BOTTOM SHEET -------------------- */}
+      {isSortOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+            onClick={() => setIsSortOpen(false)}
+          />
+
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
+            <div className="sm:hidden pt-3 pb-1 flex justify-center">
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+            </div>
+
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⇅</span>
+                <h3 className="font-black text-slate-900 text-base">مرتب‌سازی آثار بر اساس</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSortOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 divide-y divide-slate-100">
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => {
+                const isSelected = sortOption === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setSortOption(key);
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full py-3.5 px-4 text-right rounded-2xl flex items-center justify-between text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-50 text-emerald-800'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{SORT_LABELS[key]}</span>
+                    {isSelected && (
+                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- 4. MOBILE PRICE RANGE BOTTOM SHEET -------------------- */}
+      {isPriceOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+            onClick={() => setIsPriceOpen(false)}
+          />
+
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
+            <div className="sm:hidden pt-3 pb-1 flex justify-center">
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+            </div>
+
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">💰</span>
+                <h3 className="font-black text-slate-900 text-base">محدوده قیمت</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPriceOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <span className="text-xs font-bold text-slate-500">حداکثر قیمت انتخابی:</span>
+                <span className="text-base font-black text-emerald-700 font-mono">
+                  {maxPrice.toLocaleString('fa-IR')} <span className="text-xs font-medium text-slate-500">تومان</span>
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min="0"
+                  max={maxPossiblePrice}
+                  step={maxPossiblePrice > 5000000 ? 500000 : 200000}
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+                  className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg appearance-none"
+                  dir="ltr"
+                />
+                {/* 0 on LEFT, Max on RIGHT */}
+                <div className="flex justify-between items-center text-xs text-slate-500 font-medium" dir="ltr">
+                  <span>۰ تومان</span>
+                  <span>{maxPossiblePrice.toLocaleString('fa-IR')} تومان</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMaxPrice(maxPossiblePrice)}
+                className="px-4 py-3 rounded-2xl text-xs font-bold text-slate-600 hover:text-red-600 transition-colors cursor-pointer shrink-0"
+              >
+                حذف فیلتر قیمت
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPriceOpen(false)}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-2xl shadow-lg shadow-emerald-600/20 transition-all text-center cursor-pointer"
+              >
+                اعمال فیلتر
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- 5. MOBILE CATEGORY / SPECIALTY BOTTOM SHEET (WITH LIVE TYPING SEARCH) -------------------- */}
+      {isCategoryOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
+            onClick={() => setIsCategoryOpen(false)}
+          />
+
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
+            <div className="sm:hidden pt-3 pb-1 flex justify-center">
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
+            </div>
+
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🏷️</span>
+                <h3 className="font-black text-slate-900 text-base">دسته‌بندی و سبک هنری</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Live Typing Search Input inside Bottom Sheet */}
+            <div className="p-4 border-b border-slate-100">
+              <div className="relative">
+                <input
+                  type="text"
+                  autoFocus
+                  value={specialtySearch}
+                  onChange={(e) => setSpecialtySearch(e.target.value)}
+                  placeholder="تایپ کنید تا دسته‌بندی فیلتر شود..."
+                  className="w-full bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-2xl py-2.5 pr-10 pl-8 text-xs font-medium outline-none transition-all focus:ring-2 focus:ring-emerald-200/50"
+                />
+                <span className="absolute right-3.5 top-3 text-slate-400 text-xs pointer-events-none">🔍</span>
+                {specialtySearch && (
+                  <button
+                    type="button"
+                    onClick={() => setSpecialtySearch('')}
+                    className="absolute left-3 top-2.5 w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Scrollable Specialties List */}
+            <div className="p-4 overflow-y-auto space-y-1.5 flex-1 divide-y divide-slate-50">
+              {/* Option: All */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSpecialty('all');
+                  setIsCategoryOpen(false);
+                }}
+                className={`w-full py-3 px-3.5 text-right rounded-2xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                  selectedSpecialty === 'all'
+                    ? 'bg-purple-50 text-purple-900'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>همه دسته‌ها ({products.length} اثر)</span>
+                {selectedSpecialty === 'all' && (
+                  <span className="w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center text-xs font-black">
+                    ✓
+                  </span>
+                )}
+              </button>
+
+              {filteredSpecialties.map((spec) => {
+                const isSelected = selectedSpecialty === spec.id || selectedSpecialty === spec.name;
+                return (
+                  <button
+                    key={spec.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedSpecialty(isSelected ? 'all' : spec.id);
+                      setIsCategoryOpen(false);
+                    }}
+                    className={`w-full py-3 px-3.5 text-right rounded-2xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-purple-50 text-purple-900'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{spec.name}</span>
+                    <div className="flex items-center gap-2">
+                      {spec.count > 0 && (
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                          {spec.count}
+                        </span>
+                      )}
+                      {isSelected && (
+                        <span className="w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center text-xs font-black">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+
+              {filteredSpecialties.length === 0 && (
+                <div className="text-center py-8 text-slate-400 text-xs">
+                  هیچ دسته‌ای با عبارت «{specialtySearch}» یافت نشد.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* -------------------- 6. ALL FILTERS BOTTOM SHEET (DRAWER) -------------------- */}
       {isFilterOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
             onClick={() => setIsFilterOpen(false)}
           />
 
-          {/* Drawer Sheet */}
           <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
-            {/* Grab Handle for Mobile */}
             <div className="sm:hidden pt-3 pb-1 flex justify-center">
               <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
             </div>
 
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🎛️</span>
@@ -613,7 +890,6 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
               </button>
             </div>
 
-            {/* Scrollable Content */}
             <div className="p-6 overflow-y-auto space-y-6 flex-1 text-right">
               {/* Status Toggles: In-stock & Pre-order */}
               <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
@@ -666,7 +942,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 </div>
               </div>
 
-              {/* Price Range Slider (Fixed Correct Direction & Labels) */}
+              {/* Price Range Slider (0 on Left, Max on Right) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-slate-800">محدوده قیمت:</label>
@@ -686,18 +962,30 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                   dir="ltr"
                 />
 
-                {/* Min / Max Numbers: 0 on LEFT, Max on RIGHT matching LTR Slider */}
                 <div className="flex justify-between items-center text-[11px] text-slate-500 font-medium" dir="ltr">
                   <span>۰ تومان</span>
                   <span>{maxPossiblePrice.toLocaleString('fa-IR')} تومان</span>
                 </div>
               </div>
 
-              {/* Specialties / Art Categories */}
+              {/* Specialties / Art Categories with Search Input */}
               {availableSpecialties.length > 0 && (
                 <div className="space-y-2.5">
                   <label className="text-xs font-black text-slate-800 block">دسته‌بندی و سبک هنری:</label>
-                  <div className="flex flex-wrap gap-2">
+                  
+                  {/* Search inside all filters drawer */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={specialtySearch}
+                      onChange={(e) => setSpecialtySearch(e.target.value)}
+                      placeholder="جستجوی دسته‌بندی..."
+                      className="w-full bg-slate-50 text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 pr-9 pl-7 text-xs font-medium outline-none"
+                    />
+                    <span className="absolute right-3 top-2.5 text-slate-400 text-xs pointer-events-none">🔍</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
                     <button
                       type="button"
                       onClick={() => setSelectedSpecialty('all')}
@@ -709,7 +997,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                     >
                       همه سبک‌ها
                     </button>
-                    {availableSpecialties.map((spec) => {
+                    {filteredSpecialties.map((spec) => {
                       const isSelected = selectedSpecialty === spec.id || selectedSpecialty === spec.name;
                       return (
                         <button
@@ -747,69 +1035,6 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
               >
                 مشاهده نتایج ({filteredProducts.length} اثر)
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* -------------------- 6. MOBILE SORT BOTTOM SHEET (DRAWER) -------------------- */}
-      {isSortOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in"
-            onClick={() => setIsSortOpen(false)}
-          />
-
-          {/* Drawer Sheet */}
-          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
-            {/* Grab Handle */}
-            <div className="sm:hidden pt-3 pb-1 flex justify-center">
-              <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">⇅</span>
-                <h3 className="font-black text-slate-900 text-base">مرتب‌سازی آثار بر اساس</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsSortOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center text-sm font-bold transition-colors cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Sort Options List */}
-            <div className="p-4 divide-y divide-slate-100">
-              {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => {
-                const isSelected = sortOption === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setSortOption(key);
-                      setIsSortOpen(false);
-                    }}
-                    className={`w-full py-3.5 px-4 text-right rounded-2xl flex items-center justify-between text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-emerald-50 text-emerald-800'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{SORT_LABELS[key]}</span>
-                    {isSelected && (
-                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-black">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
             </div>
           </div>
         </div>

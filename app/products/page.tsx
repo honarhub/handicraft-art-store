@@ -14,6 +14,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const artistId = typeof params.artist === 'string' ? params.artist : '';
   const sort = typeof params.sort === 'string' ? params.sort : 'newest';
   const preOrderOnly = params.preOrder === 'true';
+  const inStockOnly = params.inStock === 'true';
   
   // Calculate dynamic max price from DB
   const maxPriceRecord = await prisma.pricingTier.findFirst({
@@ -47,6 +48,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   if (preOrderOnly) {
     whereClause.isPreOrderEnabled = true;
+  }
+
+  if (inStockOnly) {
+    whereClause.stockQuantity = { gt: 0 };
   }
 
   if (artistId) {
@@ -153,6 +158,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               initialSort={sort}
               initialMax={maxPrice}
               initialPreOrder={preOrderOnly}
+              initialInStock={inStockOnly}
               maxPossiblePrice={maxPossiblePrice}
               specialties={masterSpecialties} 
               artists={allArtists}
