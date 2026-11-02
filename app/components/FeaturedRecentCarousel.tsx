@@ -150,10 +150,11 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
 
     return (
       <>
-        <div className="aspect-[4/5] w-full relative overflow-hidden bg-slate-100">
+        <div className="aspect-[4/5] w-full relative overflow-hidden bg-slate-950">
           <ProductImageWithSkeleton 
             src={product.imageUrl} 
             alt={product.title} 
+            containerClassName="absolute inset-0 w-full h-full"
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 select-none"
           />
 

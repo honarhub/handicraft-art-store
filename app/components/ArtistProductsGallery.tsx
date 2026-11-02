@@ -498,11 +498,11 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-200/90 hover:border-emerald-300 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col"
               >
                 {/* Image Container with Skeleton */}
-                <div className="aspect-square sm:aspect-[4/5] bg-slate-100 relative overflow-hidden">
+                <div className="aspect-square sm:aspect-[4/5] bg-slate-950 relative overflow-hidden">
                   <ProductImageWithSkeleton
                     src={product.imageUrl}
                     alt={product.title}
-                    containerClassName="w-full h-full"
+                    containerClassName="absolute inset-0 w-full h-full"
                     className="group-hover:scale-105 transition-transform duration-500"
                   />
 
@@ -580,11 +580,11 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 href={`/product/${product.id}`}
                 className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-300 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row"
               >
-                <div className="w-full sm:w-56 aspect-[4/3] sm:aspect-square bg-slate-100 relative overflow-hidden shrink-0">
+                <div className="w-full sm:w-56 aspect-[4/3] sm:aspect-square bg-slate-950 relative overflow-hidden shrink-0">
                   <ProductImageWithSkeleton
                     src={product.imageUrl}
                     alt={product.title}
-                    containerClassName="w-full h-full"
+                    containerClassName="absolute inset-0 w-full h-full"
                     className="group-hover:scale-105 transition-transform duration-500"
                   />
                   {isOutOfStock && (

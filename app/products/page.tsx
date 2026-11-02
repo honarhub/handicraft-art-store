@@ -245,12 +245,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {products.map(product => (
                 <a key={product.id} href={`/product/${product.id}`} className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
-                  <div className="aspect-square w-full relative overflow-hidden bg-slate-100">
+                  <div className="aspect-square w-full relative overflow-hidden bg-slate-950">
                     {/* Progressive Image with Skeleton Shimmer */}
                     <ProductImageWithSkeleton
                       src={product.imageUrl}
                       alt={product.title}
-                      containerClassName="w-full h-full"
+                      containerClassName="absolute inset-0 w-full h-full"
                       className="group-hover:scale-105 transition-transform duration-500"
                     />
                     

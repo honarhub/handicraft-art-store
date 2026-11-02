@@ -79,10 +79,11 @@ export default function DynamicProductRow({ title, subtitle, type, value, produc
           <div ref={scrollContainerRef} className="flex overflow-x-auto pb-6 pt-2 gap-6 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {products.map((product) => (
               <a key={product.id} href={`/product/${product.id}`} className="flex flex-col group min-w-[280px] w-[280px] md:min-w-[300px] md:w-[300px] snap-start bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-2 h-[420px]">
-                <div className="aspect-[4/3] w-full relative overflow-hidden bg-slate-50 shrink-0">
+                <div className="aspect-[4/3] w-full relative overflow-hidden bg-slate-950 shrink-0">
                   <ProductImageWithSkeleton 
                     src={product.imageUrl} 
                     alt={product.title} 
+                    containerClassName="absolute inset-0 w-full h-full"
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
                   />
                   {/* Out of stock without pre-order: dimmed blurred overlay */}
