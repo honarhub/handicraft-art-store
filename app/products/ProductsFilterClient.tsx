@@ -298,23 +298,26 @@ export default function ProductsFilterClient({
 
         {/* Price Range */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-4">حداکثر قیمت (تومان)</label>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center text-xs text-slate-500 mb-1">
-                <span>۰</span>
-                <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">{maxPrice.toLocaleString('fa-IR')}</span>
-              </div>
-              <input 
-                type="range" 
-                min="0" 
-                max={maxPossiblePrice} 
-                step="500000"
-                value={maxPrice} 
-                onChange={e => setMaxPrice(parseInt(e.target.value))}
-                className="w-full accent-emerald-600"
-                dir="ltr"
-              />
+          <div className="flex justify-between items-center mb-3">
+            <label className="text-sm font-bold text-slate-900">محدوده قیمت</label>
+            <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+              تا {maxPrice.toLocaleString('fa-IR')} تومان
+            </span>
+          </div>
+          <div className="space-y-2">
+            <input 
+              type="range" 
+              min="0" 
+              max={maxPossiblePrice} 
+              step="500000"
+              value={maxPrice} 
+              onChange={e => setMaxPrice(parseInt(e.target.value))}
+              className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg appearance-none"
+              dir="ltr"
+            />
+            <div className="flex justify-between items-center text-[11px] text-slate-500 font-medium" dir="ltr">
+              <span>۰ تومان</span>
+              <span>{maxPossiblePrice.toLocaleString('fa-IR')} تومان</span>
             </div>
           </div>
         </div>

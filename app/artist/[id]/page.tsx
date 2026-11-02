@@ -6,7 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
-import ArtistProductsCarousel from '@/app/components/ArtistProductsCarousel';
+import ArtistProductsGallery from '@/app/components/ArtistProductsGallery';
 
 export default async function ArtistProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +28,8 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
       user: true, 
       products: { 
         where: isAdmin ? { deletedAt: null } : { status: 'APPROVED', deletedAt: null },
-        include: { pricingTiers: true } 
+        include: { pricingTiers: true, specialties: true },
+        orderBy: { createdAt: 'desc' }
       }, 
       specialties: true 
     }
@@ -158,8 +159,16 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
 
         {/* Artist Artworks Gallery */}
         <section>
-          <h2 className="text-2xl font-black text-gray-800 mb-6 sm:mb-8 px-2">گالری آثار هنرمند</h2>
-          <ArtistProductsCarousel products={artist.products} />
+          <div className="flex items-center justify-between mb-6 sm:mb-8 px-2">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900">گالری آثار هنرمند</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">مشاهده، فیلتر و سفارش مستقیم دست‌سازه‌های این هنرمند</p>
+            </div>
+          </div>
+          <ArtistProductsGallery 
+            products={artist.products} 
+            artistSpecialties={dbArtist.specialties.filter(s => s.isApproved)} 
+          />
         </section>
       </main>
       
