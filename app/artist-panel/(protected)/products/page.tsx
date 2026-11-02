@@ -27,17 +27,18 @@ export default async function ArtistProductsPage() {
   const serializedProducts = JSON.parse(JSON.stringify(products));
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">محصولات من</h2>
-          <p className="text-slate-500 mt-1 text-sm">لیست تمامی آثار ثبت شده شما در پلتفرم</p>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">محصولات من</h2>
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm">لیست تمامی آثار ثبت شده شما در پلتفرم</p>
         </div>
         <Link 
           href="/artist-panel/products/new" 
-          className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-colors"
+          className="w-full sm:w-auto text-center bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-colors flex items-center justify-center gap-2"
         >
-          ثبت اثر جدید
+          <span className="text-base font-black">+</span>
+          <span>ثبت اثر جدید</span>
         </Link>
       </div>
 

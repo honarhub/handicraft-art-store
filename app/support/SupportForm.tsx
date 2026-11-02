@@ -77,7 +77,7 @@ export default function SupportForm({ productId, initialMessage = '', initialNam
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-bold text-slate-700 mb-2">نام و نام خانوادگی <span className="text-red-500">*</span></label>
+          <label htmlFor="name" className="block text-sm font-bold text-slate-900 mb-2">نام و نام خانوادگی <span className="text-red-500">*</span></label>
           <input 
             type="text" 
             id="name"
@@ -86,11 +86,11 @@ export default function SupportForm({ productId, initialMessage = '', initialNam
             required 
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all bg-slate-50 focus:bg-white" 
+            className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all" 
           />
         </div>
         <div>
-          <label htmlFor="contact" className="block text-sm font-bold text-slate-700 mb-2">شماره تماس یا ایمیل <span className="text-red-500">*</span></label>
+          <label htmlFor="contact" className="block text-sm font-bold text-slate-900 mb-2">شماره تماس یا ایمیل <span className="text-red-500">*</span></label>
           <input 
             type="text" 
             id="contact"
@@ -99,33 +99,33 @@ export default function SupportForm({ productId, initialMessage = '', initialNam
             required 
             value={contact}
             onChange={e => setContact(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all bg-slate-50 focus:bg-white text-left" 
+            className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all text-left" 
             dir="ltr"
           />
         </div>
       </div>
       
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-2">متن پیام <span className="text-red-500">*</span></label>
+        <label className="block text-sm font-bold text-slate-900 mb-2">متن پیام <span className="text-red-500">*</span></label>
         <textarea 
           required 
           rows={5}
           value={message}
           onChange={e => setMessage(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all bg-slate-50 focus:bg-white resize-none" 
+          className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 outline-none transition-all resize-none" 
         ></textarea>
       </div>
 
       <div>
-        <label className="block text-sm font-bold text-slate-700 mb-2">پیوست فایل (اختیاری)</label>
-        <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+        <label className="block text-sm font-bold text-slate-900 mb-2">پیوست فایل (اختیاری)</label>
+        <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-300">
           <input 
             type="file" 
             ref={fileInputRef}
             onChange={handleFileChange}
-            className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-colors w-full cursor-pointer"
+            className="text-sm text-slate-700 font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-colors w-full cursor-pointer"
           />
-          <div className="text-xs text-slate-400 shrink-0">حداکثر ۵۰۰ کیلوبایت</div>
+          <div className="text-xs text-slate-500 shrink-0 font-bold">حداکثر ۵۰۰ کیلوبایت</div>
         </div>
       </div>
 

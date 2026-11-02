@@ -72,7 +72,7 @@ export default function GlobalSearch() {
         
         <input 
           type="text" 
-          className="w-full py-4 pr-12 pl-4 text-gray-800 bg-white/90 backdrop-blur-md border border-white/40 rounded-2xl shadow-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all text-lg placeholder-gray-400"
+          className="w-full py-4 pr-12 pl-4 text-slate-900 bg-white border border-slate-200/90 rounded-2xl shadow-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all text-base sm:text-lg font-medium placeholder:text-slate-400"
           placeholder="جستجو در هنرمندان، محصولات، تخصص‌ها..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}

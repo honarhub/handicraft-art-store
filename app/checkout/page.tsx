@@ -157,7 +157,7 @@ export default function CheckoutPage() {
                           setFormData({...formData, fullName: e.target.value});
                           if (errors.fullName) setErrors({...errors, fullName: ''});
                         }} 
-                        className={`w-full px-4 py-3 rounded-xl border ${errors.fullName ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none transition-all`} 
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.fullName ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none transition-all`} 
                         placeholder="مثال: علی رضایی" 
                       />
                       {errors.fullName && (
@@ -187,7 +187,7 @@ export default function CheckoutPage() {
                             e.preventDefault();
                           }
                         }}
-                        className={`w-full px-4 py-3 rounded-xl border ${errors.phone ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.phone ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
                         placeholder="09123456789" 
                         dir="ltr" 
                       />
@@ -208,7 +208,7 @@ export default function CheckoutPage() {
                           setFormData({...formData, address: e.target.value});
                           if (errors.address) setErrors({...errors, address: ''});
                         }} 
-                        className={`w-full px-4 py-3 rounded-xl border ${errors.address ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none resize-none h-24 transition-all`} 
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.address ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none resize-none h-24 transition-all`} 
                         placeholder="نام استان، شهر، خیابان، کوچه، پلاک، واحد"
                       ></textarea>
                       {errors.address && (
@@ -237,7 +237,7 @@ export default function CheckoutPage() {
                             e.preventDefault();
                           }
                         }}
-                        className={`w-full px-4 py-3 rounded-xl border ${errors.postalCode ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.postalCode ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
                         placeholder="1234567890" 
                         dir="ltr" 
                       />

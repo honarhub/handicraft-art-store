@@ -329,7 +329,7 @@ export default function ProductReviewsAndQA({ productId, artistUserId }: Product
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
                     placeholder="کیفیت ساخت، بسته‌بندی، جزئیات اثر و تجربه خرید خود را برای دیگر خریداران بنویسید..."
-                    className="w-full p-4 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-sm leading-relaxed"
+                    className="w-full p-4 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm leading-relaxed"
                     required
                   />
                 </div>
@@ -421,7 +421,7 @@ export default function ProductReviewsAndQA({ productId, artistUserId }: Product
                   value={newQuestion}
                   onChange={(e) => setNewQuestion(e.target.value)}
                   placeholder="پرسش خود را با رعایت احترام مطرح فرمایید..."
-                  className="w-full p-4 rounded-xl border border-slate-300 focus:border-purple-500 outline-none text-sm leading-relaxed"
+                  className="w-full p-4 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none text-sm leading-relaxed"
                   required
                 />
 

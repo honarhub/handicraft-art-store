@@ -123,14 +123,14 @@ export default function ProductsFilterClient({
       <div className="space-y-6">
         {/* Search */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">جستجو متنی</label>
+          <label className="block text-sm font-bold text-slate-900 mb-2">جستجو متنی</label>
           <div className="relative">
             <input 
               type="text" 
               value={q} 
               onChange={e => setQ(e.target.value)} 
               placeholder="نام اثر..." 
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none text-sm transition-all"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 font-medium placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
             />
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-3.5 text-slate-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </div>
@@ -138,14 +138,14 @@ export default function ProductsFilterClient({
 
         {/* Hierarchical Specialty Filter */}
         <div className="relative" ref={dropdownRef}>
-          <label className="block text-sm font-bold text-slate-700 mb-2">دسته‌بندی (تخصص)</label>
+          <label className="block text-sm font-bold text-slate-900 mb-2">دسته‌بندی (تخصص)</label>
           
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 bg-white text-right flex items-center justify-between text-sm transition-all cursor-pointer"
           >
-            <span className={`truncate ${specialty ? 'font-bold text-slate-900' : 'text-slate-500'}`}>
+            <span className={`truncate font-bold ${specialty ? 'text-slate-900' : 'text-slate-700'}`}>
               {selectedName}
             </span>
             <svg 
@@ -220,14 +220,14 @@ export default function ProductsFilterClient({
                                 className={`w-full text-right px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-between cursor-pointer ${
                                   isChildSelected
                                     ? 'bg-emerald-100 text-emerald-800'
-                                    : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
+                                    : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900'
                                 }`}
                               >
                                 <span className="flex items-center gap-1.5">
-                                  <span className="text-slate-300">↳</span>
+                                  <span className="text-slate-400">↳</span>
                                   <span>{child.name}</span>
                                   {child._count?.products !== undefined && (
-                                    <span className="text-[10px] text-slate-400 font-normal">({child._count.products} اثر)</span>
+                                    <span className="text-[10px] text-slate-500 font-semibold">({child._count.products} اثر)</span>
                                   )}
                                 </span>
                                 {isChildSelected && <span className="text-emerald-700">✓</span>}
@@ -246,11 +246,11 @@ export default function ProductsFilterClient({
 
         {/* Artist Filter */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">هنرمند</label>
+          <label className="block text-sm font-bold text-slate-900 mb-2">هنرمند</label>
           <select 
             value={artistId} 
             onChange={e => setArtistId(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-sm bg-white"
+            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm bg-white text-slate-900 font-semibold cursor-pointer"
           >
             <option value="">همه هنرمندان</option>
             {artists.map(a => (
@@ -261,11 +261,11 @@ export default function ProductsFilterClient({
 
         {/* Sort */}
         <div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">مرتب‌سازی بر اساس</label>
+          <label className="block text-sm font-bold text-slate-900 mb-2">مرتب‌سازی بر اساس</label>
           <select 
             value={sort} 
             onChange={e => setSort(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 outline-none text-sm bg-white"
+            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm bg-white text-slate-900 font-semibold cursor-pointer"
           >
             <option value="newest">جدیدترین</option>
             <option value="price_asc">ارزان‌ترین</option>
