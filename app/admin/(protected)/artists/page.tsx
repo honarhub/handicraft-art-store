@@ -409,12 +409,12 @@ export default function AdminArtistsPage() {
   });
 
   return (
-    <div className="p-8 max-w-7xl mx-auto font-sans" dir="rtl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto font-sans" dir="rtl">
       
       {/* Top Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">مدیریت هنرمندان</h2>
+          <h2 className="text-2xl font-black text-slate-900">مدیریت هنرمندان</h2>
           <p className="text-slate-500 mt-1 text-sm">لیست تمامی هنرمندان و سازندگان آثار سایت</p>
         </div>
         
@@ -428,7 +428,7 @@ export default function AdminArtistsPage() {
               placeholder="جستجوی نام، برند، تلفن یا ایمیل..." 
               value={globalSearch}
               onChange={e => setGlobalSearch(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pr-10 pl-4 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"
+              className="w-full bg-white text-slate-900 placeholder:text-slate-400 border border-slate-300 rounded-xl py-2.5 pr-10 pl-4 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow"
             />
           </div>
         </div>
@@ -555,64 +555,115 @@ export default function AdminArtistsPage() {
           </p>
 
           <div className="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
-            <table className="w-full text-right text-xs sm:text-sm">
-              <thead className="bg-red-50 text-red-900 font-bold border-b border-red-200">
-                <tr>
-                  <th className="px-6 py-3.5">هنرمند و استودیو</th>
-                  <th className="px-6 py-3.5">تماس و موقعیت</th>
-                  <th className="px-6 py-3.5">علت درخواست حذف</th>
-                  <th className="px-6 py-3.5">تاریخ ثبت درخواست</th>
-                  <th className="px-6 py-3.5 text-left">اقدام مدیریت</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-red-100">
-                {deletionRequests.map((artist) => (
-                  <tr key={artist.id} className="hover:bg-red-50/40 transition-colors">
-                    <td className="px-6 py-4">
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-red-100">
+              {deletionRequests.map((artist) => (
+                <div key={artist.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
                       <div className="font-bold text-slate-900">{artist.name}</div>
                       {artist.brandName && (
                         <div className="text-xs text-emerald-800 font-bold mt-0.5">برند: {artist.brandName}</div>
                       )}
-                      <div className="text-xs text-slate-500 mt-1" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-mono text-xs text-slate-800" dir="ltr">{artist.phoneNumber || '—'}</div>
-                      <div className="text-xs text-slate-600 mt-1">
-                        {artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 max-w-xs">
-                      <div className="text-xs text-red-900 bg-red-50/80 p-2.5 rounded-xl border border-red-200 leading-relaxed font-medium">
-                        {artist.deletionReason || 'دلیلی قید نشده است.'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-500">
+                      <div className="text-xs text-slate-500 font-mono mt-0.5" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
+                    </div>
+                    <span className="text-[11px] text-slate-400 shrink-0">
                       {formatPersianDate(artist.deletionRequestedAt || artist.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 text-left">
-                      <div className="flex justify-end items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleApproveDeletion(artist.id, artist.brandName || artist.name)}
-                          className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-black transition-colors shadow-sm shadow-red-500/20 cursor-pointer"
-                        >
-                          <span>تایید و بایگانی حساب</span>
-                          <span>✓</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRejectDeletion(artist.id, artist.brandName || artist.name)}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                          title="رد درخواست حذف"
-                        >
-                          رد درخواست
-                        </button>
-                      </div>
-                    </td>
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                    <span className="font-mono" dir="ltr">{artist.phoneNumber || '—'}</span>
+                    <span>{artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}</span>
+                  </div>
+
+                  <div className="text-xs text-red-900 bg-red-50/80 p-2.5 rounded-xl border border-red-200 leading-relaxed font-medium">
+                    <span className="font-bold block mb-1">علت درخواست حذف:</span>
+                    {artist.deletionReason || 'دلیلی قید نشده است.'}
+                  </div>
+
+                  <div className="flex justify-end items-center gap-2 pt-1 border-t border-red-50">
+                    <button
+                      type="button"
+                      onClick={() => handleRejectDeletion(artist.id, artist.brandName || artist.name)}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      رد درخواست
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleApproveDeletion(artist.id, artist.brandName || artist.name)}
+                      className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-black transition-colors shadow-sm shadow-red-500/20 cursor-pointer"
+                    >
+                      <span>تایید و بایگانی حساب</span>
+                      <span>✓</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right text-xs sm:text-sm">
+                <thead className="bg-red-50 text-red-900 font-bold border-b border-red-200">
+                  <tr>
+                    <th className="px-6 py-3.5">هنرمند و استودیو</th>
+                    <th className="px-6 py-3.5">تماس و موقعیت</th>
+                    <th className="px-6 py-3.5">علت درخواست حذف</th>
+                    <th className="px-6 py-3.5">تاریخ ثبت درخواست</th>
+                    <th className="px-6 py-3.5 text-left">اقدام مدیریت</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-red-100">
+                  {deletionRequests.map((artist) => (
+                    <tr key={artist.id} className="hover:bg-red-50/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-900">{artist.name}</div>
+                        {artist.brandName && (
+                          <div className="text-xs text-emerald-800 font-bold mt-0.5">برند: {artist.brandName}</div>
+                        )}
+                        <div className="text-xs text-slate-500 mt-1" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-mono text-xs text-slate-800" dir="ltr">{artist.phoneNumber || '—'}</div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          {artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 max-w-xs">
+                        <div className="text-xs text-red-900 bg-red-50/80 p-2.5 rounded-xl border border-red-200 leading-relaxed font-medium">
+                          {artist.deletionReason || 'دلیلی قید نشده است.'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500">
+                        {formatPersianDate(artist.deletionRequestedAt || artist.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 text-left">
+                        <div className="flex justify-end items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApproveDeletion(artist.id, artist.brandName || artist.name)}
+                            className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-xl text-xs font-black transition-colors shadow-sm shadow-red-500/20 cursor-pointer"
+                          >
+                            <span>تایید و بایگانی حساب</span>
+                            <span>✓</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectDeletion(artist.id, artist.brandName || artist.name)}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            title="رد درخواست حذف"
+                          >
+                            رد درخواست
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -637,72 +688,129 @@ export default function AdminArtistsPage() {
           </p>
 
           <div className="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
-            <table className="w-full text-right text-xs sm:text-sm">
-              <thead className="bg-red-50 text-red-900 font-bold border-b border-red-200">
-                <tr>
-                  <th className="px-6 py-3.5">هنرمند و استودیو</th>
-                  <th className="px-6 py-3.5">تماس و موقعیت</th>
-                  <th className="px-6 py-3.5">تخصص‌ها</th>
-                  <th className="px-6 py-3.5">تاریخ ارسال</th>
-                  <th className="px-6 py-3.5 text-left">عملیات بررسی</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-red-100">
-                {level2Requests.map((artist) => (
-                  <tr key={artist.id} className="hover:bg-red-50/40 transition-colors">
-                    <td className="px-6 py-4">
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-red-100">
+              {level2Requests.map((artist) => (
+                <div key={artist.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
                       <div className="font-bold text-slate-900">{artist.name}</div>
                       {artist.brandName && (
                         <div className="text-xs text-emerald-800 font-bold mt-0.5">برند: {artist.brandName}</div>
                       )}
-                      <div className="text-xs text-slate-500 mt-1" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-mono text-xs text-slate-800" dir="ltr">{artist.phoneNumber || '—'}</div>
-                      <div className="text-xs text-slate-600 mt-1">
-                        {artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {artist.specialties && artist.specialties.length > 0 ? artist.specialties.map((s: any) => (
-                          <span key={s.id} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                            {s.name}
-                          </span>
-                        )) : <span className="text-slate-400 text-xs">ثبت نشده</span>}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-500">
+                      <div className="text-xs text-slate-500 font-mono mt-0.5" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
+                    </div>
+                    <span className="text-[11px] text-slate-400 shrink-0">
                       {formatPersianDate(artist.createdAt)}
-                    </td>
-                    <td className="px-6 py-4 text-left">
-                      <div className="flex justify-end items-center gap-2">
-                        <a 
-                          href={`/admin/artists/${artist.id}/review-edits`} 
-                          className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-colors shadow-sm shadow-red-500/20"
-                        >
-                          <span>بررسی و تایید سطح ۲</span>
-                          <span>←</span>
-                        </a>
-                        <button 
-                          onClick={() => handleRejectRegistration(artist.id)} 
-                          className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-xl text-xs font-bold transition-colors"
-                          title="رد و حذف کاربر"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                    <span className="font-mono" dir="ltr">{artist.phoneNumber || '—'}</span>
+                    <span>{artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}</span>
+                  </div>
+
+                  {artist.specialties && artist.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {artist.specialties.map((s: any) => (
+                        <span key={s.id} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end items-center gap-2 pt-1 border-t border-red-50">
+                    <button 
+                      type="button"
+                      onClick={() => handleRejectRegistration(artist.id)} 
+                      className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      title="رد و حذف کاربر"
+                    >
+                      رد ثبت‌نام
+                    </button>
+                    <a 
+                      href={`/admin/artists/${artist.id}/review-edits`} 
+                      className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-colors shadow-sm shadow-red-500/20"
+                    >
+                      <span>بررسی و تایید سطح ۲</span>
+                      <span>←</span>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right text-xs sm:text-sm">
+                <thead className="bg-red-50 text-red-900 font-bold border-b border-red-200">
+                  <tr>
+                    <th className="px-6 py-3.5">هنرمند و استودیو</th>
+                    <th className="px-6 py-3.5">تماس و موقعیت</th>
+                    <th className="px-6 py-3.5">تخصص‌ها</th>
+                    <th className="px-6 py-3.5">تاریخ ارسال</th>
+                    <th className="px-6 py-3.5 text-left">عملیات بررسی</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-red-100">
+                  {level2Requests.map((artist) => (
+                    <tr key={artist.id} className="hover:bg-red-50/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-900">{artist.name}</div>
+                        {artist.brandName && (
+                          <div className="text-xs text-emerald-800 font-bold mt-0.5">برند: {artist.brandName}</div>
+                        )}
+                        <div className="text-xs text-slate-500 mt-1" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-mono text-xs text-slate-800" dir="ltr">{artist.phoneNumber || '—'}</div>
+                        <div className="text-xs text-slate-600 mt-1">
+                          {artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {artist.specialties && artist.specialties.length > 0 ? artist.specialties.map((s: any) => (
+                            <span key={s.id} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                              {s.name}
+                            </span>
+                          )) : <span className="text-slate-400 text-xs">ثبت نشده</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500">
+                        {formatPersianDate(artist.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 text-left">
+                        <div className="flex justify-end items-center gap-2">
+                          <a 
+                            href={`/admin/artists/${artist.id}/review-edits`} 
+                            className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-colors shadow-sm shadow-red-500/20"
+                          >
+                            <span>بررسی و تایید سطح ۲</span>
+                            <span>←</span>
+                          </a>
+                          <button 
+                            type="button"
+                            onClick={() => handleRejectRegistration(artist.id)} 
+                            className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            title="رد و حذف کاربر"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18"></path>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                              <line x1="10" y1="11" x2="10" y2="17"></line>
+                              <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -727,62 +835,119 @@ export default function AdminArtistsPage() {
           </p>
 
           <div className="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
-            <table className="w-full text-right text-xs sm:text-sm">
-              <thead className="bg-red-50 text-red-900 font-bold border-b border-red-200">
-                <tr>
-                  <th className="px-6 py-3.5">هنرمند</th>
-                  <th className="px-6 py-3.5">کد ملی و شماره شبا</th>
-                  <th className="px-6 py-3.5">آدرس و کد پستی</th>
-                  <th className="px-6 py-3.5">کارت ملی</th>
-                  <th className="px-6 py-3.5 text-left">عملیات تایید</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-red-100">
-                {level3Requests.map((artist) => (
-                  <tr key={artist.id} className="hover:bg-red-50/40 transition-colors">
-                    <td className="px-6 py-4">
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-red-100">
+              {level3Requests.map((artist) => (
+                <div key={artist.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
                       <div className="font-bold text-slate-900">{artist.name}</div>
                       {artist.brandName && <div className="text-xs text-slate-500">{artist.brandName}</div>}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-mono font-bold text-slate-800 text-xs">کد ملی: {artist.nationalId || '—'}</div>
-                      <div className="font-mono text-xs text-teal-800 mt-1 dir-ltr inline-block">
-                        IR{artist.shebaNumber || '—'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-600 max-w-xs">
-                      <p className="truncate">{artist.address || '—'}</p>
-                      <span className="text-slate-400 font-mono mt-0.5 block">کد پستی: {artist.postalCode || '—'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {artist.nationalCardImage ? (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewCardImage(artist.nationalCardImage)}
-                          className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 transition-colors border border-slate-200"
-                        >
-                          <span>🔍</span>
-                          <span>مشاهده تصویر</span>
-                        </button>
-                      ) : (
-                        <span className="text-xs text-slate-400">بدون تصویر</span>
+                    </div>
+                    {artist.nationalCardImage && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewCardImage(artist.nationalCardImage)}
+                        className="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 transition-colors border border-slate-200 cursor-pointer"
+                      >
+                        <span>🔍</span>
+                        <span>تصویر کارت ملی</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+                    <div className="flex items-center justify-between font-mono font-bold text-slate-800">
+                      <span className="font-sans font-normal text-slate-500">کد ملی:</span>
+                      <span>{artist.nationalId || '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between font-mono text-xs text-teal-800" dir="ltr">
+                      <span className="font-sans font-normal text-slate-500" dir="rtl">شماره شبا:</span>
+                      <span>IR{artist.shebaNumber || '—'}</span>
+                    </div>
+                  </div>
+
+                  {(artist.address || artist.postalCode) && (
+                    <div className="text-xs text-slate-600 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                      {artist.address && <p className="leading-relaxed">{artist.address}</p>}
+                      {artist.postalCode && (
+                        <span className="text-slate-400 font-mono block">کد پستی: {artist.postalCode}</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-left">
-                      <div className="flex justify-end items-center gap-2">
-                        <Link
-                          href={`/admin/artists/${artist.id}/review-level3`}
-                          className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
-                        >
-                          <span>🔍</span>
-                          <span>بررسی و اعتبارسنجی مدارک</span>
-                        </Link>
-                      </div>
-                    </td>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end items-center pt-1 border-t border-red-50">
+                    <Link
+                      href={`/admin/artists/${artist.id}/review-level3`}
+                      className="w-full justify-center bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-sm inline-flex items-center gap-1.5"
+                    >
+                      <span>🔍</span>
+                      <span>بررسی و اعتبارسنجی مدارک مالی</span>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right text-xs sm:text-sm">
+                <thead className="bg-red-50 text-red-900 font-bold border-b border-red-200">
+                  <tr>
+                    <th className="px-6 py-3.5">هنرمند</th>
+                    <th className="px-6 py-3.5">کد ملی و شماره شبا</th>
+                    <th className="px-6 py-3.5">آدرس و کد پستی</th>
+                    <th className="px-6 py-3.5">کارت ملی</th>
+                    <th className="px-6 py-3.5 text-left">عملیات تایید</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-red-100">
+                  {level3Requests.map((artist) => (
+                    <tr key={artist.id} className="hover:bg-red-50/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-slate-900">{artist.name}</div>
+                        {artist.brandName && <div className="text-xs text-slate-500">{artist.brandName}</div>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-mono font-bold text-slate-800 text-xs">کد ملی: {artist.nationalId || '—'}</div>
+                        <div className="font-mono text-xs text-teal-800 mt-1 dir-ltr inline-block">
+                          IR{artist.shebaNumber || '—'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-600 max-w-xs">
+                        <p className="truncate">{artist.address || '—'}</p>
+                        <span className="text-slate-400 font-mono mt-0.5 block">کد پستی: {artist.postalCode || '—'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {artist.nationalCardImage ? (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewCardImage(artist.nationalCardImage)}
+                            className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 transition-colors border border-slate-200 cursor-pointer"
+                          >
+                            <span>🔍</span>
+                            <span>مشاهده تصویر</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-400">بدون تصویر</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-left">
+                        <div className="flex justify-end items-center gap-2">
+                          <Link
+                            href={`/admin/artists/${artist.id}/review-level3`}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shadow-sm inline-flex items-center gap-1.5 whitespace-nowrap"
+                          >
+                            <span>🔍</span>
+                            <span>بررسی و اعتبارسنجی مدارک</span>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -807,19 +972,12 @@ export default function AdminArtistsPage() {
           </p>
 
           <div className="bg-white rounded-2xl shadow-sm border border-yellow-200 overflow-hidden">
-            <table className="w-full text-right text-xs sm:text-sm">
-              <thead className="bg-yellow-50 text-yellow-900 font-bold border-b border-yellow-200">
-                <tr>
-                  <th className="px-6 py-3.5">هنرمند و سطح فعلی</th>
-                  <th className="px-6 py-3.5">ایمیل و تلفن</th>
-                  <th className="px-6 py-3.5">تخصص‌ها</th>
-                  <th className="px-6 py-3.5 text-left">عملیات بررسی</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-yellow-100">
-                {profileEditRequests.map((artist) => (
-                  <tr key={artist.id} className="hover:bg-yellow-50/40 transition-colors">
-                    <td className="px-6 py-4">
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-yellow-100">
+              {profileEditRequests.map((artist) => (
+                <div key={artist.id} className="p-4 space-y-3 bg-white">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900">{artist.name}</span>
                         <AdminLevelMedalIcon level={artist.verificationLevel || 0} />
@@ -827,33 +985,87 @@ export default function AdminArtistsPage() {
                       {artist.brandName && (
                         <div className="text-xs text-emerald-800 font-medium mt-0.5">برند: {artist.brandName}</div>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-mono text-xs text-slate-700" dir="ltr">{artist.phoneNumber || '—'}</div>
-                      <div className="text-xs text-slate-500 mt-0.5" dir="ltr">{artist.email || '—'}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {artist.specialties && artist.specialties.length > 0 ? artist.specialties.map((s: any) => (
-                          <span key={s.id} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
-                            {s.name}
-                          </span>
-                        )) : <span className="text-slate-400 text-xs">ثبت نشده</span>}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-left">
-                      <a 
-                        href={`/admin/artists/${artist.id}/review-edits`} 
-                        className="inline-flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-colors shadow-sm"
-                      >
-                        <span>بررسی تغییرات</span>
-                        <span>←</span>
-                      </a>
-                    </td>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex items-center justify-between">
+                    <span className="font-mono" dir="ltr">{artist.phoneNumber || '—'}</span>
+                    <span className="font-mono text-slate-500" dir="ltr">{artist.email || '—'}</span>
+                  </div>
+
+                  {artist.specialties && artist.specialties.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {artist.specialties.map((s: any) => (
+                        <span key={s.id} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                          {s.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end items-center pt-1 border-t border-yellow-100">
+                    <a 
+                      href={`/admin/artists/${artist.id}/review-edits`} 
+                      className="w-full justify-center inline-flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-black transition-colors shadow-sm"
+                    >
+                      <span>بررسی تغییرات پروفایل</span>
+                      <span>←</span>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right text-xs sm:text-sm">
+                <thead className="bg-yellow-50 text-yellow-900 font-bold border-b border-yellow-200">
+                  <tr>
+                    <th className="px-6 py-3.5">هنرمند و سطح فعلی</th>
+                    <th className="px-6 py-3.5">ایمیل و تلفن</th>
+                    <th className="px-6 py-3.5">تخصص‌ها</th>
+                    <th className="px-6 py-3.5 text-left">عملیات بررسی</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-yellow-100">
+                  {profileEditRequests.map((artist) => (
+                    <tr key={artist.id} className="hover:bg-yellow-50/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900">{artist.name}</span>
+                          <AdminLevelMedalIcon level={artist.verificationLevel || 0} />
+                        </div>
+                        {artist.brandName && (
+                          <div className="text-xs text-emerald-800 font-medium mt-0.5">برند: {artist.brandName}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-mono text-xs text-slate-700" dir="ltr">{artist.phoneNumber || '—'}</div>
+                        <div className="text-xs text-slate-500 mt-0.5" dir="ltr">{artist.email || '—'}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {artist.specialties && artist.specialties.length > 0 ? artist.specialties.map((s: any) => (
+                            <span key={s.id} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                              {s.name}
+                            </span>
+                          )) : <span className="text-slate-400 text-xs">ثبت نشده</span>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-left">
+                        <a 
+                          href={`/admin/artists/${artist.id}/review-edits`} 
+                          className="inline-flex items-center gap-1.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-colors shadow-sm"
+                        >
+                          <span>بررسی تغییرات</span>
+                          <span>←</span>
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -883,7 +1095,138 @@ export default function AdminArtistsPage() {
           )}
         </div>
 
-        <div className="overflow-x-auto min-h-[400px]">
+        {/* Mobile Cards View */}
+        <div className="block md:hidden divide-y divide-slate-100">
+          {filteredArtists.length === 0 ? (
+            <div className="text-center py-12 text-slate-500 font-medium text-xs">
+              هیچ هنرمندی با این مشخصات یافت نشد.
+            </div>
+          ) : (
+            filteredArtists.map((artist) => (
+              <div
+                key={artist.id}
+                className={`p-4 space-y-3.5 bg-white ${
+                  artist.status === 'DELETED' ? 'opacity-60 bg-slate-50 grayscale-[30%]' : ''
+                }`}
+              >
+                {/* Top: Name, ID, Medal, and Active Switch */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-400">#{artist.displayId}</span>
+                      <span className="font-bold text-slate-900">{artist.name}</span>
+                      <AdminLevelMedalIcon level={artist.verificationLevel || 0} />
+                      {artist.hasPendingEdits && (
+                        <span title="درخواست در حال بررسی" className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                      )}
+                    </div>
+                    {artist.brandName && (
+                      <div className="text-xs text-emerald-800 font-medium mt-0.5">برند: {artist.brandName}</div>
+                    )}
+                    <div className="text-xs text-slate-400 font-mono mt-0.5" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <button 
+                      dir="ltr"
+                      onClick={() => handleToggleActive(artist.id, artist.isActive)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${artist.isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      title={artist.isActive ? 'غیرفعال کردن' : 'فعال کردن'}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          artist.isActive ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                    <span className="text-[10px] text-slate-400">{artist.isActive ? 'فعال' : 'غیرفعال'}</span>
+                  </div>
+                </div>
+
+                {/* Contact, City, Products Count */}
+                <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">تلفن:</span>
+                    <span className="font-mono text-slate-700" dir="ltr">{artist.phoneNumber || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">موقعیت:</span>
+                    <span className="text-slate-700">{artist.province ? `${artist.province} - ${artist.city || ''}` : 'نامشخص'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">تاریخ عضویت:</span>
+                    <span className="text-slate-500 text-[11px]">{formatPersianDate(artist.createdAt)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px]">تعداد آثار:</span>
+                    <span className="font-mono font-bold text-slate-800">{artist.productsCount} اثر</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100">
+                  <a 
+                    href={`/artist/${artist.id}`} 
+                    target="_blank" 
+                    className="flex-1 text-blue-600 hover:bg-blue-50 py-2 px-2.5 rounded-xl transition-colors text-xs font-bold flex items-center justify-center gap-1 border border-slate-200 bg-white"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    <span>مشاهده</span>
+                  </a>
+
+                  {artist.hasPendingEdits && (
+                    <a 
+                      href={`/admin/artists/${artist.id}/review-edits`} 
+                      title="بررسی درخواست ویرایش" 
+                      className="text-amber-700 bg-amber-50 hover:bg-amber-100 py-2 px-3 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 border border-amber-200"
+                    >
+                      <span>بررسی ویرایش</span>
+                    </a>
+                  )}
+
+                  <a 
+                    href={`/admin/artists/${artist.id}/edit`} 
+                    title="ویرایش هنرمند" 
+                    className="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 p-2 rounded-xl transition-colors border border-emerald-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  </a>
+
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setSelectedArtistForPassword(artist);
+                      setNewEmail(artist.email || '');
+                      setNewPassword('');
+                    }} 
+                    title="تنظیمات ورود هنرمند" 
+                    className="text-purple-700 bg-purple-50 hover:bg-purple-100 p-2 rounded-xl transition-colors border border-purple-200 cursor-pointer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  </button>
+
+                  {artist.status !== 'DELETED' && (
+                    <button 
+                      type="button"
+                      onClick={() => handleSoftDelete(artist.id, artist.name)} 
+                      title="حذف هنرمند" 
+                      className="text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition-colors border border-red-200 cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto min-h-[400px]">
           <table className="w-full text-right text-xs sm:text-sm relative">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <tr>
@@ -1087,7 +1430,7 @@ export default function AdminArtistsPage() {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left"
+                  className="w-full bg-white text-slate-900 font-medium placeholder:text-slate-400 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left"
                   dir="ltr"
                   placeholder="ایمیل هنرمند"
                   autoComplete="off"
@@ -1100,7 +1443,7 @@ export default function AdminArtistsPage() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left"
+                  className="w-full bg-white text-slate-900 font-medium placeholder:text-slate-400 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left"
                   dir="ltr"
                   placeholder="در صورت عدم نیاز، خالی بگذارید"
                   autoComplete="new-password"

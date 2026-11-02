@@ -61,15 +61,119 @@ export default function AdminSupportPage() {
   });
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">پشتیبانی و پیام‌های کاربران</h2>
-          <p className="text-slate-500 text-sm mt-1">مدیریت و پاسخگویی به پیام‌های ارسالی از بخش پشتیبانی سایت</p>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">پشتیبانی و پیام‌های کاربران</h2>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">مدیریت و پاسخگویی به پیام‌های ارسالی از بخش پشتیبانی سایت</p>
         </div>
       </div>
+
+      {/* Mobile Cards Layout (< md) */}
+      <div className="block md:hidden space-y-3.5 mb-6">
+        {loading ? (
+          <div className="bg-white rounded-2xl p-8 text-center text-slate-500 font-medium border border-slate-200">
+            در حال بارگذاری...
+          </div>
+        ) : sortedMessages.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center text-slate-500 font-medium border border-slate-200">
+            پیامی یافت نشد
+          </div>
+        ) : (
+          sortedMessages.map(msg => {
+            const isPending = msg.status === 'PENDING';
+            return (
+              <div 
+                key={msg.id}
+                className={`bg-white rounded-2xl p-4 border shadow-xs space-y-3 transition-all ${
+                  isPending 
+                    ? 'border-amber-300 bg-amber-50/25 ring-1 ring-amber-200' 
+                    : 'border-slate-200'
+                }`}
+              >
+                {/* Header: Status + Date */}
+                <div className="flex items-center justify-between gap-2">
+                  {isPending ? (
+                    <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                      در انتظار رسیدگی
+                    </span>
+                  ) : (
+                    <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold">
+                      ✓ رسیدگی شده
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-500 font-mono" dir="ltr">
+                    {new Date(msg.createdAt).toLocaleDateString('fa-IR')}
+                  </span>
+                </div>
+
+                {/* Sender info */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-black text-slate-900">{msg.name}</span>
+                    <a 
+                      href={msg.contact.includes('@') ? `mailto:${msg.contact}` : `tel:${msg.contact}`} 
+                      className="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+                      dir="ltr"
+                    >
+                      {msg.contact}
+                    </a>
+                  </div>
+
+                  {msg.product && (
+                    <div className="text-xs pt-1">
+                      <span className="text-slate-500">مرتبط با اثر: </span>
+                      <a 
+                        href={`/product/${msg.product.id}`} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-emerald-700 font-bold hover:underline"
+                      >
+                        {msg.product.title}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Message body */}
+                <div className="whitespace-pre-wrap text-xs sm:text-sm text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200/70 leading-relaxed max-h-36 overflow-y-auto">
+                  {msg.message}
+                </div>
+
+                {/* Attachment & Action */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  {msg.attachmentUrl ? (
+                    <a 
+                      href={msg.attachmentUrl} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center justify-center gap-1 py-1.5 px-2 bg-emerald-50 rounded-lg border border-emerald-200"
+                    >
+                      <span>📎</span>
+                      <span>مشاهده فایل پیوست</span>
+                    </a>
+                  ) : <div />}
+
+                  <button
+                    onClick={() => handleToggleStatus(msg.id, msg.status)}
+                    className={`text-xs px-3 py-2 rounded-xl font-bold transition-all w-full sm:w-auto text-center ${
+                      isPending
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    {isPending ? 'علامت‌گذاری به عنوان رسیدگی‌شده' : 'بازگرداندن به در انتظار'}
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
       
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Desktop Table View (>= md) */}
+      <div className="hidden md:block bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-sm text-right">
           <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
             <tr>

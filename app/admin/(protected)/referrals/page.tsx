@@ -410,7 +410,7 @@ export default function AdminReferralsPage() {
   };
 
   return (
-    <div className="space-y-7 font-sans pb-16" dir="rtl">
+    <div className="p-4 sm:p-6 md:p-8 space-y-7 font-sans pb-16 max-w-7xl mx-auto" dir="rtl">
       {/* 2.5s Toast */}
       {toastMsg && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl border border-slate-700 text-sm font-bold flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
@@ -514,7 +514,7 @@ export default function AdminReferralsPage() {
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* General / Code */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">
               جستجو بر اساس کد معرف:
             </label>
             <input
@@ -523,13 +523,13 @@ export default function AdminReferralsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="مثال: HNR- یا نام کلی..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-800"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono font-medium focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
           {/* Creator Artist Search */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">
               جستجو در ستون هنرمند معرّف (صاحب کد):
             </label>
             <input
@@ -537,13 +537,13 @@ export default function AdminReferralsPage() {
               value={creatorSearch}
               onChange={(e) => setCreatorSearch(e.target.value)}
               placeholder="نام هنرمند معرف، برند، شماره یا ایمیل..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-800"
+              className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
           {/* UsedBy Artist Search */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">
               جستجو در ستون هنرمند استفاده‌کننده:
             </label>
             <div className="flex gap-2">
@@ -552,7 +552,7 @@ export default function AdminReferralsPage() {
                 value={usedBySearch}
                 onChange={(e) => setUsedBySearch(e.target.value)}
                 placeholder="نام عضو جدید، برند، شماره یا ایمیل..."
-                className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-800"
+                className="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-medium focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-200 outline-none text-slate-900 placeholder:text-slate-400"
               />
               <button
                 type="submit"
@@ -579,144 +579,262 @@ export default function AdminReferralsPage() {
             <p className="text-xs text-slate-400">فیلترهای جستجو را پاک کنید یا کد جدید صادر فرمایید.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-black">
-                <tr>
-                  <th className="py-4 px-4">کد معرف</th>
-                  <th className="py-4 px-4">وضعیت</th>
-                  <th className="py-4 px-4">هنرمند معرّف (صاحب کد)</th>
-                  <th className="py-4 px-4">هنرمند استفاده‌کننده (عضو جدید)</th>
-                  <th className="py-4 px-4">تاریخ صدور</th>
-                  <th className="py-4 px-4">تاریخ استفاده</th>
-                  <th className="py-4 px-4 text-center">عملیات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {codes.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Code */}
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-mono text-sm font-black px-2.5 py-1 rounded-lg ${
-                          item.isUsed ? 'bg-slate-100 text-slate-400 line-through' : 'bg-emerald-50 text-emerald-800 border border-emerald-300'
-                        }`}>
-                          {item.code}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyCode(item.code)}
-                          className="text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer"
-                          title="کپی کد معرف"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                          </svg>
-                        </button>
+          <>
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {codes.map((item) => (
+                <div key={item.id} className="p-4 space-y-3.5 bg-white">
+                  {/* Code and Status Row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`font-mono text-sm font-black px-2.5 py-1 rounded-lg ${
+                        item.isUsed ? 'bg-slate-100 text-slate-400 line-through' : 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                      }`}>
+                        {item.code}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(item.code)}
+                        className="text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        title="کپی کد معرف"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    {item.isUsed ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-300">
+                        <span>❌</span>
+                        <span>استفاده شده</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-400">
+                        <span>✓</span>
+                        <span>فعال</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Creator Info */}
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
+                    <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                      <span>هنرمند معرّف (صاحب کد):</span>
+                      <span>{new Date(item.createdAt).toLocaleDateString('fa-IR')}</span>
+                    </div>
+                    {item.creator ? (
+                      <div>
+                        <p className="font-bold text-slate-900">
+                          {item.creator.name || item.creator.artistProfile?.brandName || (item.creator.role === 'ADMIN' ? 'مدیر کل (سیستم)' : 'هنرمند')}
+                        </p>
+                        {item.creator.artistProfile?.brandName && (
+                          <span className="text-[11px] text-emerald-700 font-medium block">
+                            برند: {item.creator.artistProfile.brandName}
+                          </span>
+                        )}
+                        <p className="text-[11px] text-slate-500 font-mono mt-0.5" dir="ltr">
+                          {item.creator.phoneNumber || item.creator.email || '-'}
+                        </p>
                       </div>
-                    </td>
+                    ) : (
+                      <span className="text-slate-500">سیستمی / ادمین</span>
+                    )}
+                  </div>
 
-                    {/* Status */}
-                    <td className="py-4 px-4">
-                      {item.isUsed ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-300">
-                          <span>❌</span>
-                          <span>استفاده شده</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-400">
-                          <span>✓</span>
-                          <span>فعال</span>
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Creator Artist */}
-                    <td className="py-4 px-4">
-                      {item.creator ? (
-                        <div>
-                          <p className="font-bold text-slate-900">
-                            {item.creator.name || item.creator.artistProfile?.brandName || (item.creator.role === 'ADMIN' ? 'مدیر کل (سیستم)' : 'هنرمند')}
-                          </p>
-                          {item.creator.artistProfile?.brandName && (
-                            <span className="text-[11px] text-emerald-700 font-medium block">
-                              برند: {item.creator.artistProfile.brandName}
-                            </span>
-                          )}
-                          <p className="text-[11px] text-slate-400 font-mono mt-0.5" dir="ltr">
-                            {item.creator.phoneNumber || item.creator.email || '-'}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">سیستمی / ادمین</span>
-                      )}
-                    </td>
-
-                    {/* UsedBy Artist */}
-                    <td className="py-4 px-4">
-                      {item.usedBy ? (
-                        <div>
-                          <p className="font-bold text-slate-900">
-                            {item.usedBy.name || item.usedBy.artistProfile?.brandName || 'هنرمند عضو شده'}
-                          </p>
-                          {item.usedBy.artistProfile?.brandName && (
-                            <span className="text-[11px] text-emerald-700 font-medium block">
-                              برند: {item.usedBy.artistProfile.brandName}
-                            </span>
-                          )}
-                          <p className="text-[11px] text-slate-400 font-mono mt-0.5" dir="ltr">
-                            {item.usedBy.phoneNumber || item.usedBy.email || '-'}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
-
-                    {/* Created At */}
-                    <td className="py-4 px-4 text-slate-500">
-                      {new Date(item.createdAt).toLocaleDateString('fa-IR')}
-                    </td>
-
-                    {/* Used At */}
-                    <td className="py-4 px-4 text-slate-500">
-                      {item.usedAt ? new Date(item.usedAt).toLocaleDateString('fa-IR') : '-'}
-                    </td>
-
-                    {/* Actions: ONLY Copy Link (chain icon) and Delete (standard trash icon) */}
-                    <td className="py-4 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => handleCopyLink(item.code)}
-                          className="text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors cursor-pointer"
-                          title="کپی لینک مستقیم ثبت‌نام با این کد"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCode(item.id, item.code)}
-                          title="حذف و باطل کردن کد معرف"
-                          className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors border border-transparent hover:border-red-100 cursor-pointer"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                          </svg>
-                        </button>
+                  {/* Used By Info (if used) */}
+                  {item.usedBy && (
+                    <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 text-xs space-y-1">
+                      <div className="flex items-center justify-between text-slate-500 text-[11px]">
+                        <span>استفاده‌شده توسط:</span>
+                        <span>{item.usedAt ? new Date(item.usedAt).toLocaleDateString('fa-IR') : '-'}</span>
                       </div>
-                    </td>
+                      <div>
+                        <p className="font-bold text-slate-900">
+                          {item.usedBy.name || item.usedBy.artistProfile?.brandName || 'هنرمند عضو شده'}
+                        </p>
+                        {item.usedBy.artistProfile?.brandName && (
+                          <span className="text-[11px] text-emerald-700 font-medium block">
+                            برند: {item.usedBy.artistProfile.brandName}
+                          </span>
+                        )}
+                        <p className="text-[11px] text-slate-500 font-mono mt-0.5" dir="ltr">
+                          {item.usedBy.phoneNumber || item.usedBy.email || '-'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyLink(item.code)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                      </svg>
+                      <span>کپی لینک ثبت‌نام</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCode(item.id, item.code)}
+                      className="py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      </svg>
+                      <span>حذف</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-black">
+                  <tr>
+                    <th className="py-4 px-4">کد معرف</th>
+                    <th className="py-4 px-4">وضعیت</th>
+                    <th className="py-4 px-4">هنرمند معرّف (صاحب کد)</th>
+                    <th className="py-4 px-4">هنرمند استفاده‌کننده (عضو جدید)</th>
+                    <th className="py-4 px-4">تاریخ صدور</th>
+                    <th className="py-4 px-4">تاریخ استفاده</th>
+                    <th className="py-4 px-4 text-center">عملیات</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {codes.map((item) => (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Code */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono text-sm font-black px-2.5 py-1 rounded-lg ${
+                            item.isUsed ? 'bg-slate-100 text-slate-400 line-through' : 'bg-emerald-50 text-emerald-800 border border-emerald-300'
+                          }`}>
+                            {item.code}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCode(item.code)}
+                            className="text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            title="کپی کد معرف"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-4 px-4">
+                        {item.isUsed ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-300">
+                            <span>❌</span>
+                            <span>استفاده شده</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-400">
+                            <span>✓</span>
+                            <span>فعال</span>
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Creator Artist */}
+                      <td className="py-4 px-4">
+                        {item.creator ? (
+                          <div>
+                            <p className="font-bold text-slate-900">
+                              {item.creator.name || item.creator.artistProfile?.brandName || (item.creator.role === 'ADMIN' ? 'مدیر کل (سیستم)' : 'هنرمند')}
+                            </p>
+                            {item.creator.artistProfile?.brandName && (
+                              <span className="text-[11px] text-emerald-700 font-medium block">
+                                برند: {item.creator.artistProfile.brandName}
+                              </span>
+                            )}
+                            <p className="text-[11px] text-slate-400 font-mono mt-0.5" dir="ltr">
+                              {item.creator.phoneNumber || item.creator.email || '-'}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">سیستمی / ادمین</span>
+                        )}
+                      </td>
+
+                      {/* UsedBy Artist */}
+                      <td className="py-4 px-4">
+                        {item.usedBy ? (
+                          <div>
+                            <p className="font-bold text-slate-900">
+                              {item.usedBy.name || item.usedBy.artistProfile?.brandName || 'هنرمند عضو شده'}
+                            </p>
+                            {item.usedBy.artistProfile?.brandName && (
+                              <span className="text-[11px] text-emerald-700 font-medium block">
+                                برند: {item.usedBy.artistProfile.brandName}
+                              </span>
+                            )}
+                            <p className="text-[11px] text-slate-400 font-mono mt-0.5" dir="ltr">
+                              {item.usedBy.phoneNumber || item.usedBy.email || '-'}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+
+                      {/* Created At */}
+                      <td className="py-4 px-4 text-slate-500">
+                        {new Date(item.createdAt).toLocaleDateString('fa-IR')}
+                      </td>
+
+                      {/* Used At */}
+                      <td className="py-4 px-4 text-slate-500">
+                        {item.usedAt ? new Date(item.usedAt).toLocaleDateString('fa-IR') : '-'}
+                      </td>
+
+                      {/* Actions: ONLY Copy Link (chain icon) and Delete (standard trash icon) */}
+                      <td className="py-4 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleCopyLink(item.code)}
+                            className="text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors cursor-pointer"
+                            title="کپی لینک مستقیم ثبت‌نام با این کد"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCode(item.id, item.code)}
+                            title="حذف و باطل کردن کد معرف"
+                            className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors border border-transparent hover:border-red-100 cursor-pointer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18"></path>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                              <line x1="10" y1="11" x2="10" y2="17"></line>
+                              <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Pagination Bar (10 per page) */}

@@ -187,7 +187,7 @@ export default function AdminSpecialtiesPage() {
   });
 
   return (
-    <div className="p-8 max-w-6xl mx-auto font-sans" dir="rtl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto font-sans" dir="rtl">
       {/* Edit Name Modal */}
       <AdminPromptModal 
         isOpen={modalConfig.isOpen}
@@ -250,17 +250,17 @@ export default function AdminSpecialtiesPage() {
       )}
       
       {/* Page Header */}
-      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="mb-6 sm:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
             <span>مدیریت درختواره تخصص‌ها و دسته‌بندی‌های هنری</span>
           </h2>
-          <p className="text-slate-500 mt-1 text-sm">
+          <p className="text-slate-500 mt-1 text-xs sm:text-sm">
             تنظیم ساختار ۲ سطحی دسته‌ها (دسته‌بندی‌های اصلی و زیرمجموعه‌ها)، بررسی و تایید تخصص‌های پیشنهادی هنرمندان
           </p>
         </div>
         {pendingCount > 0 && (
-          <div className="bg-amber-100 text-amber-900 border border-amber-300 px-4 py-2.5 rounded-2xl font-black text-sm flex items-center gap-2 shadow-xs">
+          <div className="bg-amber-100 text-amber-900 border border-amber-300 px-3.5 py-2 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
             <span>{pendingCount} هنر جدید نیازمند بررسی و تایید است</span>
           </div>
@@ -268,8 +268,8 @@ export default function AdminSpecialtiesPage() {
       </div>
 
       {/* Add New Specialty Bar */}
-      <div className="bg-white p-5 rounded-2xl shadow-xs border border-slate-200 mb-8">
-        <h4 className="text-sm font-black text-slate-800 mb-3 flex items-center gap-2">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-slate-200 mb-6 sm:mb-8">
+        <h4 className="text-xs sm:text-sm font-black text-slate-900 mb-3 flex items-center gap-2">
           <span>➕ افزودن دسته‌بندی یا تخصص جدید</span>
         </h4>
         <form onSubmit={handleCreateNewSpecialty} className="flex flex-col sm:flex-row gap-3">
@@ -278,13 +278,13 @@ export default function AdminSpecialtiesPage() {
             value={newSpecName}
             onChange={e => setNewSpecName(e.target.value)}
             placeholder="نام تخصص یا هنر (مثلاً: نگارگری روی چوب)..."
-            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:border-purple-500 outline-none"
+            className="flex-1 px-4 py-2.5 bg-white text-slate-900 placeholder:text-slate-400 font-medium border border-slate-300 rounded-xl text-xs focus:bg-white focus:border-purple-500 outline-none"
             required
           />
           <select
             value={newSpecParentId}
             onChange={e => setNewSpecParentId(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:border-purple-500 outline-none"
+            className="px-4 py-2.5 bg-white text-slate-900 border border-slate-300 rounded-xl text-xs font-bold focus:bg-white focus:border-purple-500 outline-none cursor-pointer"
           >
             <option value="">دسته اصلی (سطح ۱ - والد)</option>
             {masterCategories.map(m => (
@@ -296,7 +296,7 @@ export default function AdminSpecialtiesPage() {
           <button
             type="submit"
             disabled={isCreating || !newSpecName.trim()}
-            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 cursor-pointer"
+            className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-sm disabled:opacity-50 cursor-pointer text-center"
           >
             {isCreating ? 'در حال ثبت...' : 'افزودن به لیست'}
           </button>
@@ -304,51 +304,172 @@ export default function AdminSpecialtiesPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-4">
         {/* Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+        <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600 overflow-x-auto">
           <button
             onClick={() => setFilterMode('ALL')}
-            className={`px-3 py-1.5 rounded-lg transition ${filterMode === 'ALL' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
+            className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap cursor-pointer ${filterMode === 'ALL' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
           >
-            همه تخصص‌ها ({specialties.length})
+            همه ({specialties.length})
           </button>
           <button
             onClick={() => setFilterMode('PENDING')}
-            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 whitespace-nowrap cursor-pointer ${
               filterMode === 'PENDING' ? 'bg-white text-amber-700 shadow-xs' : 'hover:text-slate-900'
             }`}
           >
-            در انتظار تایید ({pendingCount})
+            در انتظار ({pendingCount})
           </button>
           <button
             onClick={() => setFilterMode('MASTERS')}
-            className={`px-3 py-1.5 rounded-lg transition ${filterMode === 'MASTERS' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
+            className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap cursor-pointer ${filterMode === 'MASTERS' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
           >
             دسته‌های اصلی ({masterCategories.length})
           </button>
           <button
             onClick={() => setFilterMode('CHILDREN')}
-            className={`px-3 py-1.5 rounded-lg transition ${filterMode === 'CHILDREN' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
+            className={`px-3 py-1.5 rounded-lg transition whitespace-nowrap cursor-pointer ${filterMode === 'CHILDREN' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'}`}
           >
             زیرمجموعه‌ها ({specialties.length - masterCategories.length})
           </button>
         </div>
 
         {/* Search Input */}
-        <div className="relative min-w-[240px]">
+        <div className="relative min-w-[220px]">
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="جستجوی نام یا دسته والد..."
-            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-purple-500"
+            className="w-full px-4 py-2 bg-white text-slate-900 placeholder:text-slate-400 font-medium border border-slate-300 rounded-xl text-xs outline-none focus:border-purple-500"
           />
         </div>
       </div>
 
-      {/* Specialties Table */}
-      <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+      {/* Mobile Cards Layout (< md) */}
+      <div className="block md:hidden space-y-3 mb-6">
+        {filteredSpecialties.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center text-slate-400 text-xs border border-slate-200">
+            موردی با این مشخصات یافت نشد.
+          </div>
+        ) : (
+          filteredSpecialties.map(specialty => {
+            const isMaster = specialty.parentId === null;
+            return (
+              <div 
+                key={specialty.id}
+                className={`bg-white rounded-2xl p-4 border shadow-xs space-y-3 transition-all ${
+                  !specialty.isApproved ? 'border-amber-300 bg-amber-50/25 ring-1 ring-amber-200' : 'border-slate-200'
+                }`}
+              >
+                {/* Title & Level Tag */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{isMaster ? '📁' : '↳'}</span>
+                    <span className="font-black text-slate-900 text-sm">{specialty.name}</span>
+                  </div>
+
+                  {isMaster ? (
+                    <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md text-[10px] font-black">
+                      دسته اصلی (سطح ۱)
+                    </span>
+                  ) : (
+                    <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                      زیرمجموعه «{specialty.parent ? specialty.parent.name : '—'}»
+                    </span>
+                  )}
+                </div>
+
+                {/* Meta: Requester + Subcategories info */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                  <div className="text-slate-500">
+                    درخواست‌دهنده: <span className="font-bold text-slate-700">
+                      {specialty.artists && specialty.artists.length > 0 
+                        ? specialty.artists.map(a => a.user.name).join('، ') 
+                        : 'سیستم'}
+                    </span>
+                  </div>
+
+                  {isMaster && specialty.children && (
+                    <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                      {specialty.children.length} زیرمجموعه
+                    </span>
+                  )}
+                </div>
+
+                {/* Status Toggle & Actions */}
+                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button"
+                      dir="ltr"
+                      onClick={() => toggleApproval(specialty.id, specialty.isApproved)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${specialty.isApproved ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      title={specialty.isApproved ? 'لغو تایید' : 'تایید و انتشار'}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          specialty.isApproved ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                    <span className="text-[11px] font-bold text-slate-800">
+                      {specialty.isApproved ? 'تایید شده' : 'در انتظار'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleEditSpecialty(specialty.id, specialty.name)}
+                      className="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200"
+                      title="ویرایش نام تخصص"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setParentModalConfig({
+                          isOpen: true,
+                          id: specialty.id,
+                          currentParentId: specialty.parentId || null,
+                          name: specialty.name
+                        })
+                      }
+                      className="px-2.5 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-bold transition border border-purple-200 cursor-pointer"
+                      title="تغییر دسته والد"
+                    >
+                      والد
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => deleteSpecialty(specialty.id)}
+                      className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition border border-red-200 cursor-pointer"
+                      title="حذف تخصص"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Specialties Desktop Table (>= md) */}
+      <div className="hidden md:block bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
         <table className="w-full text-right text-xs text-slate-600">
           <thead className="text-[11px] text-slate-500 bg-slate-50 border-b border-slate-100 uppercase">
             <tr>
