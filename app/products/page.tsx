@@ -4,14 +4,30 @@ import CartIcon from '../components/CartIcon';
 import ProductsFilterClient from './ProductsFilterClient';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
+import ProductImageWithSkeleton from '@/app/components/ProductImageWithSkeleton';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const params = await searchParams;
   const q = typeof params.q === 'string' ? params.q : '';
-  const specialtyId = typeof params.specialty === 'string' ? params.specialty : '';
-  const artistId = typeof params.artist === 'string' ? params.artist : '';
+
+  // Parse Multi-select for specialties (comma-separated or array)
+  const specialtyParam = params.specialty;
+  const specialtyIds: string[] = typeof specialtyParam === 'string'
+    ? specialtyParam.split(',').map(s => s.trim()).filter(Boolean)
+    : Array.isArray(specialtyParam)
+    ? (specialtyParam as string[]).filter(Boolean)
+    : [];
+
+  // Parse Multi-select for artists (comma-separated or array)
+  const artistParam = params.artist;
+  const artistIds: string[] = typeof artistParam === 'string'
+    ? artistParam.split(',').map(a => a.trim()).filter(Boolean)
+    : Array.isArray(artistParam)
+    ? (artistParam as string[]).filter(Boolean)
+    : [];
+
   const sort = typeof params.sort === 'string' ? params.sort : 'newest';
   const preOrderOnly = params.preOrder === 'true';
   const inStockOnly = params.inStock === 'true';
@@ -54,52 +70,82 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     whereClause.stockQuantity = { gt: 0 };
   }
 
-  if (artistId) {
-    whereClause.artistId = artistId;
+  // Multi-artist filter
+  if (artistIds.length > 0) {
+    whereClause.artistId = { in: artistIds };
   }
 
   if (q) {
     whereClause.title = { contains: q };
   }
 
-  if (specialtyId) {
-    const matchedSpecialty = await prisma.specialty.findFirst({
+  // Multi-specialty filter
+  if (specialtyIds.length > 0) {
+    const matchedSpecialties = await prisma.specialty.findMany({
       where: {
         OR: [
-          { id: specialtyId },
-          { name: specialtyId }
+          { id: { in: specialtyIds } },
+          { name: { in: specialtyIds } }
         ]
       },
-      include: {
+      select: {
+        id: true,
         children: {
           select: { id: true }
         }
       }
     });
 
-    if (matchedSpecialty) {
-      const targetSpecialtyIds = [matchedSpecialty.id, ...matchedSpecialty.children.map(c => c.id)];
-      whereClause.specialties = {
-        some: {
-          id: { in: targetSpecialtyIds }
-        }
-      };
-    } else {
-      whereClause.specialties = {
-        some: {
-          OR: [
-            { id: specialtyId },
-            { name: specialtyId }
-          ]
-        }
-      };
-    }
+    const targetSpecialtyIds = new Set<string>(specialtyIds);
+    matchedSpecialties.forEach(sp => {
+      targetSpecialtyIds.add(sp.id);
+      sp.children?.forEach(c => targetSpecialtyIds.add(c.id));
+    });
+
+    whereClause.specialties = {
+      some: {
+        id: { in: Array.from(targetSpecialtyIds) }
+      }
+    };
   }
 
+  // Optimized query selecting only necessary lightweight fields
   let products = await prisma.product.findMany({
     where: whereClause,
-    include: { artist: { include: { user: true } }, specialties: true, pricingTiers: true },
-    orderBy: { createdAt: 'desc' }
+    select: {
+      id: true,
+      title: true,
+      imageUrl: true,
+      stockQuantity: true,
+      isPreOrderEnabled: true,
+      status: true,
+      createdAt: true,
+      artist: {
+        select: {
+          id: true,
+          brandName: true,
+          user: {
+            select: {
+              name: true,
+              image: true
+            }
+          }
+        }
+      },
+      specialties: {
+        select: {
+          id: true,
+          name: true
+        }
+      },
+      pricingTiers: {
+        select: {
+          price: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 60
   });
 
   if (sort === 'price_asc') {
@@ -110,10 +156,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   const masterSpecialties = await prisma.specialty.findMany({
     where: { parentId: null, isApproved: true },
-    include: {
+    select: {
+      id: true,
+      name: true,
       children: {
         where: { isApproved: true },
-        include: {
+        select: {
+          id: true,
+          name: true,
           _count: {
             select: {
               products: {
@@ -134,7 +184,18 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   const allArtists = await prisma.artistProfile.findMany({
     where: { isActive: true, isDeleted: false, isApproved: true, verificationLevel: { gte: 2 } },
-    include: { user: true },
+    select: {
+      id: true,
+      brandName: true,
+      province: true,
+      city: true,
+      user: {
+        select: {
+          name: true,
+          image: true
+        }
+      }
+    },
     orderBy: { createdAt: 'desc' }
   });
 
@@ -153,8 +214,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           <aside className="w-full lg:w-1/4 lg:sticky lg:top-28 z-10">
             <ProductsFilterClient 
               initialQ={q}
-              initialSpecialty={specialtyId}
-              initialArtist={artistId}
+              initialSpecialties={specialtyIds}
+              initialArtists={artistIds}
               initialSort={sort}
               initialMax={maxPrice}
               initialPreOrder={preOrderOnly}
@@ -178,7 +239,13 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 {products.map(product => (
                   <a key={product.id} href={`/product/${product.id}`} className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
                     <div className="aspect-square w-full relative overflow-hidden bg-slate-100">
-                      <img src={product.imageUrl} alt={product.title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
+                      {/* Progressive Image with Skeleton Shimmer */}
+                      <ProductImageWithSkeleton
+                        src={product.imageUrl}
+                        alt={product.title}
+                        containerClassName="w-full h-full"
+                        className="group-hover:scale-105 transition-transform duration-500"
+                      />
                       
                       {/* Out of stock without pre-order: dimmed blurred overlay */}
                       {product.stockQuantity <= 0 && !product.isPreOrderEnabled && (
@@ -201,7 +268,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                     </div>
                     <div className="p-5 flex flex-col flex-1">
                       <h3 className="text-lg font-bold text-slate-800 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">{product.title}</h3>
-                      <div className="text-xs text-slate-500 mb-4 line-clamp-1">اثر: {product.artist.user.name}</div>
+                      <div className="text-xs text-slate-500 mb-4 line-clamp-1">اثر: {product.artist?.user?.name || product.artist?.brandName || 'هنرمند'}</div>
                       
                       <div className="mt-auto flex justify-between items-end">
                         <div className="flex flex-wrap gap-1">

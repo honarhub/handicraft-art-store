@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import ProductImageWithSkeleton from './ProductImageWithSkeleton';
 
 interface Product {
   id: string;
@@ -150,10 +151,9 @@ export default function FeaturedRecentCarousel({ products }: { products: Product
     return (
       <>
         <div className="aspect-[4/5] w-full relative overflow-hidden bg-slate-100">
-          <img 
+          <ProductImageWithSkeleton 
             src={product.imageUrl} 
             alt={product.title} 
-            draggable={false}
             className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700 select-none"
           />
 

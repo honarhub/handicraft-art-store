@@ -2,6 +2,7 @@
 
 import React, { useRef } from 'react';
 import { RowType } from '../admin/(protected)/settings/page';
+import ProductImageWithSkeleton from './ProductImageWithSkeleton';
 
 interface DynamicProductRowProps {
   title: string;
@@ -79,7 +80,7 @@ export default function DynamicProductRow({ title, subtitle, type, value, produc
             {products.map((product) => (
               <a key={product.id} href={`/product/${product.id}`} className="flex flex-col group min-w-[280px] w-[280px] md:min-w-[300px] md:w-[300px] snap-start bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 hover:-translate-y-2 h-[420px]">
                 <div className="aspect-[4/3] w-full relative overflow-hidden bg-slate-50 shrink-0">
-                  <img 
+                  <ProductImageWithSkeleton 
                     src={product.imageUrl} 
                     alt={product.title} 
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"

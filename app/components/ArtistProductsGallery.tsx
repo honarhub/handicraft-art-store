@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import ProductImageWithSkeleton from '@/app/components/ProductImageWithSkeleton';
 
 export interface Product {
   id: string;
@@ -33,7 +34,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 
 export default function ArtistProductsGallery({ products = [], artistSpecialties = [] }: ArtistProductsGalleryProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState<string>('all');
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [onlyPreOrder, setOnlyPreOrder] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('newest');
@@ -65,6 +66,16 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
   useEffect(() => {
     setMaxPrice(maxPossiblePrice);
   }, [maxPossiblePrice]);
+
+  // Dynamic green slider fill gauge
+  const pricePercent = useMemo(() => {
+    if (!maxPossiblePrice || maxPossiblePrice <= 0) return 100;
+    return Math.min(100, Math.max(0, (maxPrice / maxPossiblePrice) * 100));
+  }, [maxPrice, maxPossiblePrice]);
+
+  const sliderFillStyle = useMemo(() => ({
+    background: `linear-gradient(to right, #059669 0%, #059669 ${pricePercent}%, #e2e8f0 ${pricePercent}%, #e2e8f0 100%)`
+  }), [pricePercent]);
 
   // Lock body scroll when any bottom sheet is open
   useEffect(() => {
@@ -110,27 +121,37 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
     return availableSpecialties.filter(sp => sp.name.toLowerCase().includes(s));
   }, [availableSpecialties, specialtySearch]);
 
-  // Selected Specialty Display Name
-  const selectedSpecialtyName = useMemo(() => {
-    if (selectedSpecialty === 'all') return 'همه دسته‌ها';
-    const found = availableSpecialties.find(s => s.id === selectedSpecialty || s.name === selectedSpecialty);
-    return found ? found.name : selectedSpecialty;
-  }, [selectedSpecialty, availableSpecialties]);
+  // Helper toggle for specialties
+  const toggleSpecialty = (id: string) => {
+    setSelectedSpecialties(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  // Selected Specialty Display Label
+  const categoryButtonLabel = useMemo(() => {
+    if (selectedSpecialties.length === 0) return 'دسته‌بندی‌ها';
+    if (selectedSpecialties.length === 1) {
+      const found = availableSpecialties.find(s => s.id === selectedSpecialties[0] || s.name === selectedSpecialties[0]);
+      return found ? found.name : 'دسته‌بندی';
+    }
+    return `${selectedSpecialties.length} دسته‌بندی`;
+  }, [selectedSpecialties, availableSpecialties]);
 
   // Active filters count
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (searchQuery.trim()) count++;
-    if (selectedSpecialty !== 'all') count++;
+    count += selectedSpecialties.length;
     if (onlyInStock) count++;
     if (onlyPreOrder) count++;
     if (maxPrice < maxPossiblePrice) count++;
     return count;
-  }, [searchQuery, selectedSpecialty, onlyInStock, onlyPreOrder, maxPrice, maxPossiblePrice]);
+  }, [searchQuery, selectedSpecialties, onlyInStock, onlyPreOrder, maxPrice, maxPossiblePrice]);
 
   const clearAllFilters = () => {
     setSearchQuery('');
-    setSelectedSpecialty('all');
+    setSelectedSpecialties([]);
     setOnlyInStock(false);
     setOnlyPreOrder(false);
     setMaxPrice(maxPossiblePrice);
@@ -153,9 +174,11 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
           if (!matchTitle && !matchSpec) return false;
         }
 
-        // Specialty
-        if (selectedSpecialty !== 'all') {
-          const hasSpec = product.specialties?.some(s => s.id === selectedSpecialty || s.name === selectedSpecialty);
+        // Multi-Specialty Filter
+        if (selectedSpecialties.length > 0) {
+          const hasSpec = product.specialties?.some(s => 
+            selectedSpecialties.includes(s.id) || selectedSpecialties.includes(s.name)
+          );
           if (!hasSpec) return false;
         }
 
@@ -195,7 +218,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             return 0; // Pre-sorted by prisma createdAt desc
         }
       });
-  }, [products, searchQuery, selectedSpecialty, onlyInStock, onlyPreOrder, maxPrice, sortOption]);
+  }, [products, searchQuery, selectedSpecialties, onlyInStock, onlyPreOrder, maxPrice, sortOption]);
 
   if (!products || products.length === 0) {
     return (
@@ -217,7 +240,8 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="جستجو در آثار یا دسته‌بندی هنری..."
-            className="w-full bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-2xl py-3 pr-11 pl-10 text-xs sm:text-sm font-medium outline-none transition-all focus:ring-2 focus:ring-emerald-200/50"
+            style={{ fontSize: '16px' }}
+            className="w-full bg-slate-50 focus:bg-white text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-2xl py-3 pr-11 pl-10 text-base font-medium outline-none transition-all focus:ring-2 focus:ring-emerald-200/50"
           />
           <span className="absolute right-3.5 top-3.5 text-slate-400 text-sm pointer-events-none">🔍</span>
           {searchQuery && (
@@ -232,15 +256,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
           )}
         </div>
 
-        {/* =========================================================================
-            HORIZONTAL SCROLLABLE BUTTONS BAR (Like Digikala, Torob, Snapp)
-            1. مرتب‌سازی (Sort)
-            2. فیلترها (All Filters + badge)
-            3. امکان پیش‌سفارش (Fast Toggle)
-            4. محدوده قیمت (Price Sheet)
-            5. موجود در انبار (Fast Toggle)
-            6. دسته‌بندی‌ها (Categories with live search)
-            ========================================================================= */}
+        {/* Horizontal Row of Buttons (Pills) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 scrollbar-hide -mx-1 px-1">
           {/* Button 1: Sort */}
           <button
@@ -282,7 +298,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             )}
           </button>
 
-          {/* Button 3: Pre-Order (Fast Toggle Pill) */}
+          {/* Button 3: Pre-Order */}
           <button
             type="button"
             onClick={() => setOnlyPreOrder(prev => !prev)}
@@ -314,7 +330,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             </span>
           </button>
 
-          {/* Button 5: In Stock (Fast Toggle Pill) */}
+          {/* Button 5: In Stock */}
           <button
             type="button"
             onClick={() => setOnlyInStock(prev => !prev)}
@@ -328,18 +344,26 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             <span>موجود در انبار</span>
           </button>
 
-          {/* Button 6: Categories (Opens Category Modal with live typing search) */}
+          {/* Button 6: Categories (Multi-select) */}
           <button
             type="button"
-            onClick={() => setIsCategoryOpen(true)}
+            onClick={() => {
+              setSpecialtySearch('');
+              setIsCategoryOpen(true);
+            }}
             className={`px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-              selectedSpecialty !== 'all'
+              selectedSpecialties.length > 0
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
             <span>🏷️</span>
-            <span>{selectedSpecialty !== 'all' ? selectedSpecialtyName : 'دسته‌بندی‌ها'}</span>
+            <span>{categoryButtonLabel}</span>
+            {selectedSpecialties.length > 1 && (
+              <span className="w-4 h-4 rounded-full bg-white text-purple-800 text-[10px] font-black flex items-center justify-center">
+                {selectedSpecialties.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -399,12 +423,15 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
               </span>
             )}
 
-            {selectedSpecialty !== 'all' && (
-              <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-lg text-[11px] font-bold">
-                <span>دسته‌بندی: {selectedSpecialtyName}</span>
-                <button type="button" onClick={() => setSelectedSpecialty('all')} className="text-purple-400 hover:text-red-500 cursor-pointer">✕</button>
-              </span>
-            )}
+            {selectedSpecialties.map(specId => {
+              const specObj = availableSpecialties.find(s => s.id === specId || s.name === specId);
+              return (
+                <span key={specId} className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-lg text-[11px] font-bold">
+                  <span>دسته‌بندی: {specObj?.name || specId}</span>
+                  <button type="button" onClick={() => toggleSpecialty(specId)} className="text-purple-400 hover:text-red-500 cursor-pointer">✕</button>
+                </span>
+              );
+            })}
 
             {onlyInStock && (
               <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-lg text-[11px] font-bold">
@@ -470,13 +497,13 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 href={`/product/${product.id}`}
                 className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-200/90 hover:border-emerald-300 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col"
               >
-                {/* Image Container with Badges */}
+                {/* Image Container with Skeleton */}
                 <div className="aspect-square sm:aspect-[4/5] bg-slate-100 relative overflow-hidden">
-                  <img
+                  <ProductImageWithSkeleton
                     src={product.imageUrl}
                     alt={product.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    containerClassName="w-full h-full"
+                    className="group-hover:scale-105 transition-transform duration-500"
                   />
 
                   {/* Out of Stock Overlay */}
@@ -554,10 +581,11 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-300 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row"
               >
                 <div className="w-full sm:w-56 aspect-[4/3] sm:aspect-square bg-slate-100 relative overflow-hidden shrink-0">
-                  <img
+                  <ProductImageWithSkeleton
                     src={product.imageUrl}
                     alt={product.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    containerClassName="w-full h-full"
+                    className="group-hover:scale-105 transition-transform duration-500"
                   />
                   {isOutOfStock && (
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-2 text-center">
@@ -583,7 +611,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                         {product.specialties[0].name}
                       </span>
                     )}
-                    <h3 className="font-bold text-slate-900 text-base sm:lg group-hover:text-emerald-700 transition-colors">
+                    <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-emerald-700 transition-colors">
                       {product.title}
                     </h3>
                   </div>
@@ -622,7 +650,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             onClick={() => setIsSortOpen(false)}
           />
 
-          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200 select-none">
             <div className="sm:hidden pt-3 pb-1 flex justify-center">
               <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
             </div>
@@ -672,7 +700,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
         </div>
       )}
 
-      {/* -------------------- 4. MOBILE PRICE RANGE BOTTOM SHEET -------------------- */}
+      {/* -------------------- 4. MOBILE PRICE RANGE BOTTOM SHEET (WITH GREEN GAUGE FILL) -------------------- */}
       {isPriceOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
@@ -680,7 +708,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             onClick={() => setIsPriceOpen(false)}
           />
 
-          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200 select-none">
             <div className="sm:hidden pt-3 pb-1 flex justify-center">
               <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
             </div>
@@ -715,7 +743,8 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                   step={maxPossiblePrice > 5000000 ? 500000 : 200000}
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(parseInt(e.target.value))}
-                  className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg appearance-none"
+                  style={sliderFillStyle}
+                  className="w-full accent-emerald-600 cursor-pointer h-2.5 rounded-lg appearance-none transition-all"
                   dir="ltr"
                 />
                 {/* 0 on LEFT, Max on RIGHT */}
@@ -746,7 +775,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
         </div>
       )}
 
-      {/* -------------------- 5. MOBILE CATEGORY / SPECIALTY BOTTOM SHEET (WITH LIVE TYPING SEARCH) -------------------- */}
+      {/* -------------------- 5. MOBILE CATEGORY BOTTOM SHEET WITH MULTI-SELECT -------------------- */}
       {isCategoryOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
@@ -773,7 +802,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
               </button>
             </div>
 
-            {/* Live Typing Search Input inside Bottom Sheet */}
+            {/* Live Typing Search Input (16px to prevent iOS auto-zoom) */}
             <div className="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
               <div className="relative">
                 <input
@@ -797,23 +826,23 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
               </div>
             </div>
 
-            {/* Scrollable Specialties List */}
-            <div className="p-4 overflow-y-auto space-y-1.5 flex-1 divide-y divide-slate-50 overscroll-contain touch-pan-y" onTouchStart={() => (document.activeElement as HTMLElement)?.blur?.()}>
+            {/* Scrollable Specialties List with Multi-Select Checkboxes */}
+            <div 
+              className="p-4 overflow-y-auto space-y-1.5 flex-1 divide-y divide-slate-50 overscroll-contain touch-pan-y" 
+              onTouchStart={() => (document.activeElement as HTMLElement)?.blur?.()}
+            >
               {/* Option: All */}
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedSpecialty('all');
-                  setIsCategoryOpen(false);
-                }}
+                onClick={() => setSelectedSpecialties([])}
                 className={`w-full py-3 px-3.5 text-right rounded-2xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
-                  selectedSpecialty === 'all'
+                  selectedSpecialties.length === 0
                     ? 'bg-purple-50 text-purple-900'
                     : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <span>همه دسته‌ها ({products.length} اثر)</span>
-                {selectedSpecialty === 'all' && (
+                <span>همه سبک‌های هنرمند ({products.length} اثر)</span>
+                {selectedSpecialties.length === 0 && (
                   <span className="w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center text-xs font-black">
                     ✓
                   </span>
@@ -821,34 +850,31 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
               </button>
 
               {filteredSpecialties.map((spec) => {
-                const isSelected = selectedSpecialty === spec.id || selectedSpecialty === spec.name;
+                const isSelected = selectedSpecialties.includes(spec.id) || selectedSpecialties.includes(spec.name);
                 return (
                   <button
                     key={spec.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedSpecialty(isSelected ? 'all' : spec.id);
-                      setIsCategoryOpen(false);
-                    }}
-                    className={`w-full py-3 px-3.5 text-right rounded-2xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                    onClick={() => toggleSpecialty(spec.id)}
+                    className={`w-full py-2.5 px-3.5 text-right rounded-2xl flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-purple-50 text-purple-900'
                         : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <span>{spec.name}</span>
                     <div className="flex items-center gap-2">
-                      {spec.count > 0 && (
-                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                          {spec.count}
-                        </span>
-                      )}
-                      {isSelected && (
-                        <span className="w-5 h-5 rounded-full bg-purple-700 text-white flex items-center justify-center text-xs font-black">
-                          ✓
-                        </span>
-                      )}
+                      <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center text-[10px] ${
+                        isSelected ? 'bg-purple-700 text-white border-purple-700 font-bold' : 'border-slate-300 bg-white'
+                      }`}>
+                        {isSelected ? '✓' : ''}
+                      </span>
+                      <span>{spec.name}</span>
                     </div>
+                    {spec.count > 0 && (
+                      <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                        {spec.count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -859,11 +885,29 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 </div>
               )}
             </div>
+
+            {/* Sticky Bottom Actions */}
+            <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedSpecialties([])}
+                className="px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:text-red-600 transition-colors"
+              >
+                پاک کردن
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(false)}
+                className="flex-1 py-2.5 bg-purple-700 hover:bg-purple-800 text-white text-xs font-black rounded-xl shadow-md transition-all text-center"
+              >
+                اعمال {selectedSpecialties.length > 0 ? `(${selectedSpecialties.length} دسته‌بندی)` : ''}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* -------------------- 6. ALL FILTERS BOTTOM SHEET (DRAWER) -------------------- */}
+      {/* -------------------- 6. ALL FILTERS BOTTOM SHEET -------------------- */}
       {isFilterOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
@@ -871,7 +915,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
             onClick={() => setIsFilterOpen(false)}
           />
 
-          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] flex flex-col z-10 animate-in slide-in-from-bottom-5 duration-200 select-none">
             <div className="sm:hidden pt-3 pb-1 flex justify-center">
               <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
             </div>
@@ -942,7 +986,7 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                 </div>
               </div>
 
-              {/* Price Range Slider (0 on Left, Max on Right) */}
+              {/* Price Range Slider with Green Gauge Fill */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black text-slate-800">محدوده قیمت:</label>
@@ -958,7 +1002,8 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                   step={maxPossiblePrice > 5000000 ? 500000 : 200000}
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(parseInt(e.target.value))}
-                  className="w-full accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg appearance-none"
+                  style={sliderFillStyle}
+                  className="w-full accent-emerald-600 cursor-pointer h-2.5 rounded-lg appearance-none transition-all"
                   dir="ltr"
                 />
 
@@ -980,7 +1025,8 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                       value={specialtySearch}
                       onChange={(e) => setSpecialtySearch(e.target.value)}
                       placeholder="جستجوی دسته‌بندی..."
-                      className="w-full bg-slate-50 text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 pr-9 pl-7 text-xs font-medium outline-none"
+                      style={{ fontSize: '16px' }}
+                      className="w-full bg-slate-50 text-slate-900 placeholder:text-slate-400 border border-slate-200 focus:border-emerald-500 rounded-xl py-2 pr-9 pl-7 text-base font-medium outline-none"
                     />
                     <span className="absolute right-3 top-2.5 text-slate-400 text-xs pointer-events-none">🔍</span>
                   </div>
@@ -988,9 +1034,9 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                   <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
                     <button
                       type="button"
-                      onClick={() => setSelectedSpecialty('all')}
+                      onClick={() => setSelectedSpecialties([])}
                       className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        selectedSpecialty === 'all'
+                        selectedSpecialties.length === 0
                           ? 'bg-slate-900 text-white shadow-xs'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
@@ -998,18 +1044,19 @@ export default function ArtistProductsGallery({ products = [], artistSpecialties
                       همه سبک‌ها
                     </button>
                     {filteredSpecialties.map((spec) => {
-                      const isSelected = selectedSpecialty === spec.id || selectedSpecialty === spec.name;
+                      const isSelected = selectedSpecialties.includes(spec.id) || selectedSpecialties.includes(spec.name);
                       return (
                         <button
                           key={spec.id}
                           type="button"
-                          onClick={() => setSelectedSpecialty(isSelected ? 'all' : spec.id)}
+                          onClick={() => toggleSpecialty(spec.id)}
                           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                             isSelected
                               ? 'bg-purple-700 text-white shadow-xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                           }`}
                         >
+                          <span className="ml-1">{isSelected ? '✓ ' : ''}</span>
                           {spec.name} {spec.count > 0 && `(${spec.count})`}
                         </button>
                       );

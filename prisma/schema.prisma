@@ -191,6 +191,10 @@ model Product {
   stockNotifications StockNotification[]
   reviews         ProductReview[]
   questions       ProductQuestion[]
+
+  @@index([status, deletedAt, createdAt])
+  @@index([artistId])
+  @@index([stockQuantity])
 }
 
 model Transaction {
