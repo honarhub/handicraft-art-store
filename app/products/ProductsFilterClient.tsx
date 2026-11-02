@@ -40,14 +40,18 @@ interface ProductsFilterClientProps {
   maxPossiblePrice: number;
   specialties: SpecialtyGroup[];
   artists: ArtistItem[];
+  children?: React.ReactNode;
+  totalCount?: number;
 }
 
-type SortOption = 'newest' | 'price_asc' | 'price_desc';
+export type SortOption = 'newest' | 'best_selling' | 'price_asc' | 'price_desc' | 'recommended';
 
-const SORT_LABELS: Record<SortOption, string> = {
-  newest: 'جدیدترین آثار',
+export const SORT_LABELS: Record<SortOption, string> = {
+  newest: 'جدیدترین',
+  best_selling: 'پرفروش‌ترین',
   price_asc: 'ارزان‌ترین',
-  price_desc: 'گران‌ترین'
+  price_desc: 'گران‌ترین',
+  recommended: 'پیشنهاد خریداران'
 };
 
 export default function ProductsFilterClient({ 
@@ -62,7 +66,9 @@ export default function ProductsFilterClient({
   initialInStock = false,
   maxPossiblePrice, 
   specialties, 
-  artists 
+  artists,
+  children,
+  totalCount
 }: ProductsFilterClientProps) {
   const router = useRouter();
   
@@ -517,14 +523,22 @@ export default function ProductsFilterClient({
       </div>
 
       {/* =========================================================================
-          2. DESKTOP SIDEBAR FILTER (Hidden on mobile, visible lg:block)
+          2. DESKTOP & MOBILE WRAPPER (SIDEBAR + MAIN CONTENT)
           ========================================================================= */}
-      <div className="hidden lg:block bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-        <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span>🎛️</span>
-            <span>فیلترهای پیشرفته</span>
-          </h2>
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Desktop Sidebar Filter (Hidden on mobile, visible lg:block) */}
+        <aside className="w-full lg:w-1/4 lg:sticky lg:top-28 z-10 hidden lg:block">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <svg className="w-5 h-5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                  <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                  <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+                </svg>
+                <span>فیلترهای پیشرفته</span>
+              </h2>
           {hasActiveFilters && (
             <button 
               onClick={clearFilters}
@@ -781,31 +795,6 @@ export default function ProductsFilterClient({
           )}
         </div>
 
-        {/* Sort Radio Options (Desktop) */}
-        <div>
-          <label className="block text-sm font-bold text-slate-900 mb-2">مرتب‌سازی</label>
-          <div className="space-y-1">
-            {(Object.keys(SORT_LABELS) as SortOption[]).map(key => (
-              <label 
-                key={key} 
-                className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-xs font-bold transition ${
-                  sort === key ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <span>{SORT_LABELS[key]}</span>
-                <input 
-                  type="radio" 
-                  name="sortOption" 
-                  value={key} 
-                  checked={sort === key} 
-                  onChange={() => setSort(key)} 
-                  className="accent-emerald-600 w-4 h-4 cursor-pointer" 
-                />
-              </label>
-            ))}
-          </div>
-        </div>
-
         {/* Toggles: In-stock and Pre-order (Desktop) */}
         <div className="space-y-3 pt-2 border-t border-slate-100">
           <div className="flex items-center justify-between">
@@ -871,6 +860,52 @@ export default function ProductsFilterClient({
           </div>
         </div>
       </div>
+    </aside>
+
+    {/* Main Content Area (Products Grid with Desktop Digikala-Style Horizontal Sorting Bar) */}
+    <div className="w-full lg:w-3/4 flex flex-col gap-6">
+      {/* DESKTOP HORIZONTAL SORT BAR (Hidden on mobile, visible lg:flex) */}
+      <div className="hidden lg:flex items-center justify-between bg-white px-5 py-3.5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-slate-800 text-sm font-bold pl-4 border-l border-slate-200">
+            <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18M6 12h12m-9 6h6" />
+            </svg>
+            <span>مرتب‌سازی:</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => {
+              const isActive = sort === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSort(key)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-50 text-emerald-700 font-extrabold border border-emerald-200 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
+                >
+                  {SORT_LABELS[key]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {totalCount !== undefined && (
+          <div className="text-xs font-bold text-slate-400">
+            <span>{totalCount.toLocaleString('fa-IR')}</span> اثر
+          </div>
+        )}
+      </div>
+
+      {/* Children (The Product Grid or Empty State) */}
+      {children}
+    </div>
+  </div>
 
       {/* =========================================================================
           3. MOBILE BOTTOM SHEETS (DRAWERS)
@@ -1225,7 +1260,12 @@ export default function ProductsFilterClient({
             <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3" />
             <div className="flex items-center justify-between px-6 pb-3 border-b border-slate-100">
               <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                <span>🎛️</span>
+                <svg className="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+                  <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+                  <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+                </svg>
                 <span>فیلترهای کامل آثار</span>
               </h3>
               <button type="button" onClick={() => setIsAllFiltersOpen(false)} className="text-slate-400 hover:text-slate-700 p-1 font-bold">✕</button>

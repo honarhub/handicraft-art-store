@@ -120,6 +120,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       isPreOrderEnabled: true,
       status: true,
       createdAt: true,
+      _count: {
+        select: {
+          orderItems: true,
+          reviews: true
+        }
+      },
       artist: {
         select: {
           id: true,
@@ -152,6 +158,13 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     products.sort((a, b) => (a.pricingTiers[0]?.price || 0) - (b.pricingTiers[0]?.price || 0));
   } else if (sort === 'price_desc') {
     products.sort((a, b) => (b.pricingTiers[0]?.price || 0) - (a.pricingTiers[0]?.price || 0));
+  } else if (sort === 'best_selling') {
+    products.sort((a, b) => (b._count?.orderItems || 0) - (a._count?.orderItems || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } else if (sort === 'recommended') {
+    products.sort((a, b) => (b._count?.reviews || 0) - (a._count?.reviews || 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } else {
+    // newest
+    products.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   const masterSpecialties = await prisma.specialty.findMany({
@@ -209,86 +222,79 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           <p className="text-slate-500 text-lg max-w-2xl mx-auto">کشف و خرید بی‌واسطه دست‌سازه‌های اصیل از بهترین هنرمندان ایرانی</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* Sidebar Filters */}
-          <aside className="w-full lg:w-1/4 lg:sticky lg:top-28 z-10">
-            <ProductsFilterClient 
-              initialQ={q}
-              initialSpecialties={specialtyIds}
-              initialArtists={artistIds}
-              initialSort={sort}
-              initialMax={maxPrice}
-              initialPreOrder={preOrderOnly}
-              initialInStock={inStockOnly}
-              maxPossiblePrice={maxPossiblePrice}
-              specialties={masterSpecialties} 
-              artists={allArtists}
-            />
-          </aside>
+        <ProductsFilterClient 
+          initialQ={q}
+          initialSpecialties={specialtyIds}
+          initialArtists={artistIds}
+          initialSort={sort}
+          initialMax={maxPrice}
+          initialPreOrder={preOrderOnly}
+          initialInStock={inStockOnly}
+          maxPossiblePrice={maxPossiblePrice}
+          specialties={masterSpecialties} 
+          artists={allArtists}
+          totalCount={products.length}
+        >
+          {products.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm">
+              <div className="text-5xl mb-4">🔍</div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">محصولی یافت نشد</h3>
+              <p className="text-slate-500">با فیلترهای فعلی هیچ اثری پیدا نکردیم. لطفاً فیلترها را تغییر دهید.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              {products.map(product => (
+                <a key={product.id} href={`/product/${product.id}`} className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
+                  <div className="aspect-square w-full relative overflow-hidden bg-slate-100">
+                    {/* Progressive Image with Skeleton Shimmer */}
+                    <ProductImageWithSkeleton
+                      src={product.imageUrl}
+                      alt={product.title}
+                      containerClassName="w-full h-full"
+                      className="group-hover:scale-105 transition-transform duration-500"
+                    />
+                    
+                    {/* Out of stock without pre-order: dimmed blurred overlay */}
+                    {product.stockQuantity <= 0 && !product.isPreOrderEnabled && (
+                      <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
+                        <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-md">
+                          ناموجود
+                        </span>
+                      </div>
+                    )}
 
-          {/* Product Grid */}
-          <div className="w-full lg:w-3/4">
-            {products.length === 0 ? (
-              <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm">
-                <div className="text-5xl mb-4">🔍</div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">محصولی یافت نشد</h3>
-                <p className="text-slate-500">با فیلترهای فعلی هیچ اثری پیدا نکردیم. لطفاً فیلترها را تغییر دهید.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {products.map(product => (
-                  <a key={product.id} href={`/product/${product.id}`} className="group bg-white rounded-3xl overflow-hidden border border-slate-200 hover:border-emerald-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col">
-                    <div className="aspect-square w-full relative overflow-hidden bg-slate-100">
-                      {/* Progressive Image with Skeleton Shimmer */}
-                      <ProductImageWithSkeleton
-                        src={product.imageUrl}
-                        alt={product.title}
-                        containerClassName="w-full h-full"
-                        className="group-hover:scale-105 transition-transform duration-500"
-                      />
-                      
-                      {/* Out of stock without pre-order: dimmed blurred overlay */}
-                      {product.stockQuantity <= 0 && !product.isPreOrderEnabled && (
-                        <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center p-3 text-center z-10">
-                          <span className="bg-slate-900 text-white font-bold px-4 py-2 rounded-xl text-sm shadow-md">
-                            ناموجود
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Out of stock with pre-order enabled: unblurred image with badge */}
-                      {product.stockQuantity <= 0 && product.isPreOrderEnabled && (
-                        <div className="absolute top-3 right-3 z-10">
-                          <span className="bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md flex items-center gap-1.5">
-                            <span>✨</span>
-                            <span>امکان ثبت پیش‌سفارش</span>
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-5 flex flex-col flex-1">
-                      <h3 className="text-lg font-bold text-slate-800 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">{product.title}</h3>
-                      <div className="text-xs text-slate-500 mb-4 line-clamp-1">اثر: {product.artist?.user?.name || product.artist?.brandName || 'هنرمند'}</div>
-                      
-                      <div className="mt-auto flex justify-between items-end">
-                        <div className="flex flex-wrap gap-1">
-                          {product.specialties.slice(0,1).map(s => (
-                            <span key={s.id} className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md">{s.name}</span>
-                          ))}
-                          {product.specialties.length > 1 && <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md">+{product.specialties.length - 1}</span>}
-                        </div>
-                        <div className="text-left">
-                          <div className="font-black text-emerald-600 text-lg">{(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')}</div>
-                          <div className="text-[10px] font-bold text-emerald-800/60 leading-none">تومان</div>
-                        </div>
+                    {/* Out of stock with pre-order enabled: unblurred image with badge */}
+                    {product.stockQuantity <= 0 && product.isPreOrderEnabled && (
+                      <div className="absolute top-3 right-3 z-10">
+                        <span className="bg-gradient-to-r from-amber-600 to-amber-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs sm:text-sm shadow-md flex items-center gap-1.5">
+                          <span>✨</span>
+                          <span>امکان ثبت پیش‌سفارش</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="text-lg font-bold text-slate-800 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">{product.title}</h3>
+                    <div className="text-xs text-slate-500 mb-4 line-clamp-1">اثر: {product.artist?.user?.name || product.artist?.brandName || 'هنرمند'}</div>
+                    
+                    <div className="mt-auto flex justify-between items-end">
+                      <div className="flex flex-wrap gap-1">
+                        {product.specialties.slice(0,1).map(s => (
+                          <span key={s.id} className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md">{s.name}</span>
+                        ))}
+                        {product.specialties.length > 1 && <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md">+{product.specialties.length - 1}</span>}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-black text-emerald-600 text-lg">{(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')}</div>
+                        <div className="text-[10px] font-bold text-emerald-800/60 leading-none">تومان</div>
                       </div>
                     </div>
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </ProductsFilterClient>
       </main>
       <SiteFooter />
     </div>

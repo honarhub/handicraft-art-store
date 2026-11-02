@@ -57,6 +57,20 @@ export async function GET(
     }
 
     if (foundPath) {
+      const stats = fs.statSync(foundPath);
+      const etag = `"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
+      
+      const clientEtag = request.headers.get('if-none-match');
+      if (clientEtag && (clientEtag === etag || clientEtag.includes(etag))) {
+        return new NextResponse(null, {
+          status: 304,
+          headers: {
+            'ETag': etag,
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        });
+      }
+
       const fileBuffer = fs.readFileSync(foundPath);
       const ext = path.extname(foundPath).toLowerCase();
       const contentType = MIME_TYPES[ext] || 'application/octet-stream';
@@ -66,6 +80,7 @@ export async function GET(
         headers: {
           'Content-Type': contentType,
           'Content-Length': fileBuffer.length.toString(),
+          'ETag': etag,
           'Cache-Control': 'public, max-age=31536000, immutable',
         },
       });

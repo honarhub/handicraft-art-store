@@ -41,13 +41,18 @@ export default function ProductImageWithSkeleton({
       ) : (
         /* Actual Image with smooth progressive fade-in */
         <img
+          ref={(node) => {
+            if (node && node.complete && node.naturalWidth > 0 && !isLoaded) {
+              setIsLoaded(true);
+            }
+          }}
           src={src}
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
-          className={`w-full h-full object-cover transition-all duration-500 ease-out ${
+          className={`w-full h-full object-cover transition-all duration-300 ease-out ${
             isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-98 blur-xs'
           } ${className}`}
         />
