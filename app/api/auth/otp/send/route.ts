@@ -56,22 +56,24 @@ export async function POST(req: Request) {
         }, { status: 400 });
       }
 
-      // 2. Validate referral code
-      if (!referralCode || !referralCode.trim()) {
-        return NextResponse.json({ error: 'کد معرف الزامی است.' }, { status: 400 });
-      }
+      // 2. Validate referral code ONLY for artists (customers don't need a referral code)
+      if (purpose !== 'customer') {
+        if (!referralCode || !referralCode.trim()) {
+          return NextResponse.json({ error: 'کد معرف الزامی است.' }, { status: 400 });
+        }
 
-      const cleanRefCode = referralCode.trim().toUpperCase();
-      const refRecord = await prisma.referralCode.findUnique({
-        where: { code: cleanRefCode }
-      });
+        const cleanRefCode = referralCode.trim().toUpperCase();
+        const refRecord = await prisma.referralCode.findUnique({
+          where: { code: cleanRefCode }
+        });
 
-      if (!refRecord) {
-        return NextResponse.json({ error: 'کد معرف وارد شده نامعتبر است.' }, { status: 400 });
-      }
+        if (!refRecord) {
+          return NextResponse.json({ error: 'کد معرف وارد شده نامعتبر است.' }, { status: 400 });
+        }
 
-      if (refRecord.isUsed) {
-        return NextResponse.json({ error: 'این کد معرف قبلاً استفاده شده است و دیگر قابل استفاده نمی‌باشد.' }, { status: 400 });
+        if (refRecord.isUsed) {
+          return NextResponse.json({ error: 'این کد معرف قبلاً استفاده شده است و دیگر قابل استفاده نمی‌باشد.' }, { status: 400 });
+        }
       }
     }
 

@@ -64,6 +64,8 @@ model User {
   questions     ProductQuestion[]
   createdReferrals ReferralCode[] @relation("CreatedReferrals")
   usedReferral     ReferralCode?  @relation("UsedReferral")
+  addresses        UserAddress[]
+  wishlistItems    WishlistItem[]
 }
 
 enum Role {
@@ -191,6 +193,7 @@ model Product {
   stockNotifications StockNotification[]
   reviews         ProductReview[]
   questions       ProductQuestion[]
+  wishlistItems   WishlistItem[]
 
   @@index([status, deletedAt, createdAt])
   @@index([artistId])
@@ -282,6 +285,37 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+model UserAddress {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String   @default("آدرس من") // منزل، محل کار، کارگاه
+  recipientName String   // نام و نام خانوادگی گیرنده
+  phoneNumber   String   // شماره تماس گیرنده
+  province      String   // استان
+  city          String   // شهر
+  address       String   // نشانی پستی دقیق
+  postalCode    String   // کد پستی ۱۰ رقمی
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }
 
 model Specialty {

@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
             where: {
               target: normalized,
               code: cleanedCode,
-              type: { in: ['PHONE_OTP', 'EMAIL_OTP', 'REGISTER_OTP'] },
+              type: { in: ['PHONE_OTP', 'EMAIL_OTP', 'REGISTER_OTP', 'CUSTOMER_OTP', 'CUSTOMER_REGISTER_OTP'] },
               used: false,
               expiresAt: { gte: new Date() }
             },
@@ -106,16 +106,18 @@ export const authOptions: NextAuthOptions = {
             throw new Error(isEmail ? "این ایمیل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید." : "این شماره موبایل در سیستم ثبت نشده است. لطفاً ابتدا ثبت‌نام کنید.");
           }
 
-          if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
-            throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد.");
-          }
+          if (credentials.loginType === 'artist') {
+            if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
+              throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد.");
+            }
 
-          if (user.artistProfile?.isDeleted) {
-            throw new Error("حساب کاربری هنرمندی شما بایگانی شده است. لطفاً با پشتیبانی در تماس باشید.");
-          }
+            if (user.artistProfile?.isDeleted) {
+              throw new Error("حساب کاربری هنرمندی شما بایگانی شده است. لطفاً با پشتیبانی در تماس باشید.");
+            }
 
-          if (user.artistProfile && !user.artistProfile.isActive && user.role !== 'ADMIN') {
-            throw new Error("حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً با پشتیبانی در تماس باشید.");
+            if (user.artistProfile && !user.artistProfile.isActive && user.role !== 'ADMIN') {
+              throw new Error("حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً با پشتیبانی در تماس باشید.");
+            }
           }
 
           return {
@@ -162,16 +164,18 @@ export const authOptions: NextAuthOptions = {
             throw new Error("رمز عبور اشتباه است.");
           }
 
-          if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
-            throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد.");
-          }
+          if (credentials.loginType === 'artist') {
+            if (user.role !== 'ARTIST' && user.role !== 'ADMIN') {
+              throw new Error("این حساب کاربری دسترسی به پنل هنرمندان را ندارد.");
+            }
 
-          if (user.artistProfile?.isDeleted) {
-            throw new Error("حساب کاربری هنرمندی شما بایگانی شده است. لطفاً با پشتیبانی در تماس باشید.");
-          }
+            if (user.artistProfile?.isDeleted) {
+              throw new Error("حساب کاربری هنرمندی شما بایگانی شده است. لطفاً با پشتیبانی در تماس باشید.");
+            }
 
-          if (user.artistProfile && !user.artistProfile.isActive && user.role !== 'ADMIN') {
-            throw new Error("حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً با پشتیبانی در تماس باشید.");
+            if (user.artistProfile && !user.artistProfile.isActive && user.role !== 'ADMIN') {
+              throw new Error("حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً با پشتیبانی در تماس باشید.");
+            }
           }
 
           return {

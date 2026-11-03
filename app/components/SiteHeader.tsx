@@ -4,6 +4,7 @@ import React from 'react';
 import CartIcon from './CartIcon';
 import WishlistIcon from './WishlistIcon';
 import CategoriesMegaMenu from './CategoriesMegaMenu';
+import UserNavDropdown from './UserNavDropdown';
 
 export default function SiteHeader() {
   return (
@@ -47,20 +48,11 @@ export default function SiteHeader() {
 
           <div className="hidden lg:block w-px h-5 bg-slate-200"></div>
 
-          {/* اکشن‌ها: علاقه‌مندی‌ها، سبد خرید، ورود/ثبت‌نام */}
+          {/* اکشن‌ها: علاقه‌مندی‌ها، سبد خرید، پروفایل کاربری / ورود */}
           <div className="flex items-center gap-2 sm:gap-3">
             <WishlistIcon />
             <CartIcon />
-
-            <a
-              href="/login"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl shadow-xs transition-all hover:text-emerald-700"
-            >
-              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>ورود / ثبت‌نام</span>
-            </a>
+            <UserNavDropdown />
           </div>
         </div>
       </div>
