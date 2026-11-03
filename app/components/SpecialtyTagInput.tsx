@@ -72,33 +72,45 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
     onChange(selectedSpecialties.filter(s => s.id !== id));
   };
 
+  const handleCreateCustomSpecialty = async (customName: string) => {
+    const trimmed = customName.trim();
+    if (!trimmed) return;
+
+    // بررسی اینکه آیا دقیقاً با چیزی در پیشنهادها مچ است؟
+    const exactMatch = suggestions.find(s => s.name === trimmed);
+    if (exactMatch) {
+      addSpecialty(exactMatch);
+      return;
+    }
+    const alreadySelected = selectedSpecialties.find(s => s.name === trimmed);
+    if (alreadySelected) {
+      setQuery('');
+      setIsOpen(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/specialties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed })
+      });
+      if (res.ok) {
+        const newSpecialty = await res.json();
+        addSpecialty(newSpecialty);
+      }
+    } catch (error) {
+      console.error('Error creating custom specialty', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && query.trim() !== '') {
       e.preventDefault();
-      // بررسی اینکه آیا دقیقاً با چیزی در پیشنهادها مچ است؟
-      const exactMatch = suggestions.find(s => s.name === query.trim());
-      
-      if (exactMatch) {
-        addSpecialty(exactMatch);
-      } else {
-        // ایجاد تخصص جدید
-        setIsLoading(true);
-        try {
-          const res = await fetch('/api/specialties', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: query.trim() })
-          });
-          if (res.ok) {
-            const newSpecialty = await res.json();
-            addSpecialty(newSpecialty);
-          }
-        } catch (error) {
-          console.error('Error creating custom specialty', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
+      await handleCreateCustomSpecialty(query.trim());
     }
   };
 
@@ -130,11 +142,11 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
           <input
             type="text"
             className="w-full h-full p-2 outline-none text-slate-900 font-medium placeholder:text-slate-400 bg-transparent text-sm sm:text-base"
-            placeholder={selectedSpecialties.length === 0 ? "تخصص‌ها را تایپ و انتخاب کنید... (مثل: سفال‌گری)" : "تخصص دیگری اضافه کنید..."}
+            placeholder={selectedSpecialties.length === 0 ? "مثال: سفالگری، میناکاری، قلمزنی..." : "مثال: خاتم‌کاری..."}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            onFocus={() => { if (suggestions.length > 0) setIsOpen(true); }}
+            onFocus={() => { if (suggestions.length > 0 || query.trim().length > 0) setIsOpen(true); }}
           />
           {isLoading && (
              <div className="absolute left-2 top-2.5">
@@ -147,9 +159,9 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
         </div>
       </div>
 
-      {isOpen && query.length > 0 && (
-        <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-          {suggestions.length > 0 ? (
+      {isOpen && query.trim().length > 0 && (
+        <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-64 overflow-y-auto divide-y divide-slate-100">
+          {suggestions.length > 0 && (
             <ul className="py-1 divide-y divide-slate-100">
               {suggestions.map(specialty => (
                 <li 
@@ -158,7 +170,7 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
                   onClick={() => addSpecialty(specialty)}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="font-bold">{specialty.name}</span>
+                    <span className="font-bold text-sm">{specialty.name}</span>
                     {specialty.parent && (
                       <span className="text-xs text-slate-400">({specialty.parent.name})</span>
                     )}
@@ -167,12 +179,20 @@ export default function SpecialtyTagInput({ selectedSpecialties, onChange }: Spe
                 </li>
               ))}
             </ul>
-          ) : (
-            <div className="p-4 text-center text-sm text-slate-500">
-              تخصصی با این نام یافت نشد. <br/>
-              برای ثبت به عنوان تخصص جدید، دکمه <kbd className="bg-slate-100 px-2 py-1 rounded font-mono font-bold mx-1">Enter</kbd> را بزنید.
-            </div>
           )}
+
+          {/* Action button to add custom specialty: works on single tap for mobile and click/enter for desktop */}
+          <div className="p-2.5 bg-slate-50/90">
+            <button
+              type="button"
+              onClick={() => handleCreateCustomSpecialty(query.trim())}
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <span>+</span>
+              <span>افزودن «{query.trim()}» به عنوان تخصص جدید</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

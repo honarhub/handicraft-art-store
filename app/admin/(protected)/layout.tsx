@@ -96,9 +96,37 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
       {/* سایدبار ادمین کل */}
       <aside className="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 shadow-xl z-20">
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-xl font-black text-white tracking-tight">کنترل پنل ارشد</h1>
-          <p className="text-xs text-slate-500 mt-1">مدیریت کل سیستم</p>
+        <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              {/* لوگوی هنرهاب ارجاع به صفحه اصلی سایت */}
+              <a
+                href="/"
+                className="text-xl font-black tracking-tight flex items-center select-none group"
+                dir="rtl"
+                title="مشاهده صفحه اصلی فروشگاه هنرهاب"
+              >
+                <span className="text-white">هنر</span>
+                <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded mr-1 text-xs font-black shadow-sm group-hover:scale-105 transition-transform">
+                  هاب
+                </span>
+              </a>
+            </div>
+            <h1 className="text-sm sm:text-base font-black text-white tracking-tight">کنترل پنل ارشد</h1>
+            <p className="text-[11px] text-slate-400">مدیریت کل سیستم</p>
+          </div>
+
+          <a
+            href="/"
+            title="بازگشت به صفحه اصلی سایت"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-xs"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span>صفحه اصلی</span>
+          </a>
         </div>
         <AdminSidebarNav 
           initialCounts={{

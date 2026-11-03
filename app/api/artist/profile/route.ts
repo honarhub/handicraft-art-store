@@ -36,7 +36,20 @@ export async function GET(request: Request) {
 
     const isSsoUser = artist.user.accounts.some(a => a.provider === 'google');
     const isPhoneVerified = Boolean(artist.user.phoneNumber);
-    const isEmailVerified = Boolean(artist.user.emailVerified || isSsoUser);
+    let isEmailVerified = Boolean(artist.user.emailVerified || isSsoUser);
+    
+    // If artist already has an email (registered or entered previously) and not marked, treat as verified and persist
+    if (!isEmailVerified && artist.user.email) {
+      isEmailVerified = true;
+      try {
+        await prisma.user.update({
+          where: { id: artist.user.id },
+          data: { emailVerified: new Date() }
+        });
+      } catch (e) {
+        console.error('Failed to update emailVerified in profile GET:', e);
+      }
+    }
     const isProfilePending = hasProfilePendingEdits(artist.pendingEdits);
 
     const siteSettings = await prisma.siteSettings.findUnique({

@@ -96,12 +96,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (action === 'updateStatus') {
       const updateData: any = { status };
-      if (adminFeedback !== undefined) {
-        updateData.adminFeedback = adminFeedback || null;
-        if (adminFeedback && adminFeedback.trim()) {
+      let finalFeedback = adminFeedback;
+      if (status === 'REJECTED' && (!finalFeedback || !finalFeedback.trim())) {
+        finalFeedback = 'این اثر با قوانین و استانداردهای کیفی گالری هنرهاب مطابقت ندارد. لطفاً اطلاعات و تصاویر را بازبینی فرمایید.';
+      }
+
+      if (finalFeedback !== undefined) {
+        updateData.adminFeedback = finalFeedback || null;
+        if (finalFeedback && finalFeedback.trim()) {
           updateData.adminFeedbackHistory = appendFeedbackHistory(
             currentProduct.adminFeedbackHistory,
-            adminFeedback.trim(),
+            finalFeedback.trim(),
             status || currentProduct.status
           );
           updateData.adminFeedbackRead = false;

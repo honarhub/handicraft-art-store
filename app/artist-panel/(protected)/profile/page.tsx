@@ -98,6 +98,7 @@ export default function ArtistProfilePage() {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [isProfileSmsActive, setIsProfileSmsActive] = useState(true);
+  const verifiedEmailRef = useRef<string>('');
 
   // Phone OTP Modal States (Required for every profile submission)
   const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
@@ -139,7 +140,14 @@ export default function ArtistProfilePage() {
       setArtist(data);
       setIsSsoUser(Boolean(data.isSsoUser));
       setIsPhoneVerified(Boolean(data.isPhoneVerified));
-      setIsEmailVerified(Boolean(data.isEmailVerified));
+      const emailIsVerified = Boolean(data.isEmailVerified || data.user?.emailVerified || data.isSsoUser);
+      setIsEmailVerified(emailIsVerified);
+      const initialEmail = (hasProfilePendingEdits(data.pendingEdits)
+        ? (typeof data.pendingEdits === 'string' ? JSON.parse(data.pendingEdits).email : data.pendingEdits?.email)
+        : data.user?.email) || data.user?.email || '';
+      if (emailIsVerified && initialEmail) {
+        verifiedEmailRef.current = initialEmail.trim().toLowerCase();
+      }
       if (typeof data.isProfileSmsActive === 'boolean') {
         setIsProfileSmsActive(data.isProfileSmsActive);
       }
@@ -577,6 +585,7 @@ export default function ArtistProfilePage() {
       if (!res.ok) throw new Error(data.error || 'کد تایید ایمیل اشتباه است یا منقضی شده است.');
 
       setIsEmailVerified(true);
+      verifiedEmailRef.current = email.trim().toLowerCase();
       setShowEmailOtpModal(false);
       setSuccessMsg('ایمیل شما با موفقیت تایید شد.');
     } catch (err: any) {
@@ -1167,9 +1176,15 @@ export default function ArtistProfilePage() {
                     dir="ltr"
                     value={email} 
                     onChange={e => {
+                      const val = e.target.value;
                       isFormDirtyRef.current = true;
-                      setEmail(e.target.value);
+                      setEmail(val);
                       if (fieldErrors.email) setFieldErrors(prev => ({ ...prev, email: '' }));
+                      if (verifiedEmailRef.current && val.trim().toLowerCase() === verifiedEmailRef.current) {
+                        setIsEmailVerified(true);
+                      } else {
+                        setIsEmailVerified(false);
+                      }
                     }} 
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -1311,9 +1326,14 @@ export default function ArtistProfilePage() {
               
               {/* 9. Specialties (Optional) */}
               <div className="md:col-span-2">
-                <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-2">
-                  تخصص‌ها و رشته‌های هنری <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
-                </label>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
+                    تخصص‌ها و رشته‌های هنری <span className="text-slate-400 font-normal text-xs">(اختیاری)</span>
+                  </label>
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    مثال: سفالگری، میناکاری، قلمزنی، خاتم‌کاری
+                  </span>
+                </div>
                 <SpecialtyTagInput 
                   selectedSpecialties={specialties} 
                   onChange={specs => {

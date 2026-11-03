@@ -43,6 +43,18 @@ export async function POST(req: Request) {
       data: { used: true }
     });
 
+    // If verifying email, also mark emailVerified on user if user exists
+    if (isEmail) {
+      try {
+        await prisma.user.updateMany({
+          where: { email: normalizedTarget },
+          data: { emailVerified: new Date() }
+        });
+      } catch (e) {
+        console.error('[API /api/auth/otp/verify] Error updating user emailVerified:', e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'کد تایید با موفقیت اعتبارسنجی شد.',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isValidIranianNationalId, isValidIranianSheba, hasProfilePendingEdits } from '@/lib/sms';
@@ -163,6 +163,18 @@ export default function ArtistVerificationPage() {
   // National Card crop modal states
   const [cardCropModalOpen, setCardCropModalOpen] = useState(false);
   const [rawCardImageForCrop, setRawCardImageForCrop] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  const showKycError = (msg: string) => {
+    setKycError(msg);
+    setTimeout(() => {
+      if (errorRef.current) {
+        errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        window.scrollTo({ top: 350, behavior: 'smooth' });
+      }
+    }, 50);
+  };
 
   const handleCardImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -274,40 +286,40 @@ export default function ArtistVerificationPage() {
     // Validate only fields that are NOT already approved
     if (!isNationalIdApproved) {
       if (!nationalId.trim()) {
-        setKycError('کد ملی ۱۰ رقمی الزامی است.');
+        showKycError('کد ملی ۱۰ رقمی الزامی است.');
         return;
       }
       if (!isValidIranianNationalId(nationalId)) {
-        setKycError('کدملی نادرست است.');
+        showKycError('کدملی نادرست است.');
         return;
       }
     }
     if (!isCardApproved && !nationalCardImage) {
-      setKycError('تصویر روی کارت ملی الزامی است.');
+      showKycError('تصویر روی کارت ملی الزامی است.');
       return;
     }
     if (!isBirthDateApproved) {
       if (!birthDay || !birthMonth || !birthYear) {
-        setKycError('تاریخ کامل تولد (روز، ماه و سال) الزامی است.');
+        showKycError('تاریخ کامل تولد (روز، ماه و سال) الزامی است.');
         return;
       }
     }
     if (!isShebaApproved) {
       if (!shebaNumber.trim()) {
-        setKycError('شماره شبا ۲۴ رقمی الزامی است.');
+        showKycError('شماره شبا ۲۴ رقمی الزامی است.');
         return;
       }
       if (!isValidIranianSheba(shebaNumber)) {
-        setKycError('شماره شبا نادرست است.');
+        showKycError('شماره شبا نادرست است.');
         return;
       }
     }
     if (!isAddressApproved && !address.trim()) {
-      setKycError('آدرس محل سکونت یا کارگاه الزامی است.');
+      showKycError('آدرس محل سکونت یا کارگاه الزامی است.');
       return;
     }
     if (!isPostalCodeApproved && (!postalCode.trim() || postalCode.length !== 10)) {
-      setKycError('کد پستی ۱۰ رقمی الزامی است.');
+      showKycError('کد پستی ۱۰ رقمی الزامی است.');
       return;
     }
 
@@ -340,7 +352,7 @@ export default function ArtistVerificationPage() {
       window.dispatchEvent(new CustomEvent('admin-counts-update'));
       fetchProfile();
     } catch (err: any) {
-      setKycError(err.message || 'مشکلی در ثبت مدارک رخ داد.');
+      showKycError(err.message || 'مشکلی در ثبت مدارک رخ داد.');
     } finally {
       setKycSubmitting(false);
     }
@@ -553,18 +565,20 @@ export default function ArtistVerificationPage() {
             <form onSubmit={handleSubmitLevel3} noValidate className="mt-6 space-y-6">
               
               {/* Notification Banners */}
-              {kycSuccess && (
-                <div className="p-4 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-2xl border border-emerald-200 flex items-center gap-2">
-                  <span>✓</span>
-                  <span>{kycSuccess}</span>
-                </div>
-              )}
-              {kycError && (
-                <div className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-200 flex items-center gap-2">
-                  <span>✕</span>
-                  <span>{kycError}</span>
-                </div>
-              )}
+              <div ref={errorRef} className="scroll-mt-24">
+                {kycSuccess && (
+                  <div className="p-4 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-2xl border border-emerald-200 flex items-center gap-2">
+                    <span>✓</span>
+                    <span>{kycSuccess}</span>
+                  </div>
+                )}
+                {kycError && (
+                  <div className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl border border-red-200 flex items-center gap-2">
+                    <span>✕</span>
+                    <span>{kycError}</span>
+                  </div>
+                )}
+              </div>
 
               {/* Status Alert Banner: Needs Revision */}
               {level3Status === 'NEEDS_REVISION' && !kycSuccess && (
@@ -995,7 +1009,13 @@ export default function ArtistVerificationPage() {
 
               {/* Action Submit Button */}
               {level < 3 && (
-                <div className="pt-2">
+                <div className="pt-2 space-y-3">
+                  {kycError && (
+                    <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 flex items-center gap-2">
+                      <span>⚠️</span>
+                      <span>{kycError}</span>
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={kycSubmitting || (approvedFields.length === 6)}

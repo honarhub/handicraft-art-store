@@ -112,6 +112,7 @@ export async function POST(req: Request) {
       data: {
         name: defaultName,
         email: isEmail ? normalizedTarget : null,
+        emailVerified: isEmail ? new Date() : null,
         phoneNumber: isEmail ? null : normalizedTarget,
         password: hashedPassword,
         role: 'ARTIST',

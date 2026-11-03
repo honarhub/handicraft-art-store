@@ -49,22 +49,28 @@ export default function ArtistProductFeedbackButton({
   }
 
   // Fallback to single item if history array is not populated
-  if (historyItems.length === 0 && adminFeedback && adminFeedback.trim()) {
+  const effectiveFeedback = (adminFeedback && adminFeedback.trim()) 
+    ? adminFeedback.trim() 
+    : status === 'REJECTED' 
+    ? 'این اثر با قوانین و استانداردهای کیفی گالری هنرهاب مطابقت ندارد. لطفاً اطلاعات و تصاویر را بازبینی فرمایید.' 
+    : null;
+
+  if (historyItems.length === 0 && effectiveFeedback) {
     historyItems = [{
-      message: adminFeedback,
+      message: effectiveFeedback,
       status: status,
       read: adminFeedbackRead
     }];
   }
 
-  // If no admin message exists, render dash
-  if (historyItems.length === 0 && (!adminFeedback || !adminFeedback.trim())) {
+  // If no admin message exists and product is not rejected, render dash
+  if (historyItems.length === 0 && !effectiveFeedback) {
     return <span className="text-slate-300 font-bold select-none">-</span>;
   }
 
   // Unread status indicator
   const hasUnread = !isRead && (
-    Boolean(adminFeedback?.trim()) || historyItems.some(item => !item.read)
+    Boolean(effectiveFeedback) || historyItems.some(item => !item.read)
   );
 
   const handleOpen = async () => {
@@ -131,23 +137,33 @@ export default function ArtistProductFeedbackButton({
     }
   };
 
+  const isAlertState = hasUnread || status === 'REJECTED';
+
   return (
     <>
-      {/* دکمه نوتیفیکیشن / آیکون در سطر جدول */}
+      {/* دکمه نوتیفیکیشن / نمایش پیام در سطر جدول و کارت موبایل */}
       <button
         type="button"
         onClick={handleOpen}
         title={hasUnread ? 'پیام جدید از ادمین (کلیک جهت مشاهده)' : 'مشاهده تاریخچه پیام‌های ادمین'}
-        className={`relative inline-flex items-center justify-center w-9 h-9 rounded-xl transition-all cursor-pointer ${
-          hasUnread
-            ? 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 shadow-sm ring-2 ring-amber-400/30'
-            : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 hover:text-slate-800'
+        className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold ${
+          isAlertState
+            ? 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 shadow-sm ring-2 ring-rose-400/25'
+            : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
         }`}
       >
+        {/* نشانگر نوتیفیکیشن قرمز رنگ */}
+        {isAlertState && (
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+          </span>
+        )}
+
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="17"
-          height="17"
+          width="15"
+          height="15"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -158,15 +174,7 @@ export default function ArtistProductFeedbackButton({
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
 
-        {/* بج نوتیفیکیشن در صورت وجود پیام خوانده‌نشده */}
-        {hasUnread && (
-          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5" dir="ltr">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border-2 border-white text-[8px] text-white font-black items-center justify-center">
-              !
-            </span>
-          </span>
-        )}
+        <span>نمایش پیام</span>
       </button>
 
       {/* مودال پاپ‌آپ تاریخچه پیام‌های ادمین */}

@@ -27,44 +27,34 @@ export default function AdminProductsPage() {
       });
   }, []);
 
+  const DEFAULT_REJECTION_FEEDBACK = 'این اثر با قوانین و استانداردهای کیفی گالری هنرهاب مطابقت ندارد. لطفاً اطلاعات و تصاویر را بازبینی فرمایید.';
+
   const handleToggleStatus = async (product: any) => {
     const isApproved = product.status === 'APPROVED';
-    const newStatus = isApproved ? 'REJECTED' : 'APPROVED';
-    
-    try {
-      const res = await fetch(`/api/products/${product.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'updateStatus', 
-          status: newStatus,
-          adminFeedback: isApproved ? 'غیرفعال شده توسط ادمین' : ''
-        })
-      });
-      if (!res.ok) throw new Error('خطا در تغییر وضعیت');
-      
-      setProducts(products.map(p => p.id === product.id ? { ...p, status: newStatus } : p));
-      window.dispatchEvent(new CustomEvent('admin-counts-update'));
-    } catch (err) {
-      alert('خطا در تغییر وضعیت محصول');
+    if (isApproved) {
+      // اگر محصول فعال است و قرار است غیرفعال/رد شود، دلیل رد را از ادمین می‌خواهیم
+      setModalConfig({ isOpen: true, id: product.id });
+      return;
     }
+    // در صورت فعال‌سازی مجدد محصول:
+    await handleUpdateStatus(product.id, 'APPROVED', '');
   };
 
   const handleUpdateStatus = async (id: string, status: string, feedback: string = '') => {
-    if (status === 'REJECTED' && !feedback) {
-      setModalConfig({ isOpen: true, id });
-      return;
+    let finalFeedback = feedback?.trim() || '';
+    if (status === 'REJECTED' && !finalFeedback) {
+      finalFeedback = DEFAULT_REJECTION_FEEDBACK;
     }
 
     try {
       const res = await fetch(`/api/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'updateStatus', status, adminFeedback: feedback })
+        body: JSON.stringify({ action: 'updateStatus', status, adminFeedback: finalFeedback })
       });
       if (!res.ok) throw new Error('خطا در بروزرسانی');
       
-      setProducts(products.map(p => p.id === id ? { ...p, status } : p));
+      setProducts(products.map(p => p.id === id ? { ...p, status, adminFeedback: finalFeedback } : p));
       window.dispatchEvent(new CustomEvent('admin-counts-update'));
     } catch (err) {
       alert('خطا در اعمال تغییرات');
@@ -74,7 +64,8 @@ export default function AdminProductsPage() {
   const submitReject = (reason: string) => {
     const id = modalConfig.id;
     setModalConfig({ isOpen: false, id: '' });
-    handleUpdateStatus(id, 'REJECTED', reason);
+    const finalReason = reason && reason.trim() ? reason.trim() : DEFAULT_REJECTION_FEEDBACK;
+    handleUpdateStatus(id, 'REJECTED', finalReason);
   };
 
   const handleApprovePendingEdits = async (id: string, feedback: string = '') => {
@@ -124,11 +115,12 @@ export default function AdminProductsPage() {
   };
 
   const handleRejectProductOrEdits = async (id: string, feedback: string = '') => {
+    const finalFeedback = feedback?.trim() || DEFAULT_REJECTION_FEEDBACK;
     const product = products.find(p => p.id === id);
     if (product?.hasPendingEdits) {
-      await handleRejectPendingEdits(id, feedback);
+      await handleRejectPendingEdits(id, finalFeedback);
     } else {
-      await handleUpdateStatus(id, 'REJECTED', feedback);
+      await handleUpdateStatus(id, 'REJECTED', finalFeedback);
       setReviewModalProduct(null);
     }
   };
