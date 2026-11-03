@@ -4,6 +4,8 @@ import fs from 'fs';
 import { promises as fsPromises } from 'fs';
 import path from 'path';
 import { saveUploadImage } from '@/lib/fileUpload';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -64,7 +66,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const currentProduct = await prisma.product.findUnique({
       where: { id },
-      include: { specialties: true, pricingTiers: true }
+      include: { specialties: true, pricingTiers: true, artist: true }
     });
 
     if (!currentProduct) {
@@ -194,6 +196,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           adminFeedbackHistory: newHistory,
           adminFeedbackRead: false
         }
+      });
+      return NextResponse.json(updated);
+    }
+
+    if (action === 'restoreProduct') {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'عدم دسترسی' }, { status: 401 });
+      }
+      const isOwner = currentProduct.artist?.userId === session.user.id;
+      const isAdmin = session.user.role === 'ADMIN';
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json({ error: 'عدم دسترسی' }, { status: 403 });
+      }
+      const updated = await prisma.product.update({
+        where: { id },
+        data: { deletedAt: null, status: 'PENDING' }
       });
       return NextResponse.json(updated);
     }
@@ -415,12 +434,28 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'عدم دسترسی' }, { status: 401 });
+    }
     const { id } = await params;
-    await prisma.product.update({
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { artist: true }
+    });
+    if (!product) {
+      return NextResponse.json({ error: 'محصول یافت نشد' }, { status: 404 });
+    }
+    const isOwner = product.artist.userId === session.user.id;
+    const isAdmin = session.user.role === 'ADMIN';
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json({ error: 'عدم دسترسی' }, { status: 403 });
+    }
+    const updated = await prisma.product.update({
       where: { id },
       data: { deletedAt: new Date(), status: 'ARCHIVED' }
     });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, product: updated });
   } catch (error) {
     return NextResponse.json({ error: 'خطا در حذف محصول' }, { status: 500 });
   }

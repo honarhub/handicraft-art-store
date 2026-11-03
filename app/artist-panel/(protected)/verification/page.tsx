@@ -1010,13 +1010,7 @@ export default function ArtistVerificationPage() {
 
               {/* Action Submit Button */}
               {level < 3 && (
-                <div className="pt-2 space-y-3">
-                  {kycError && (
-                    <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 flex items-center gap-2">
-                      <span>⚠️</span>
-                      <span>{kycError}</span>
-                    </div>
-                  )}
+                <div className="pt-2">
                   <button
                     type="submit"
                     disabled={kycSubmitting || (approvedFields.length === 6)}

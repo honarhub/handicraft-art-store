@@ -30,30 +30,15 @@ export default function ArtistSidebar({
       {/* Mobile Top Header (< md) */}
       <header className="md:hidden sticky top-0 z-40 bg-teal-950 text-teal-100 border-b border-teal-800/80 shadow-md">
         <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* لوگوی هنرهاب ارجاع به صفحه اصلی */}
-            <a
-              href="/"
-              className="text-lg font-black tracking-tight flex items-center select-none group shrink-0"
-              dir="rtl"
-              title="مشاهده صفحه اصلی فروشگاه هنرهاب"
-            >
-              <span className="text-white">هنر</span>
-              <span className="bg-[#FF9900] text-black px-1.5 py-0.2 rounded mr-1 text-xs font-black shadow-sm group-hover:scale-105 transition-transform">
-                هاب
-              </span>
-            </a>
-
-            <div className="w-px h-5 bg-teal-800 shrink-0"></div>
-
+          <div className="flex items-center gap-3">
             {artist.user.image ? (
               <img 
                 src={artist.user.image} 
                 alt={artist.user.name || ''} 
-                className="w-8 h-8 rounded-full border border-teal-600 object-cover shrink-0" 
+                className="w-9 h-9 rounded-full border border-teal-600 object-cover shrink-0" 
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-teal-800 text-white flex items-center justify-center font-black text-xs shrink-0">
+              <div className="w-9 h-9 rounded-full bg-teal-800 text-white flex items-center justify-center font-black text-xs shrink-0">
                 {artist.user.name?.[0] || 'هـ'}
               </div>
             )}
@@ -65,32 +50,18 @@ export default function ArtistSidebar({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* آیکون صفحه اصلی / هوم */}
-            <a
-              href="/"
-              title="مشاهده صفحه اصلی سایت هنرهاب"
-              className="p-1.5 sm:p-2 rounded-xl bg-teal-900 border border-teal-700 hover:bg-teal-800 text-teal-200 transition-colors flex items-center justify-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </a>
-
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-teal-900 border border-teal-700 hover:bg-teal-800 text-teal-100 text-xs font-bold transition-colors cursor-pointer"
-              aria-expanded={mobileMenuOpen}
-            >
-              {unreadFeedbackCount > 0 && !mobileMenuOpen && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-              )}
-              <span>{mobileMenuOpen ? 'بستن منو' : 'منوی پنل'}</span>
-              <span className="text-sm font-mono">{mobileMenuOpen ? '✕' : '☰'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-900 border border-teal-700 hover:bg-teal-800 text-teal-100 text-xs font-bold transition-colors cursor-pointer"
+            aria-expanded={mobileMenuOpen}
+          >
+            {unreadFeedbackCount > 0 && !mobileMenuOpen && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            )}
+            <span>{mobileMenuOpen ? 'بستن منو' : 'منوی پنل'}</span>
+            <span className="text-sm font-mono">{mobileMenuOpen ? '✕' : '☰'}</span>
+          </button>
         </div>
 
         {/* Mobile Dropdown Menu */}
@@ -102,13 +73,6 @@ export default function ArtistSidebar({
               onNavigate={() => setMobileMenuOpen(false)}
             />
             <div className="pt-2 border-t border-teal-800/80 space-y-2">
-              <a 
-                href="/" 
-                className="px-4 py-2.5 w-full text-center rounded-xl bg-teal-900/60 border border-teal-700 hover:bg-teal-900 transition-colors text-xs text-teal-200 font-bold block flex items-center justify-center gap-2"
-              >
-                <span>🏠</span>
-                <span>مشاهده صفحه اصلی فروشگاه</span>
-              </a>
               {isAdmin && (
                 <a 
                   href="/admin" 
@@ -138,31 +102,15 @@ export default function ArtistSidebar({
 
       {/* Desktop Persistent Sidebar (>= md) */}
       <aside className="hidden md:flex md:w-64 bg-teal-950 text-teal-100 flex-shrink-0 shadow-xl z-20 flex-col min-h-screen">
-        {/* برند و لوگوی هنرهاب و لینک به صفحه اصلی */}
+        {/* برند و عنوان پنل */}
         <div className="p-5 border-b border-teal-800/80 flex items-center justify-between">
-          <a
-            href="/"
-            className="text-xl font-black tracking-tight flex items-center select-none group"
-            dir="rtl"
-            title="مشاهده صفحه اصلی فروشگاه هنرهاب"
-          >
+          <div className="text-xl font-black tracking-tight flex items-center select-none" dir="rtl">
             <span className="text-white">هنر</span>
-            <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded mr-1 text-sm font-black shadow-sm group-hover:scale-105 transition-transform">
+            <span className="bg-[#FF9900] text-black px-1.5 py-0.5 rounded mr-1 text-sm font-black shadow-sm">
               هاب
             </span>
-          </a>
-
-          <a
-            href="/"
-            title="مشاهده صفحه اصلی سایت"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-teal-900 hover:bg-teal-800 text-teal-200 border border-teal-700/80 text-xs font-bold transition-all shadow-xs"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            <span>صفحه اصلی</span>
-          </a>
+          </div>
+          <span className="text-xs font-bold text-teal-400">پنل هنرمندان</span>
         </div>
 
         {/* کارت پروفایل هنرمند */}

@@ -9,13 +9,15 @@ import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const includeArchived = searchParams.get('includeArchived') === 'true';
     const session = await getServerSession(authOptions);
     const isAdmin = session?.user?.role === 'ADMIN';
 
     const whereClause: any = isAdmin 
-      ? { deletedAt: null }
+      ? (includeArchived ? {} : { deletedAt: null })
       : { 
           status: 'APPROVED', 
           deletedAt: null,
@@ -36,6 +38,7 @@ export async function GET() {
 
     const formatted = products.map(p => ({
       id: p.id,
+      displayId: p.displayId,
       title: p.title,
       imageUrl: p.imageUrl,
       artistName: p.artist.user.name || 'بدون نام',
@@ -54,7 +57,8 @@ export async function GET() {
       ),
       pendingEdits: typeof p.pendingEdits === 'string' ? JSON.parse(p.pendingEdits) : p.pendingEdits,
       mediaUrls: p.mediaUrls,
-      description: p.description
+      description: p.description,
+      deletedAt: p.deletedAt
     }));
 
     return NextResponse.json(formatted);

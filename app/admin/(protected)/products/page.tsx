@@ -8,14 +8,15 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Search and Sort states
+  // Search, Sort and Archive states
   const [searchQuery, setSearchQuery] = useState('');
   const [sortPrice, setSortPrice] = useState<'none' | 'asc' | 'desc'>('none');
+  const [showArchived, setShowArchived] = useState(false);
   const [modalConfig, setModalConfig] = useState<{isOpen: boolean, id: string}>({isOpen: false, id: ''});
   const [reviewModalProduct, setReviewModalProduct] = useState<any | null>(null);
 
   useEffect(() => {
-    fetch('/api/products', { cache: 'no-store' })
+    fetch('/api/products?includeArchived=true', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setProducts(data);
@@ -125,8 +126,46 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleSoftDelete = async (id: string, title?: string) => {
+    const confirm = window.confirm(`آیا از حذف / بایگانی محصول «${title || ''}» اطمینان دارید؟`);
+    if (confirm) {
+      try {
+        const res = await fetch(`/api/products/${id}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) throw new Error('خطا در حذف محصول');
+
+        setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'ARCHIVED', deletedAt: new Date().toISOString() } : p));
+        window.dispatchEvent(new CustomEvent('admin-counts-update'));
+      } catch (error) {
+        alert('عملیات با خطا مواجه شد');
+      }
+    }
+  };
+
+  const handleRestoreProduct = async (id: string) => {
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restoreProduct' })
+      });
+      if (!res.ok) throw new Error('خطا در بازیابی محصول');
+
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'PENDING', deletedAt: null } : p));
+      window.dispatchEvent(new CustomEvent('admin-counts-update'));
+      alert('محصول با موفقیت از بایگانی خارج شد و به وضعیت در انتظار تایید منتقل گردید.');
+    } catch (error) {
+      alert('عملیات با خطا مواجه شد');
+    }
+  };
+
   // Filter and Sort Logic
   const filteredProducts = products.filter(p => {
+    const isArchived = Boolean(p.deletedAt || p.status === 'ARCHIVED');
+    if (showArchived && !isArchived) return false;
+    if (!showArchived && isArchived) return false;
+
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return p.title.toLowerCase().includes(q) 
@@ -194,17 +233,29 @@ export default function AdminProductsPage() {
           <svg className="absolute left-3 top-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </div>
         
-        <div className="w-full md:w-auto flex items-center justify-between md:justify-start gap-2">
-          <span className="text-xs sm:text-sm font-bold text-slate-700 shrink-0">مرتب‌سازی قیمت:</span>
-          <select 
-            value={sortPrice} 
-            onChange={(e) => setSortPrice(e.target.value as any)}
-            className="border border-slate-300 bg-white text-slate-900 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold outline-none focus:border-purple-500 cursor-pointer"
-          >
-            <option value="none">بدون مرتب‌سازی</option>
-            <option value="desc">بیشترین به کمترین</option>
-            <option value="asc">کمترین به بیشترین</option>
-          </select>
+        <div className="w-full md:w-auto flex flex-wrap items-center justify-between md:justify-start gap-3">
+          <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 font-medium cursor-pointer bg-white px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors">
+            <input 
+              type="checkbox" 
+              checked={showArchived} 
+              onChange={e => setShowArchived(e.target.checked)} 
+              className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer" 
+            />
+            نمایش بایگانی شده‌ها
+          </label>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm font-bold text-slate-700 shrink-0">مرتب‌سازی قیمت:</span>
+            <select 
+              value={sortPrice} 
+              onChange={(e) => setSortPrice(e.target.value as any)}
+              className="border border-slate-300 bg-white text-slate-900 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold outline-none focus:border-purple-500 cursor-pointer"
+            >
+              <option value="none">بدون مرتب‌سازی</option>
+              <option value="desc">بیشترین به کمترین</option>
+              <option value="asc">کمترین به بیشترین</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -221,11 +272,14 @@ export default function AdminProductsPage() {
         ) : (
           sortedProducts.map((product) => {
             const isWaiting = isPending(product);
+            const isArchived = Boolean(product.deletedAt || product.status === 'ARCHIVED');
             return (
               <div 
                 key={product.id}
                 className={`bg-white rounded-2xl p-4 border shadow-xs transition-all space-y-3.5 ${
-                  isWaiting 
+                  isArchived
+                    ? 'border-slate-300 bg-slate-50/50 opacity-80'
+                    : isWaiting 
                     ? 'border-amber-400 bg-amber-50/30 ring-1 ring-amber-300' 
                     : 'border-slate-200'
                 }`}
@@ -295,30 +349,42 @@ export default function AdminProductsPage() {
                       بدون پیش‌سفارش
                     </span>
                   )}
+
+                  {isArchived && (
+                    <span className="bg-slate-200 text-slate-700 font-bold px-2.5 py-1 rounded-lg">
+                      بایگانی شده
+                    </span>
+                  )}
                 </div>
 
                 {/* Publish Toggle Row */}
                 <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <button 
-                      type="button"
-                      dir="ltr"
-                      onClick={() => handleToggleStatus(product)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${product.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                      title={product.status === 'APPROVED' ? 'غیرفعال کردن اثر در سایت' : 'فعال کردن و انتشار اثر در سایت'}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                          product.status === 'APPROVED' ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                    <span className="text-xs font-bold text-slate-800">
-                      {product.status === 'APPROVED' ? 'منتشر شده' : 'غیرفعال'}
+                  {isArchived ? (
+                    <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                      وضعیت: بایگانی شده
                     </span>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button 
+                        type="button"
+                        dir="ltr"
+                        onClick={() => handleToggleStatus(product)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${product.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        title={product.status === 'APPROVED' ? 'غیرفعال کردن اثر در سایت' : 'فعال کردن و انتشار اثر در سایت'}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            product.status === 'APPROVED' ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                      <span className="text-xs font-bold text-slate-800">
+                        {product.status === 'APPROVED' ? 'منتشر شده' : 'غیرفعال'}
+                      </span>
+                    </div>
+                  )}
 
-                  {isWaiting && (
+                  {isWaiting && !isArchived && (
                     <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                       در انتظار بررسی
@@ -328,30 +394,58 @@ export default function AdminProductsPage() {
 
                 {/* Actions Bar */}
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                  {isWaiting && (
+                  {isArchived ? (
                     <button 
-                      type="button"
-                      onClick={() => setReviewModalProduct(product)} 
-                      className="flex-1 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                      type="button" 
+                      onClick={() => handleRestoreProduct(product.id)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-purple-200 cursor-pointer"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      <span>{product.hasPendingEdits ? 'بررسی تغییرات' : 'بررسی و تایید'}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                      <span>بازیابی اثر</span>
                     </button>
-                  )}
+                  ) : (
+                    <>
+                      {isWaiting && (
+                        <button 
+                          type="button"
+                          onClick={() => setReviewModalProduct(product)} 
+                          className="flex-1 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                          <span>{product.hasPendingEdits ? 'بررسی تغییرات' : 'بررسی و تایید'}</span>
+                        </button>
+                      )}
 
-                  <a 
-                    href={`/admin/products/${product.id}/edit`} 
-                    className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-slate-200"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    <span>ویرایش اثر</span>
-                  </a>
+                      <a 
+                        href={`/admin/products/${product.id}/edit`} 
+                        className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-slate-200"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span>ویرایش اثر</span>
+                      </a>
+
+                      <button 
+                        type="button"
+                        onClick={() => handleSoftDelete(product.id, product.title)}
+                        title="حذف و بایگانی محصول"
+                        className="p-2 rounded-xl text-red-600 bg-red-50 hover:bg-red-100 transition-colors border border-red-200 cursor-pointer"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18"></path>
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -388,11 +482,14 @@ export default function AdminProductsPage() {
                 </tr>
               ) : sortedProducts.map((product) => {
                 const isWaiting = isPending(product);
+                const isArchived = Boolean(product.deletedAt || product.status === 'ARCHIVED');
                 return (
                   <tr 
                     key={product.id} 
                     className={`transition-colors ${
-                      isWaiting 
+                      isArchived
+                        ? 'bg-slate-50/70 opacity-75'
+                        : isWaiting 
                         ? 'bg-amber-50/40 hover:bg-amber-100/60 border-r-4 border-r-amber-500' 
                         : 'hover:bg-slate-50'
                     }`}
@@ -440,53 +537,84 @@ export default function AdminProductsPage() {
                     {product.stockQuantity || 0}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center justify-center gap-1.5">
-                      <button 
-                        type="button"
-                        dir="ltr"
-                        onClick={() => handleToggleStatus(product)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${product.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                        title={product.status === 'APPROVED' ? 'غیرفعال کردن اثر در سایت' : 'فعال کردن و انتشار اثر در سایت'}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            product.status === 'APPROVED' ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
+                    {isArchived ? (
+                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full">
+                        بایگانی شده
+                      </span>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <button 
+                          type="button"
+                          dir="ltr"
+                          onClick={() => handleToggleStatus(product)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${product.status === 'APPROVED' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          title={product.status === 'APPROVED' ? 'غیرفعال کردن اثر در سایت' : 'فعال کردن و انتشار اثر در سایت'}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              product.status === 'APPROVED' ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
 
-                      {product.status === 'APPROVED' ? (
-                        <span className="text-[11px] font-bold text-emerald-700">فعال (منتشر شده)</span>
-                      ) : (product.hasPendingEdits || product.status === 'PENDING') ? (
-                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                          در انتظار تایید
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-bold text-slate-500">غیرفعال</span>
-                      )}
-                    </div>
+                        {product.status === 'APPROVED' ? (
+                          <span className="text-[11px] font-bold text-emerald-700">فعال (منتشر شده)</span>
+                        ) : (product.hasPendingEdits || product.status === 'PENDING') ? (
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                            در انتظار تایید
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold text-slate-500">غیرفعال</span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-left">
                     <div className="flex justify-end items-center gap-2">
-                      {(product.hasPendingEdits || product.status === 'PENDING') && (
+                      {isArchived ? (
                         <button 
-                          onClick={() => setReviewModalProduct(product)} 
-                          title={product.hasPendingEdits ? "بررسی تغییرات پیشنهادی اثر" : "بررسی و تایید محصول جدید"} 
-                          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors border shadow-2xs cursor-pointer ${
-                            product.hasPendingEdits
-                              ? 'text-amber-800 bg-amber-100 hover:bg-amber-200 border-amber-300'
-                              : 'text-purple-700 bg-purple-100 hover:bg-purple-200 border-purple-300'
-                          }`}
+                          onClick={() => handleRestoreProduct(product.id)} 
+                          title="بازیابی اثر از بایگانی" 
+                          className="text-purple-600 hover:bg-purple-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-purple-200 cursor-pointer"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
                         </button>
+                      ) : (
+                        <>
+                          {(product.hasPendingEdits || product.status === 'PENDING') && (
+                            <button 
+                              onClick={() => setReviewModalProduct(product)} 
+                              title={product.hasPendingEdits ? "بررسی تغییرات پیشنهادی اثر" : "بررسی و تایید محصول جدید"} 
+                              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors border shadow-2xs cursor-pointer ${
+                                product.hasPendingEdits
+                                  ? 'text-amber-800 bg-amber-100 hover:bg-amber-200 border-amber-300'
+                                  : 'text-purple-700 bg-purple-100 hover:bg-purple-200 border-purple-300'
+                              }`}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                              </svg>
+                            </button>
+                          )}
+                          <a href={`/admin/products/${product.id}/edit`} title="ویرایش" className="text-blue-600 hover:bg-blue-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-blue-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                          </a>
+                          <button 
+                            onClick={() => handleSoftDelete(product.id, product.title)} 
+                            title="حذف و بایگانی محصول" 
+                            className="text-red-500 hover:bg-red-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-red-100 cursor-pointer"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18"></path>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                              <line x1="10" y1="11" x2="10" y2="17"></line>
+                              <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                          </button>
+                        </>
                       )}
-                      <a href={`/admin/products/${product.id}/edit`} title="ویرایش" className="text-blue-600 hover:bg-blue-50 w-8 h-8 flex items-center justify-center rounded-lg transition-colors border border-transparent hover:border-blue-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                      </a>
                     </div>
                   </td>
                 </tr>
