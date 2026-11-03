@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { IRAN_PROVINCES } from '@/lib/provinces';
+import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 
 interface Address {
   id: string;
@@ -34,6 +36,13 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Available cities based on selected province
+  const availableCities = useMemo(() => {
+    if (!province) return [];
+    const found = IRAN_PROVINCES.find((p) => p.name === province);
+    return found ? found.cities : [];
+  }, [province]);
 
   const openNewModal = () => {
     setEditingId(null);
@@ -69,16 +78,26 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
       setError('نام و نام خانوادگی تحویل‌گیرنده الزامی است.');
       return;
     }
-    if (!phoneNumber.trim()) {
-      setError('شماره تماس تحویل‌گیرنده الزامی است.');
+    const cleanPhone = normalizePhoneNumber(phoneNumber);
+    if (!phoneNumber.trim() || !isValidIranianMobile(cleanPhone)) {
+      setError('شماره تماس تحویل‌گیرنده نامعتبر است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).');
       return;
     }
-    if (!province.trim() || !city.trim()) {
-      setError('استان و شهر الزامی است.');
+    if (!province.trim()) {
+      setError('لطفاً استان تحویل سفارش را انتخاب کنید.');
+      return;
+    }
+    if (!city.trim()) {
+      setError('لطفاً شهر تحویل سفارش را انتخاب کنید.');
       return;
     }
     if (!address.trim() || address.trim().length < 8) {
       setError('نشانی پستی دقیق الزامی است (حداقل ۸ حرف).');
+      return;
+    }
+    const cleanPostal = postalCode.replace(/[^\d]/g, '');
+    if (!cleanPostal || cleanPostal.length !== 10) {
+      setError('کد پستی باید دقیقاً ۱۰ رقمی باشد.');
       return;
     }
 
@@ -90,13 +109,13 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
       const method = editingId ? 'PUT' : 'POST';
       const payload = {
         id: editingId,
-        title,
-        recipientName,
-        phoneNumber,
-        province,
-        city,
-        address,
-        postalCode,
+        title: title.trim() || 'منزل',
+        recipientName: recipientName.trim(),
+        phoneNumber: cleanPhone,
+        province: province.trim(),
+        city: city.trim(),
+        address: address.trim(),
+        postalCode: cleanPostal,
         isDefault
       };
 
@@ -300,35 +319,37 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
             )}
 
             <form onSubmit={handleSave} className="space-y-4">
+              {/* عنوان آدرس (تنها فیلد اختیاری) */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  عنوان آدرس (مثال: منزل، محل کار):
+                  عنوان آدرس <span className="text-slate-400 font-normal text-[11px]">(اختیاری)</span>:
                 </label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="منزل"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600"
+                  placeholder="مثال: منزل، محل کار"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 bg-white"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    نام و نام خانوادگی تحویل‌گیرنده:
+                    نام و نام خانوادگی تحویل‌گیرنده <span className="text-red-500">*</span>:
                   </label>
                   <input
                     type="text"
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
                     placeholder="مثال: علی رضایی"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600"
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 bg-white"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    شماره تماس تحویل‌گیرنده:
+                    شماره تماس تحویل‌گیرنده <span className="text-red-500">*</span>:
                   </label>
                   <input
                     type="tel"
@@ -336,7 +357,8 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="09123456789"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 text-center font-mono"
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 text-center font-mono bg-white"
                   />
                 </div>
               </div>
@@ -344,46 +366,69 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    استان:
+                    استان <span className="text-red-500">*</span>:
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={province}
-                    onChange={(e) => setProvince(e.target.value)}
-                    placeholder="مثال: اصفهان"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600"
-                  />
+                    onChange={(e) => {
+                      const newProv = e.target.value;
+                      setProvince(newProv);
+                      const targetProv = IRAN_PROVINCES.find((p) => p.name === newProv);
+                      if (targetProv && targetProv.cities.length > 0) {
+                        setCity(targetProv.cities[0]);
+                      } else {
+                        setCity('');
+                      }
+                    }}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 bg-white cursor-pointer"
+                  >
+                    <option value="">انتخاب استان...</option>
+                    {IRAN_PROVINCES.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    شهر:
+                    شهر <span className="text-red-500">*</span>:
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    placeholder="مثال: کاشان"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600"
-                  />
+                    disabled={!province || availableCities.length === 0}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 bg-white disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer"
+                  >
+                    <option value="">{province ? 'انتخاب شهر...' : 'ابتدا استان را انتخاب کنید'}</option>
+                    {availableCities.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  نشانی پستی دقیق (خیابان، کوچه، پلاک، واحد):
+                  نشانی پستی دقیق (خیابان، کوچه، پلاک، واحد) <span className="text-red-500">*</span>:
                 </label>
                 <textarea
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   rows={2}
+                  required
                   placeholder="خیابان شهید مطهری، کوچه بهار، پلاک ۱۲، واحد ۲"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 bg-white"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  کد پستی (۱۰ رقم):
+                  کد پستی (۱۰ رقم) <span className="text-red-500">*</span>:
                 </label>
                 <input
                   type="text"
@@ -392,7 +437,8 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
                   onChange={(e) => setPostalCode(e.target.value)}
                   placeholder="1234567890"
                   maxLength={10}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 text-center font-mono"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-medium outline-none focus:border-teal-600 text-center font-mono bg-white"
                 />
               </div>
 

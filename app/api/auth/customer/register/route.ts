@@ -8,26 +8,41 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { phone, name, password, code } = body;
+    const { phone, email, name, password, code } = body;
 
-    if (!phone || typeof phone !== 'string') {
-      return NextResponse.json({ error: 'شماره موبایل الزامی است.' }, { status: 400 });
+    if (!phone && !email) {
+      return NextResponse.json({ error: 'شماره موبایل یا ایمیل الزامی است.' }, { status: 400 });
     }
 
     if (!code || typeof code !== 'string' || code.trim().length !== 5) {
       return NextResponse.json({ error: 'کد تایید ۵ رقمی الزامی است.' }, { status: 400 });
     }
 
-    const normalized = normalizePhoneNumber(phone);
-    if (!isValidIranianMobile(normalized)) {
-      return NextResponse.json({ error: 'فرمت شماره موبایل نامعتبر است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).' }, { status: 400 });
+    if (!password || typeof password !== 'string' || password.trim().length < 6) {
+      return NextResponse.json({ error: 'تعیین رمز عبور (حداقل ۶ کاراکتر) برای ورودهای بعدی الزامی است.' }, { status: 400 });
+    }
+
+    const isEmail = Boolean(email && !phone);
+    let normalizedTarget = '';
+
+    if (isEmail) {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        return NextResponse.json({ error: 'فرمت آدرس ایمیل نامعتبر است.' }, { status: 400 });
+      }
+      normalizedTarget = cleanEmail;
+    } else {
+      normalizedTarget = normalizePhoneNumber(phone);
+      if (!isValidIranianMobile(normalizedTarget)) {
+        return NextResponse.json({ error: 'فرمت شماره موبایل نامعتبر است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).' }, { status: 400 });
+      }
     }
 
     // 1. Verify OTP
     const cleanedCode = code.trim();
     const otpRecord = await prisma.verificationCode.findFirst({
       where: {
-        target: normalized,
+        target: normalizedTarget,
         code: cleanedCode,
         used: false,
         expiresAt: { gte: new Date() }
@@ -41,18 +56,17 @@ export async function POST(req: Request) {
 
     // 2. Check if user already exists
     const existing = await prisma.user.findFirst({
-      where: { phoneNumber: normalized }
+      where: isEmail ? { email: normalizedTarget } : { phoneNumber: normalizedTarget }
     });
 
     if (existing) {
-      return NextResponse.json({ error: 'این شماره موبایل قبلاً ثبت‌نام شده است. لطفاً وارد شوید.' }, { status: 400 });
+      return NextResponse.json({ 
+        error: isEmail ? 'این ایمیل قبلاً در سیستم ثبت‌نام شده است. لطفاً وارد شوید.' : 'این شماره موبایل قبلاً ثبت‌نام شده است. لطفاً وارد شوید.' 
+      }, { status: 400 });
     }
 
-    // 3. Hash password if provided
-    let hashedPassword = null;
-    if (password && typeof password === 'string' && password.trim().length >= 6) {
-      hashedPassword = await bcrypt.hash(password.trim(), 10);
-    }
+    // 3. Hash password
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
 
     const cleanName = (name && typeof name === 'string' && name.trim()) 
       ? name.trim() 
@@ -61,11 +75,18 @@ export async function POST(req: Request) {
     // 4. Create user with role USER
     const newUser = await prisma.user.create({
       data: {
-        phoneNumber: normalized,
+        phoneNumber: isEmail ? null : normalizedTarget,
+        email: isEmail ? normalizedTarget : null,
         name: cleanName,
         password: hashedPassword,
         role: 'USER'
       }
+    });
+
+    // 5. Invalidate used OTP code
+    await prisma.verificationCode.update({
+      where: { id: otpRecord.id },
+      data: { used: true }
     });
 
     return NextResponse.json({
@@ -74,6 +95,7 @@ export async function POST(req: Request) {
         id: newUser.id,
         name: newUser.name,
         phoneNumber: newUser.phoneNumber,
+        email: newUser.email,
         role: newUser.role
       }
     });

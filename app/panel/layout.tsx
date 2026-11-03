@@ -23,11 +23,19 @@ export default async function CustomerPanelLayout({
     redirect('/login?callbackUrl=/panel');
   }
 
-  const [ordersCount, wishlistCount, addressesCount] = await Promise.all([
+  const [userRecord, ordersCount, wishlistCount, addressesCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { password: true }
+    }),
     prisma.order.count({ where: { userId: session.user.id } }),
     prisma.wishlistItem.count({ where: { userId: session.user.id } }),
     prisma.userAddress.count({ where: { userId: session.user.id } }),
   ]);
+
+  if (!userRecord?.password) {
+    redirect('/auth/set-password');
+  }
 
   const userRole = session.user.role || 'USER';
   const isArtist = userRole === 'ARTIST' || userRole === 'ADMIN';

@@ -345,27 +345,39 @@ export const authOptions: NextAuthOptions = {
           }
         } else {
           if (!isAdmin) {
-            const redirectEmail = encodeURIComponent(googleEmail);
-            return `/artist-panel/login?error=not_registered&email=${redirectEmail}`;
+            // New user registered via Google SSO -> create with USER role
+            const newUser = await prisma.user.create({
+              data: {
+                email: googleEmail,
+                name: googleName || 'کاربر هنرهاب',
+                image: (profile as any)?.picture || user.image,
+                role: 'USER'
+              }
+            });
+            user.id = newUser.id;
+            user.role = 'USER';
+            dbUser = newUser as any;
+          } else {
+            // Admin user logging in via Google for the first time:
+            const newAdmin = await prisma.user.create({
+              data: {
+                email: googleEmail,
+                name: googleName || 'مدیر سیستم',
+                role: 'ADMIN',
+              }
+            });
+            await prisma.artistProfile.create({
+              data: {
+                userId: newAdmin.id,
+                isApproved: true,
+                isActive: true,
+                bio: 'مدیر کل سیستم (Master Admin)',
+              }
+            });
+            user.id = newAdmin.id;
+            user.role = 'ADMIN';
+            dbUser = newAdmin as any;
           }
-          // Admin user logging in via Google for the first time:
-          const newAdmin = await prisma.user.create({
-            data: {
-              email: googleEmail,
-              name: googleName || 'مدیر سیستم',
-              role: 'ADMIN',
-            }
-          });
-          await prisma.artistProfile.create({
-            data: {
-              userId: newAdmin.id,
-              isApproved: true,
-              isActive: true,
-              bio: 'مدیر کل سیستم (Master Admin)',
-            }
-          });
-          user.id = newAdmin.id;
-          user.role = 'ADMIN';
         }
       }
       return true;
@@ -392,6 +404,7 @@ export const authOptions: NextAuthOptions = {
             name: true, 
             role: true, 
             email: true, 
+            password: true,
             artistProfile: { select: { id: true, isDeleted: true } } 
           }
         });
@@ -404,6 +417,7 @@ export const authOptions: NextAuthOptions = {
             name: true, 
             role: true, 
             email: true, 
+            password: true,
             artistProfile: { select: { id: true, isDeleted: true } } 
           }
         });
@@ -425,6 +439,7 @@ export const authOptions: NextAuthOptions = {
         token.id = dbUser.id;
         token.name = dbUser.name;
         token.email = dbUser.email;
+        token.hasPassword = Boolean(dbUser.password);
         
         if (isAdmin) {
           if (dbUser.role !== 'ADMIN') {
@@ -462,6 +477,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = (token.role as string) || 'USER';
         session.user.name = token.name as string;
         session.user.email = token.email as string;
+        session.user.hasPassword = Boolean(token.hasPassword);
       }
       return session;
     }

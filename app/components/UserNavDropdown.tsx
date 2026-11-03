@@ -81,34 +81,30 @@ export default function UserNavDropdown() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer select-none"
+        className="inline-flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 text-xs sm:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer select-none"
         aria-expanded={isOpen}
+        title={displayName}
       >
-        {/* Down Chevron Arrow (Right/Start side in RTL) */}
+        {/* User Icon Avatar */}
+        <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-teal-50 text-teal-700 border border-teal-200/80 flex items-center justify-center shrink-0 text-xs">
+          {user.image ? (
+            <img src={user.image} alt={displayName} className="w-full h-full rounded-lg object-cover" />
+          ) : (
+            <svg className="w-4 h-4 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          )}
+        </span>
+
+        {/* Down Chevron Arrow */}
         <svg
-          className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180 text-emerald-600' : ''}`}
+          className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180 text-emerald-600' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
         </svg>
-
-        {/* User Name */}
-        <span className="max-w-[100px] sm:max-w-[130px] truncate text-slate-900">
-          {displayName}
-        </span>
-
-        {/* User Icon Avatar */}
-        <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-teal-50 text-teal-700 border border-teal-200/80 flex items-center justify-center shrink-0 text-xs">
-          {user.image ? (
-            <img src={user.image} alt={displayName} className="w-full h-full rounded-lg object-cover" />
-          ) : (
-            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          )}
-        </span>
       </button>
 
       {/* Dropdown Menu Modal */}

@@ -222,45 +222,82 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
             />
           </div>
 
-          {/* Mobile (Read-Only) */}
+          {/* Mobile (Read-Only & Verified) */}
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-2">
-              شماره موبایل (احراز هویت شده)
-            </label>
-            <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-stone-700">
+                شماره موبایل
+              </label>
+              {user.phoneNumber && (
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                  <span>✓</span> تایید شده
+                </span>
+              )}
+            </div>
+            <div 
+              className="relative group cursor-not-allowed"
+              title="تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد"
+            >
               <input
                 type="text"
-                value={toPersianDigits(user.phoneNumber)}
+                value={user.phoneNumber ? toPersianDigits(user.phoneNumber) : 'ثبت نشده'}
                 disabled
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-50 text-stone-600 font-mono text-sm tracking-wider cursor-not-allowed"
+                title="تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد"
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-stone-100 text-stone-600 font-mono text-sm tracking-wider cursor-not-allowed select-none"
               />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                تأیید شده
-              </span>
+              {/* Tooltip on hover */}
+              <div className="pointer-events-none absolute bottom-full mb-1 right-0 hidden group-hover:flex items-center gap-1 bg-stone-900 text-stone-100 text-[11px] px-2.5 py-1 rounded-lg shadow-lg z-20 whitespace-nowrap">
+                <span>🔒</span>
+                <span>تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد</span>
+              </div>
             </div>
             <p className="text-[11px] text-stone-400 mt-1">
-              جهت تغییر شماره تلفن، لطفاً با پشتیبانی آنلاین هنرهاب در تماس باشید.
+              تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد.
             </p>
           </div>
 
-          {/* Email */}
+          {/* Email (Fixed if verified/set, or editable if not yet set) */}
           <div className="md:col-span-2">
-            <label className="block text-xs font-semibold text-stone-700 mb-2">
-              آدرس ایمیل (اختیاری)
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@example.com"
-              dir="ltr"
-              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-700/20 focus:border-amber-700 text-sm transition font-mono placeholder:font-sans placeholder:text-right"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-stone-700">
+                آدرس ایمیل
+              </label>
+              {user.email && (
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                  <span>✓</span> تایید شده
+                </span>
+              )}
+            </div>
+            <div 
+              className={`relative ${user.email ? 'group cursor-not-allowed' : ''}`}
+              title={user.email ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد' : undefined}
+            >
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                dir="ltr"
+                disabled={Boolean(user.email)}
+                title={user.email ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد' : undefined}
+                className={`w-full px-4 py-3 rounded-xl border text-sm transition font-mono ${
+                  user.email
+                    ? 'border-stone-200 bg-stone-100 text-stone-600 cursor-not-allowed select-none'
+                    : 'border-stone-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-700/20 focus:border-amber-700 placeholder:font-sans placeholder:text-right'
+                }`}
+              />
+              {/* Tooltip on hover if locked */}
+              {user.email && (
+                <div className="pointer-events-none absolute bottom-full mb-1 right-0 hidden group-hover:flex items-center gap-1 bg-stone-900 text-stone-100 text-[11px] px-2.5 py-1 rounded-lg shadow-lg z-20 whitespace-nowrap">
+                  <span>🔒</span>
+                  <span>تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد</span>
+                </div>
+              )}
+            </div>
             <p className="text-[11px] text-stone-400 mt-1">
-              جهت دریافت رسید خرید و شناسنامه دیجیتال آثار در ایمیل.
+              {user.email
+                ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد.'
+                : 'جهت دریافت رسید خرید و شناسنامه دیجیتال آثار در ایمیل.'}
             </p>
           </div>
         </div>

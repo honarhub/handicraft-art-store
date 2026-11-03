@@ -1119,7 +1119,10 @@ export default function ArtistProfilePage() {
                   )}
                 </div>
 
-                <div className="relative">
+                <div 
+                  className={`relative ${isPhoneVerified ? 'group cursor-not-allowed' : ''}`}
+                  title={isPhoneVerified ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد' : undefined}
+                >
                   <input 
                     ref={phoneInputRef}
                     type="tel" 
@@ -1130,20 +1133,29 @@ export default function ArtistProfilePage() {
                       setPhoneNumber(e.target.value);
                       if (fieldErrors.phoneNumber) setFieldErrors(prev => ({ ...prev, phoneNumber: '' }));
                     }} 
-                    disabled={pendingMode} 
+                    disabled={isPhoneVerified || pendingMode} 
+                    title={isPhoneVerified ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد' : undefined}
                     maxLength={11}
                     className={`w-full px-4 py-3 rounded-xl border text-sm font-mono text-left outline-none transition-all ${
                       fieldErrors.phoneNumber
                         ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100'
-                        : pendingMode
-                        ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                        : isPhoneVerified || pendingMode
+                        ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed select-none'
                         : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
                     }`} 
                     placeholder="09123456789" 
                   />
+                  {isPhoneVerified && (
+                    <div className="pointer-events-none absolute bottom-full mb-1 right-0 hidden group-hover:flex items-center gap-1 bg-slate-900 text-white text-[11px] px-2.5 py-1 rounded-lg shadow-lg z-20 whitespace-nowrap">
+                      <span>🔒</span>
+                      <span>تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  تمام اطلاع رسانی ها به این شماره انجام می شود.
+                  {isPhoneVerified 
+                    ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد.' 
+                    : 'تمام اطلاع‌رسانی‌ها به این شماره انجام می‌شود.'}
                 </p>
                 {fieldErrors.phoneNumber && (
                   <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
@@ -1153,7 +1165,7 @@ export default function ArtistProfilePage() {
                 )}
               </div>
 
-              {/* 5. Email (Optional, or fixed with green check if SSO) */}
+              {/* 5. Email (Optional, or fixed with green check if verified or SSO) */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs sm:text-sm font-bold text-slate-700">
@@ -1166,7 +1178,10 @@ export default function ArtistProfilePage() {
                   )}
                 </div>
 
-                <div className="relative flex items-center gap-2">
+                <div 
+                  className={`relative flex items-center gap-2 ${(isEmailVerified || isSsoUser) ? 'group cursor-not-allowed' : ''}`}
+                  title={(isEmailVerified || isSsoUser) ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد' : undefined}
+                >
                   <input 
                     ref={emailInputRef}
                     type="email" 
@@ -1191,17 +1206,24 @@ export default function ArtistProfilePage() {
                         }
                       }
                     }}
-                    readOnly={isSsoUser || pendingMode} 
-                    disabled={isSsoUser || pendingMode} 
+                    readOnly={isSsoUser || isEmailVerified || pendingMode} 
+                    disabled={isSsoUser || isEmailVerified || pendingMode} 
+                    title={(isEmailVerified || isSsoUser) ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد' : undefined}
                     className={`flex-1 px-4 py-3 rounded-xl border text-sm text-left outline-none transition-all ${
                       fieldErrors.email
                         ? 'border-red-400 bg-red-50/30 ring-2 ring-red-100'
-                        : isSsoUser || pendingMode
-                        ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
+                        : isSsoUser || isEmailVerified || pendingMode
+                        ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed select-none'
                         : 'border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 text-slate-900'
                     }`} 
                     placeholder="you@example.com" 
                   />
+                  {(isEmailVerified || isSsoUser) && (
+                    <div className="pointer-events-none absolute bottom-full mb-1 right-0 hidden group-hover:flex items-center gap-1 bg-slate-900 text-white text-[11px] px-2.5 py-1 rounded-lg shadow-lg z-20 whitespace-nowrap">
+                      <span>🔒</span>
+                      <span>تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد</span>
+                    </div>
+                  )}
 
                   {!isSsoUser && !isEmailVerified && !pendingMode && email && email.includes('@') && (
                     <button
@@ -1214,6 +1236,11 @@ export default function ArtistProfilePage() {
                     </button>
                   )}
                 </div>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  {(isEmailVerified || isSsoUser)
+                    ? 'تغییر شماره موبایل یا ایمیل نیاز به تیکت پشتیبانی دارد.'
+                    : 'جهت دریافت فاکتورها و اعلانات مهم در ایمیل.'}
+                </p>
                 {fieldErrors.email && (
                   <p className="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
                     <span>⚠️</span>
