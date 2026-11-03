@@ -319,59 +319,49 @@ export default function CustomerAuthForm() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-stone-200/80">
-      {/* Brand Header */}
+    <div className="w-full max-w-md mx-auto">
+      {/* HonarHub Logo above the card */}
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200/60 shadow-inner mb-3">
-          <Image
-            src="/icon.png"
-            alt="لوگوی هنرهاب"
-            width={36}
-            height={36}
-            priority
-            className="w-9 h-9 object-contain drop-shadow-sm"
-          />
-        </div>
-
-        {step === 'IDENTIFIER' && (
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              ورود / ثبت‌نام در
-            </span>
-            <Image
-              src="/icon.png"
-              alt="لوگوی هنرهاب"
-              width={32}
-              height={32}
-              className="w-7 h-7 sm:w-8 sm:h-8 object-contain inline-block drop-shadow-sm"
-            />
-          </div>
-        )}
-
-        {(step === 'OTP_LOGIN' || step === 'PASSWORD_LOGIN') && (
-          <>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              خوش‌آمدید{userName ? `، ${userName}` : ''} 👋
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-              حساب شما: <span className="font-mono text-amber-900 font-bold dir-ltr inline-block">{normalizedTarget}</span>
-            </p>
-          </>
-        )}
-
-        {step === 'REGISTER' && (
-          <>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              به جمع علاقه‌مندان هنر بپیوندید 🎨
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-              عضویت با: <span className="font-mono text-amber-900 font-bold dir-ltr inline-block">{normalizedTarget}</span>
-            </p>
-          </>
-        )}
+        <Link href="/" className="inline-flex items-center text-3xl sm:text-4xl font-black tracking-tight group" dir="rtl">
+          <span className="text-black transition-colors group-hover:text-emerald-700">هنر</span>
+          <span className="bg-[#FF9900] text-black px-2.5 py-0.5 rounded-md mr-1.5 text-2xl sm:text-3xl font-black shadow-sm transition-transform group-hover:scale-105">هاب</span>
+        </Link>
       </div>
 
-      {/* Error Alert */}
+      {/* Main Card */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-stone-200/80">
+        {/* Header */}
+        <div className="text-center mb-6">
+          {step === 'IDENTIFIER' && (
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              ورود / ثبت‌نام
+            </h1>
+          )}
+
+          {(step === 'OTP_LOGIN' || step === 'PASSWORD_LOGIN') && (
+            <>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                خوش‌آمدید{userName ? `، ${userName}` : ''} 👋
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+                حساب شما: <span className="font-mono text-amber-900 font-bold dir-ltr inline-block">{normalizedTarget}</span>
+              </p>
+            </>
+          )}
+
+          {step === 'REGISTER' && (
+            <>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                به جمع علاقه‌مندان هنر بپیوندید 🎨
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+                عضویت با: <span className="font-mono text-amber-900 font-bold dir-ltr inline-block">{normalizedTarget}</span>
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Error Alert */}
       {error && (
         <div className="mb-5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2 animate-in fade-in">
           <span>⚠️</span>
@@ -715,18 +705,19 @@ export default function CustomerAuthForm() {
         </form>
       )}
 
-      {/* Footer Artist switch note */}
-      <div className="mt-8 pt-5 border-t border-slate-100 text-center">
-        <p className="text-xs text-slate-500 mb-1.5 font-medium">هنرمند یا آفریننده اثر هستید؟</p>
-        <Link
-          href="/artist-panel/login"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:text-amber-950 hover:underline transition-colors"
-        >
-          <span>ورود به استودیوی هنرمندان</span>
-          <svg className="w-3.5 h-3.5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
+        {/* Footer Artist switch note */}
+        <div className="mt-8 pt-5 border-t border-slate-100 text-center">
+          <p className="text-xs text-slate-500 mb-1.5 font-medium">هنرمند یا آفریننده اثر هستید؟</p>
+          <Link
+            href="/artist-panel/login"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 hover:text-amber-950 hover:underline transition-colors"
+          >
+            <span>ورود به استودیوی هنرمندان</span>
+            <svg className="w-3.5 h-3.5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
       </div>
     </div>
   );
