@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import PreOrderManager, { PreOrderTier, DEFAULT_PREORDER_TIERS } from '@/app/components/PreOrderManager';
 import ProductImageCropModal from '@/app/components/ProductImageCropModal';
+import ProductFormSkeleton from '@/app/components/skeletons/ProductFormSkeleton';
 import { useRouter, useParams } from 'next/navigation';
 
 export default function ArtistEditProductPage() {
@@ -269,7 +270,7 @@ export default function ArtistEditProductPage() {
   };
 
   if (loading) {
-    return <div className="p-12 text-center text-slate-500 font-bold">در حال بارگذاری اطلاعات...</div>;
+    return <ProductFormSkeleton />;
   }
 
   return (

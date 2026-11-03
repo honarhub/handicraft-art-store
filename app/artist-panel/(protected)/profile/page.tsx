@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import SpecialtyTagInput, { Specialty } from '@/app/components/SpecialtyTagInput';
 import SocialLinksInput from '@/app/components/SocialLinksInput';
 import AvatarCropModal from '@/app/components/AvatarCropModal';
+import ProfilePageSkeleton from '@/app/components/skeletons/ProfilePageSkeleton';
 import { normalizePhoneNumber, isValidIranianMobile, hasProfilePendingEdits } from '@/lib/sms';
 import { IRAN_PROVINCES } from '@/lib/provinces';
 
@@ -828,11 +829,7 @@ export default function ArtistProfilePage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-8 text-center text-slate-500 font-bold">
-        در حال بارگذاری اطلاعات پروفایل...
-      </div>
-    );
+    return <ProfilePageSkeleton />;
   }
 
   const artistName = artist?.user?.name || '';

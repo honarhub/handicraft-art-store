@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isValidIranianNationalId, isValidIranianSheba, hasProfilePendingEdits } from '@/lib/sms';
 import AvatarCropModal from '@/app/components/AvatarCropModal';
+import VerificationPageSkeleton from '@/app/components/skeletons/VerificationPageSkeleton';
 
 const toPersianDigits = (num: number | string) =>
   String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
@@ -359,7 +360,7 @@ export default function ArtistVerificationPage() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500 font-bold">در حال بارگذاری سطوح احراز هویت...</div>;
+    return <VerificationPageSkeleton />;
   }
 
   return (
