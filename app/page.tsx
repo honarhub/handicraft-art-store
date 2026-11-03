@@ -50,7 +50,7 @@ export default async function Home() {
         artist: { include: { user: true } },
         pricingTiers: true
       },
-      take: 8,
+      take: 12,
       orderBy: { createdAt: 'desc' }
     });
   } catch (err) {
@@ -199,20 +199,7 @@ export default async function Home() {
           ))}
 
           {/* Featured Products (Recent) */}
-          <section id="marketplace" className="px-4 sm:px-6 md:px-12">
-            <div className="flex justify-between items-end mb-8 md:mb-12">
-              <div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-800 mb-2 sm:mb-3">آثار برگزیده اخیر</h2>
-                <p className="text-slate-500 font-medium text-xs sm:text-sm">جدیدترین دست‌سازه‌های پلتفرم هنرهاب</p>
-              </div>
-              <a href="/products" className="hidden md:flex text-emerald-600 font-bold hover:text-emerald-700 items-center gap-2 transition-colors text-sm sm:text-base">
-                گالری کامل
-                <svg className="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-              </a>
-            </div>
-
-            <FeaturedRecentCarousel products={featuredProducts} />
-          </section>
+          <FeaturedRecentCarousel products={featuredProducts} />
           
         </div>
       </main>
