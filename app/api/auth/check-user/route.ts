@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { identifier } = body;
+    const { identifier, loginType } = body;
 
     if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
       return NextResponse.json({ error: 'شماره موبایل یا ایمیل الزامی است.' }, { status: 400 });
@@ -45,23 +45,23 @@ export async function POST(req: Request) {
       });
     }
 
-    if (body.loginType === 'artist') {
-      if (user.artistProfile?.isDeleted) {
-        return NextResponse.json({
-          exists: false,
-          isArchived: true,
-          isDeleted: true,
-          message: 'حساب کاربری هنرمندی شما بایگانی شده است. لطفاً جهت پیگیری یا فعال‌سازی مجدد با پشتیبانی در ارتباط باشید.'
-        }, { status: 403 });
-      }
+    // Check account deletion/archival
+    if (user.isDeleted || (loginType === 'artist' && user.artistProfile?.isDeleted)) {
+      return NextResponse.json({
+        exists: false,
+        isArchived: true,
+        isDeleted: true,
+        message: 'حساب کاربری شما بایگانی شده است. لطفاً جهت پیگیری یا فعال‌سازی مجدد با پشتیبانی در ارتباط باشید.'
+      }, { status: 403 });
+    }
 
-      if (user.artistProfile && !user.artistProfile.isActive) {
-        return NextResponse.json({
-          exists: false,
-          isDeactivated: true,
-          message: 'حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در ارتباط باشید.'
-        }, { status: 403 });
-      }
+    // Check account deactivation
+    if (!user.isActive || (loginType === 'artist' && user.artistProfile && !user.artistProfile.isActive)) {
+      return NextResponse.json({
+        exists: false,
+        isDeactivated: true,
+        message: 'حساب کاربری شما توسط مدیریت غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در ارتباط باشید.'
+      }, { status: 403 });
     }
 
     return NextResponse.json({
@@ -69,7 +69,8 @@ export async function POST(req: Request) {
       identifierType,
       normalized,
       hasPassword: Boolean(user.password),
-      role: user.role
+      role: user.role,
+      name: user.name
     });
   } catch (error: any) {
     console.error('Check user error:', error);

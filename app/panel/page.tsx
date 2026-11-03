@@ -96,7 +96,7 @@ export default async function CustomerPanelDashboardPage() {
     })
   ]);
 
-  const displayName = user?.name || (user?.email ? user.email.split('@')[0] : 'خریدار گرامی');
+  const displayName = user?.name || (user?.email ? user.email.split('@')[0] : 'هنردوست گرامی');
   const todayPersian = new Intl.DateTimeFormat('fa-IR', {
     weekday: 'long',
     day: 'numeric',
@@ -128,7 +128,7 @@ export default async function CustomerPanelDashboardPage() {
                   سلام، {displayName} 👋
                 </h1>
                 <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">
-                  عضو باشگاه خریداران
+                  عضو باشگاه هنردوستان
                 </span>
               </div>
 

@@ -81,19 +81,24 @@ export default function UserNavDropdown() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 text-xs sm:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer select-none"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer select-none"
         aria-expanded={isOpen}
         title={displayName}
       >
-        {/* User Icon Avatar */}
-        <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-teal-50 text-teal-700 border border-teal-200/80 flex items-center justify-center shrink-0 text-xs">
+        {/* Simple User Icon (Clean without green box) */}
+        <span className="flex items-center justify-center shrink-0 text-slate-700">
           {user.image ? (
-            <img src={user.image} alt={displayName} className="w-full h-full rounded-lg object-cover" />
+            <img src={user.image} alt={displayName} className="w-5 h-5 rounded-full object-cover" />
           ) : (
-            <svg className="w-4 h-4 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            <svg className="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           )}
+        </span>
+
+        {/* User Name */}
+        <span className="max-w-[100px] sm:max-w-[130px] truncate text-slate-800">
+          {displayName}
         </span>
 
         {/* Down Chevron Arrow */}
@@ -144,7 +149,7 @@ export default function UserNavDropdown() {
               </span>
             ) : (
               <span className="text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
-                خریدار و مجموعه‌دار هنر
+                هنردوست
               </span>
             )}
           </div>

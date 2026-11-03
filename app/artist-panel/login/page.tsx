@@ -167,7 +167,8 @@ function ArtistLoginContent() {
     if (status === 'authenticated' && !['deleted', 'archived', 'deactivated'].includes(errorParam || '')) {
       if (session?.user?.role === 'ADMIN') {
         router.push('/admin');
-      } else {
+
+      } else if (session?.user?.role === 'ARTIST') {
         router.push('/artist-panel/dashboard');
       }
     }

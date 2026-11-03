@@ -52,20 +52,25 @@ export async function POST(req: Request) {
       where: isEmail ? { email: normalizedTarget } : { phoneNumber: normalizedTarget },
       include: { artistProfile: true }
     });
+
     if (existingUser) {
-      if (existingUser.artistProfile?.isDeleted) {
+      if (existingUser.isDeleted || existingUser.artistProfile?.isDeleted) {
         return NextResponse.json({ 
           error: 'حساب کاربری شما قبلاً بایگانی شده است. لطفاً جهت فعال‌سازی مجدد با پشتیبانی در تماس باشید.' 
         }, { status: 400 });
       }
-      if (existingUser.artistProfile && !existingUser.artistProfile.isActive) {
+      if (!existingUser.isActive || (existingUser.artistProfile && !existingUser.artistProfile.isActive)) {
         return NextResponse.json({ 
           error: 'حساب کاربری شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در تماس باشید.' 
         }, { status: 400 });
       }
-      return NextResponse.json({ 
-        error: 'این شماره موبایل یا ایمیل قبلاً ثبت‌نام شده است. لطفاً وارد شوید.' 
-      }, { status: 400 });
+
+      // If user is already an artist or admin, don't allow duplicate registration
+      if (existingUser.role === 'ARTIST' || existingUser.role === 'ADMIN') {
+        return NextResponse.json({ 
+          error: 'این شماره موبایل یا ایمیل قبلاً به عنوان هنرمند ثبت‌نام شده است. لطفاً از بخش ورود اقدام فرمایید.' 
+        }, { status: 400 });
+      }
     }
 
     // 3. Verify Referral Code
@@ -104,61 +109,83 @@ export async function POST(req: Request) {
       data: { used: true }
     });
 
-    // 5. Hash Password & Create User + ArtistProfile
+    // 5. Hash Password & Create or Upgrade User + ArtistProfile
     const hashedPassword = await bcrypt.hash(password, 10);
     const defaultName = name?.trim() || null;
 
-    const newUser = await prisma.user.create({
-      data: {
-        name: defaultName,
-        email: isEmail ? normalizedTarget : null,
-        emailVerified: isEmail ? new Date() : null,
-        phoneNumber: isEmail ? null : normalizedTarget,
-        password: hashedPassword,
-        role: 'ARTIST',
-        artistProfile: {
-          create: {
-            verificationLevel: 0,
-            isApproved: false,
-            isActive: true
-          }
+    let targetUser: any = null;
+
+    if (existingUser && existingUser.role === 'USER') {
+      // Automatic Role Upgrade from USER to ARTIST
+      targetUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          role: 'ARTIST',
+          name: defaultName || existingUser.name,
+          password: hashedPassword,
+          ...(isEmail && !existingUser.email ? { email: normalizedTarget, emailVerified: new Date() } : {}),
+          ...(!isEmail && !existingUser.phoneNumber ? { phoneNumber: normalizedTarget } : {}),
+          ...(!existingUser.artistProfile ? {
+            artistProfile: {
+              create: {
+                verificationLevel: 0,
+                isApproved: false,
+                isActive: true
+              }
+            }
+          } : {})
+        },
+        include: {
+          artistProfile: true
         }
-      },
-      include: {
-        artistProfile: true
-      }
-    });
+      });
+    } else {
+      // Create Brand New ARTIST User
+      targetUser = await prisma.user.create({
+        data: {
+          name: defaultName,
+          email: isEmail ? normalizedTarget : null,
+          emailVerified: isEmail ? new Date() : null,
+          phoneNumber: isEmail ? null : normalizedTarget,
+          password: hashedPassword,
+          role: 'ARTIST',
+          artistProfile: {
+            create: {
+              verificationLevel: 0,
+              isApproved: false,
+              isActive: true
+            }
+          }
+        },
+        include: {
+          artistProfile: true
+        }
+      });
+    }
 
     // 6. Mark Referral Code as used
     await prisma.referralCode.update({
       where: { id: refRecord.id },
       data: {
         isUsed: true,
-        usedById: newUser.id,
+        usedById: targetUser.id,
         usedAt: new Date()
       }
     });
 
-    // 7. Auto-generate 3 referral codes for this new artist
-    try {
-      await ensureArtistReferralCodes(newUser.id, 3);
-    } catch (e) {
-      console.error('Failed to auto-generate referral codes for new artist:', e);
-    }
+    // 7. Ensure new artist gets their initial set of referral codes generated
+    await ensureArtistReferralCodes(targetUser.id, targetUser.role);
 
     return NextResponse.json({
       success: true,
-      message: 'ثبت‌نام با موفقیت انجام شد.',
+      message: existingUser ? 'حساب کاربری شما با موفقیت به نقش هنرمند ارتقا یافت.' : 'ثبت‌نام هنرمند با موفقیت انجام شد.',
       user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        phoneNumber: newUser.phoneNumber,
-        role: newUser.role
+        id: targetUser.id,
+        role: targetUser.role
       }
     });
   } catch (error: any) {
-    console.error('Registration API Error:', error);
-    return NextResponse.json({ error: 'خطای سرور در ثبت‌نام. لطفاً مجدداً تلاش نمایید.' }, { status: 500 });
+    console.error('Artist register error:', error);
+    return NextResponse.json({ error: 'خطای سرور در انجام ثبت‌نام هنرمند.' }, { status: 500 });
   }
 }

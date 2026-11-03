@@ -8,7 +8,7 @@ import SiteFooter from '@/app/components/SiteFooter';
 import PanelNav from './PanelNav';
 
 export const metadata = {
-  title: 'پیشخوان کاربری و باشگاه خریداران | هنرهاب',
+  title: 'پیشخوان کاربری و باشگاه هنردوستان | هنرهاب',
   description: 'مدیریت سفارش‌ها، آدرس‌ها و لیست علاقه‌مندی‌های آثار صنایع دستی',
 };
 

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import Link from 'next/link';
+import LogoutButton from '@/app/components/LogoutButton';
 import ArtistSidebar from './ArtistSidebar';
 import ArtistVerificationBanner from './ArtistVerificationBanner';
 import { hasProfilePendingEdits } from '@/lib/sms';
@@ -16,7 +18,31 @@ export default async function ArtistPanelLayout({ children }: { children: React.
 
   // Ensure user has artist or admin privileges
   if (session.user.role !== 'ARTIST' && session.user.role !== 'ADMIN') {
-    redirect('/artist-panel/login?error=not_artist');
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans" dir="rtl">
+        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-slate-200/80">
+          <div className="text-5xl mb-4">🎨</div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-800 mb-2">دسترسی به استودیوی هنرمندان</h1>
+          <p className="text-slate-600 text-xs sm:text-sm mb-6 leading-relaxed">
+            شما با حساب کاربری <strong>{session.user.name || session.user.email || 'هنرهاب'}</strong> (نقش: {session.user.role === 'USER' ? 'کاربر عادی / هنردوست' : session.user.role}) وارد شده‌اید که دسترسی هنرمند ندارد.
+          </p>
+          <div className="space-y-3">
+            <Link
+              href="/artist-panel/login?tab=register"
+              className="block w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 text-xs sm:text-sm"
+            >
+              ثبت‌نام و ارتقای حساب به هنرمند
+            </Link>
+            <LogoutButton callbackUrl="/artist-panel/login" className="block w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition text-xs sm:text-sm">
+              خروج از حساب فعلی
+            </LogoutButton>
+            <Link href="/" className="block w-full py-2.5 text-slate-500 text-xs font-bold hover:text-slate-700 transition">
+              بازگشت به فروشگاه هنرهاب
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   let artist = await prisma.artistProfile.findUnique({
