@@ -14,6 +14,7 @@ export default function OnlineSupportWidget() {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackError, setFeedbackError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedCategories, setSubmittedCategories] = useState<Set<string>>(new Set());
 
   // Restore phone number from localStorage on client mount if available
   useEffect(() => {
@@ -66,6 +67,9 @@ export default function OnlineSupportWidget() {
       setPhoneError('لطفاً یک شماره موبایل معتبر ۱۱ رقمی (مثال: ۰۹۱۲۳۴۵۶۷۸۹) وارد فرمایید.');
       return;
     }
+    if (clean !== phoneNumber) {
+      setSubmittedCategories(new Set());
+    }
     setPhoneNumber(clean);
     try {
       localStorage.setItem('honarhub_support_phone', clean);
@@ -81,21 +85,24 @@ export default function OnlineSupportWidget() {
       return;
     }
 
-    // Automatically record option request to backend
-    setIsSubmitting(true);
-    try {
-      await fetch('/api/online-support', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phoneNumber,
-          category: option
-        })
-      });
-    } catch (err) {
-      console.error('Failed to record support action', err);
-    } finally {
-      setIsSubmitting(false);
+    // Automatically record option request to backend ONLY if not already submitted
+    if (!submittedCategories.has(option)) {
+      setIsSubmitting(true);
+      try {
+        await fetch('/api/online-support', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phoneNumber,
+            category: option
+          })
+        });
+        setSubmittedCategories(prev => new Set(prev).add(option));
+      } catch (err) {
+        console.error('Failed to record support action', err);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
 
     if (option === 'REFERRAL_CODE') {
@@ -129,6 +136,7 @@ export default function OnlineSupportWidget() {
         throw new Error('خطا در ثبت پیام');
       }
 
+      setSubmittedCategories(prev => new Set(prev).add('FEEDBACK'));
       setStep('FEEDBACK_SUCCESS');
     } catch (err) {
       setFeedbackError('متأسفانه در ثبت پیام مشکلی رخ داد. لطفاً مجدداً تلاش نمایید.');
@@ -271,27 +279,31 @@ export default function OnlineSupportWidget() {
                   </p>
                 </div>
 
-                {/* 3 Main Menu Buttons */}
-                <div className="space-y-2.5">
+                {/* 3 Main Menu Buttons (Boxes without descriptions with simple attractive icons) */}
+                <div className="space-y-3">
                   {/* Option 1: Referral Code */}
                   <button
                     type="button"
                     onClick={() => handleOptionSelect('REFERRAL_CODE')}
                     disabled={isSubmitting}
-                    className="w-full p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-teal-50/70 hover:border-teal-300 text-slate-800 transition-all flex items-center justify-between group shadow-2xs hover:shadow-sm cursor-pointer text-right"
+                    className="w-full p-4 rounded-2xl border border-slate-200/90 bg-white hover:bg-purple-50/40 hover:border-purple-300 text-slate-800 transition-all duration-200 flex items-center justify-between group shadow-xs hover:shadow-md cursor-pointer text-right"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
-                        🤝
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-purple-100 transition-all">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
                       </span>
-                      <div>
-                        <div className="font-black text-xs sm:text-sm text-slate-900 group-hover:text-teal-900">
-                          ۱. دریافت کد معرف
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">دریافت کد دعوت از طریق بات تلگرام</div>
-                      </div>
+                      <span className="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition-colors">
+                        ۱. دریافت کد معرف
+                      </span>
                     </div>
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-all rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"/></svg>
+                    <svg className="w-4 h-4 text-slate-300 group-hover:text-purple-600 group-hover:-translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"/>
+                    </svg>
                   </button>
 
                   {/* Option 2: Feedback & Suggestions */}
@@ -299,20 +311,23 @@ export default function OnlineSupportWidget() {
                     type="button"
                     onClick={() => handleOptionSelect('FEEDBACK')}
                     disabled={isSubmitting}
-                    className="w-full p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-teal-50/70 hover:border-teal-300 text-slate-800 transition-all flex items-center justify-between group shadow-2xs hover:shadow-sm cursor-pointer text-right"
+                    className="w-full p-4 rounded-2xl border border-slate-200/90 bg-white hover:bg-amber-50/40 hover:border-amber-300 text-slate-800 transition-all duration-200 flex items-center justify-between group shadow-xs hover:shadow-md cursor-pointer text-right"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
-                        💡
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-amber-100 transition-all">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          <path d="M8 9h8" />
+                          <path d="M8 13h5" />
+                        </svg>
                       </span>
-                      <div>
-                        <div className="font-black text-xs sm:text-sm text-slate-900 group-hover:text-teal-900">
-                          ۲. انتقادات و پیشنهادات
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">ثبت نظرات و بهبود پلتفرم</div>
-                      </div>
+                      <span className="font-bold text-sm text-slate-900 group-hover:text-amber-700 transition-colors">
+                        ۲. انتقادات و پیشنهادات
+                      </span>
                     </div>
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-all rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"/></svg>
+                    <svg className="w-4 h-4 text-slate-300 group-hover:text-amber-600 group-hover:-translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"/>
+                    </svg>
                   </button>
 
                   {/* Option 3: Direct Contact */}
@@ -320,20 +335,21 @@ export default function OnlineSupportWidget() {
                     type="button"
                     onClick={() => handleOptionSelect('DIRECT_CONTACT')}
                     disabled={isSubmitting}
-                    className="w-full p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-teal-50/70 hover:border-teal-300 text-slate-800 transition-all flex items-center justify-between group shadow-2xs hover:shadow-sm cursor-pointer text-right"
+                    className="w-full p-4 rounded-2xl border border-slate-200/90 bg-white hover:bg-teal-50/40 hover:border-teal-300 text-slate-800 transition-all duration-200 flex items-center justify-between group shadow-xs hover:shadow-md cursor-pointer text-right"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center text-lg shrink-0 group-hover:scale-105 transition-transform">
-                        📞
+                    <div className="flex items-center gap-3.5">
+                      <span className="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 border border-teal-100 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:bg-teal-100 transition-all">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
                       </span>
-                      <div>
-                        <div className="font-black text-xs sm:text-sm text-slate-900 group-hover:text-teal-900">
-                          ۳. تماس مستقیم با ما
-                        </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">ارتباط مستقیم از طریق تلگرام</div>
-                      </div>
+                      <span className="font-bold text-sm text-slate-900 group-hover:text-teal-700 transition-colors">
+                        ۳. تماس مستقیم با ما
+                      </span>
                     </div>
-                    <svg className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-1 transition-all rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7"/></svg>
+                    <svg className="w-4 h-4 text-slate-300 group-hover:text-teal-600 group-hover:-translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7"/>
+                    </svg>
                   </button>
                 </div>
               </div>

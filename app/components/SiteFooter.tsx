@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { getPersianVersion } from '@/lib/version';
 
 export default function SiteFooter() {
   return (
@@ -66,7 +67,7 @@ export default function SiteFooter() {
         <div className="pt-6 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-3 text-[11px] sm:text-xs font-medium text-slate-500 text-center md:text-right">
           <p>© {new Date().getFullYear()} پلتفرم اختصاصی هنرهاب. تمامی حقوق محفوظ است.</p>
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">نسخه ۰.۲.۰ • توسعه یافته با ❤️ برای هنر ایران زمین</span>
+            <span className="text-slate-400">نسخه {getPersianVersion()} • توسعه یافته با ❤️ برای هنر ایران زمین</span>
           </div>
         </div>
       </div>

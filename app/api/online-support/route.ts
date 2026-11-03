@@ -55,6 +55,49 @@ export async function POST(request: Request) {
       );
     }
 
+    // Prevent duplicate records:
+    // If user previously selected REFERRAL_CODE or DIRECT_CONTACT, don't re-insert into database
+    if (category === 'REFERRAL_CODE' || category === 'DIRECT_CONTACT') {
+      const existing = await prisma.onlineSupportMessage.findFirst({
+        where: {
+          phoneNumber: normalizedPhone,
+          category
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (existing) {
+        return NextResponse.json({
+          success: true,
+          id: existing.id,
+          displayId: existing.displayId,
+          isDuplicate: true
+        });
+      }
+    } else if (category === 'FEEDBACK') {
+      // Prevent rapid duplicate submission of identical feedback text
+      const cleanMessage = typeof message === 'string' ? message.trim() : null;
+      if (cleanMessage) {
+        const recentDuplicate = await prisma.onlineSupportMessage.findFirst({
+          where: {
+            phoneNumber: normalizedPhone,
+            category: 'FEEDBACK',
+            message: cleanMessage,
+            createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } // within last 1 hour
+          }
+        });
+
+        if (recentDuplicate) {
+          return NextResponse.json({
+            success: true,
+            id: recentDuplicate.id,
+            displayId: recentDuplicate.displayId,
+            isDuplicate: true
+          });
+        }
+      }
+    }
+
     // IP address for rate-limiting reference if available
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
 
