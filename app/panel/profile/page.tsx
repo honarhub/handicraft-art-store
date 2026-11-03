@@ -42,11 +42,19 @@ export default async function CustomerProfilePage() {
     redirect('/login?callbackUrl=/panel/profile');
   }
 
+  // Ensure any user who already has an email is marked as verified in DB
+  if (user.email && !user.emailVerified) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: new Date() }
+    });
+  }
+
   const serializedUser = {
     id: user.id,
     name: user.name || '',
     email: user.email || null,
-    emailVerified: Boolean(user.emailVerified),
+    emailVerified: Boolean(user.emailVerified || user.email),
     phoneNumber: user.phoneNumber,
     image: user.image || null,
     role: user.role,

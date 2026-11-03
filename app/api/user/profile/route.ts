@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
+        emailVerified: true,
         phoneNumber: true,
         image: true,
         role: true,
@@ -52,6 +54,7 @@ export async function GET() {
         id: user.id,
         name: user.name,
         email: user.email,
+        emailVerified: Boolean(user.emailVerified || user.email),
         phoneNumber: user.phoneNumber,
         image: user.image,
         role: user.role,
@@ -77,7 +80,7 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { name, email, currentPassword, newPassword } = body;
+    const { name, email, phoneNumber, currentPassword, newPassword } = body;
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id }
@@ -91,6 +94,23 @@ export async function PUT(req: Request) {
 
     if (name && typeof name === 'string' && name.trim()) {
       updateData.name = name.trim();
+    }
+
+    // Allow setting / updating phone number if user does not already have a locked phone number
+    if (phoneNumber !== undefined && !user.phoneNumber) {
+      const cleanPhone = phoneNumber ? normalizePhoneNumber(phoneNumber.trim()) : null;
+      if (cleanPhone) {
+        if (!isValidIranianMobile(cleanPhone)) {
+          return NextResponse.json({ error: 'شماره موبایل نامعتبر است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).' }, { status: 400 });
+        }
+        const phoneTaken = await prisma.user.findFirst({
+          where: { phoneNumber: cleanPhone, NOT: { id: user.id } }
+        });
+        if (phoneTaken) {
+          return NextResponse.json({ error: 'این شماره موبایل قبلاً توسط کاربر دیگری در سیستم ثبت شده است.' }, { status: 400 });
+        }
+        updateData.phoneNumber = cleanPhone;
+      }
     }
 
     if (email !== undefined) {
@@ -136,6 +156,7 @@ export async function PUT(req: Request) {
         id: true,
         name: true,
         email: true,
+        emailVerified: true,
         phoneNumber: true,
         image: true,
         role: true
@@ -144,7 +165,10 @@ export async function PUT(req: Request) {
 
     return NextResponse.json({
       success: true,
-      user: updatedUser
+      user: {
+        ...updatedUser,
+        emailVerified: Boolean(updatedUser.emailVerified || updatedUser.email)
+      }
     });
   } catch (error) {
     console.error('User profile PUT error:', error);

@@ -8,7 +8,7 @@ interface UserProfileData {
   name: string;
   email: string | null;
   emailVerified: boolean;
-  phoneNumber: string;
+  phoneNumber: string | null;
   image: string | null;
   role: string;
   hasPassword: boolean;
@@ -24,7 +24,8 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
   const [user, setUser] = useState<UserProfileData>(initialUser);
   const [name, setName] = useState(initialUser.name || '');
   const [email, setEmail] = useState(initialUser.email || '');
-  const [isEmailVerified, setIsEmailVerified] = useState(initialUser.emailVerified);
+  const [phoneNumber, setPhoneNumber] = useState(initialUser.phoneNumber || '');
+  const [isEmailVerified, setIsEmailVerified] = useState(initialUser.emailVerified || Boolean(initialUser.email));
 
   // Email verification OTP states
   const [showEmailOtpInput, setShowEmailOtpInput] = useState(false);
@@ -45,7 +46,7 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Handle Send Email OTP
+  // Handle Send Email OTP (Only for users who didn't register with email and want to verify a new email)
   const handleSendEmailOtp = async () => {
     setErrorMsg('');
     setEmailOtpSuccess('');
@@ -160,6 +161,11 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
         name: name.trim()
       };
 
+      // If user did not have a phone number, allow submitting phone number
+      if (!user.phoneNumber && phoneNumber.trim()) {
+        payload.phoneNumber = phoneNumber.trim();
+      }
+
       // Only update email if not yet verified
       if (!isEmailVerified && email.trim()) {
         payload.email = email.trim().toLowerCase();
@@ -188,6 +194,8 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
         ...prev,
         name: data.user.name,
         email: data.user.email,
+        phoneNumber: data.user.phoneNumber || prev.phoneNumber,
+        emailVerified: data.user.emailVerified || prev.emailVerified,
         hasPassword: Boolean(newPassword || prev.hasPassword)
       }));
 
@@ -236,10 +244,23 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
                 )}
               </div>
               <p className="text-xs sm:text-sm text-stone-300">
-                شماره موبایل تأیید شده:{' '}
-                <span className="font-mono text-emerald-200 tracking-wider">
-                  {toPersianDigits(user.phoneNumber)}
-                </span>
+                {user.phoneNumber ? (
+                  <>
+                    شماره موبایل تأیید شده:{' '}
+                    <span className="font-mono text-emerald-200 tracking-wider">
+                      {toPersianDigits(user.phoneNumber)}
+                    </span>
+                  </>
+                ) : user.email ? (
+                  <>
+                    حساب متصل با ایمیل:{' '}
+                    <span className="font-mono text-emerald-200 tracking-wider dir-ltr inline-block">
+                      {user.email}
+                    </span>
+                  </>
+                ) : (
+                  <span>عضو باشگاه هنردوستان</span>
+                )}
               </p>
             </div>
           </div>
@@ -319,36 +340,57 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
             />
           </div>
 
-          {/* Mobile (Read-Only & Verified) */}
+          {/* Mobile Phone Field (Editable if not set, or locked if already verified) */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-semibold text-slate-700">
-                شماره موبایل
+                شماره موبایل {user.phoneNumber ? '' : <span className="text-slate-400 font-normal">(اختیاری)</span>}
               </label>
-              {user.phoneNumber && (
+              {user.phoneNumber ? (
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                   <span>✓</span> تایید شده
                 </span>
+              ) : (
+                <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                  قابل ثبت یا تکمیل هنگام خرید
+                </span>
               )}
             </div>
-            <div 
-              className="relative group cursor-not-allowed"
-              title="تغییر شماره موبایل نیاز به تیکت پشتیبانی دارد"
-            >
-              <input
-                type="text"
-                value={user.phoneNumber ? toPersianDigits(user.phoneNumber) : 'ثبت نشده'}
-                disabled
+
+            {user.phoneNumber ? (
+              <div 
+                className="relative group cursor-not-allowed"
                 title="تغییر شماره موبایل نیاز به تیکت پشتیبانی دارد"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-mono text-sm tracking-wider cursor-not-allowed select-none"
-              />
-              <div className="pointer-events-none absolute bottom-full mb-1 right-0 hidden group-hover:flex items-center gap-1 bg-slate-900 text-slate-100 text-[11px] px-2.5 py-1 rounded-lg shadow-lg z-20 whitespace-nowrap">
-                <span>🔒</span>
-                <span>تغییر شماره موبایل نیاز به تیکت پشتیبانی دارد</span>
+              >
+                <input
+                  type="text"
+                  value={toPersianDigits(user.phoneNumber)}
+                  disabled
+                  title="تغییر شماره موبایل نیاز به تیکت پشتیبانی دارد"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-mono text-sm tracking-wider cursor-not-allowed select-none"
+                />
+                <div className="pointer-events-none absolute bottom-full mb-1 right-0 hidden group-hover:flex items-center gap-1 bg-slate-900 text-slate-100 text-[11px] px-2.5 py-1 rounded-lg shadow-lg z-20 whitespace-nowrap">
+                  <span>🔒</span>
+                  <span>تغییر شماره موبایل نیاز به تیکت پشتیبانی دارد</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="tel"
+                  dir="ltr"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="09123456789 (اختیاری)"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-sm transition font-mono text-left placeholder:text-left placeholder:text-slate-400"
+                />
+              </div>
+            )}
+
             <p className="text-[11px] text-slate-400 mt-1">
-              تغییر شماره موبایل نیاز به ثبت درخواست در بخش پشتیبانی دارد.
+              {user.phoneNumber
+                ? 'شماره موبایل حساب شما تایید شده و تغییر آن از طریق پشتیبانی صورت می‌پذیرد.'
+                : 'می‌توانید شماره موبایل خود را اکنون ثبت فرمایید؛ در غیر این صورت در زمان ثبت نهایی سفارش از شما دریافت خواهد شد.'}
             </p>
           </div>
 
@@ -382,7 +424,7 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
                 />
               </div>
 
-              {/* Email OTP Verification Section */}
+              {/* Email OTP Verification Section (Only shown if email is NOT yet verified) */}
               {!(user.emailVerified || isEmailVerified) && (
                 <div className="shrink-0">
                   {!showEmailOtpInput ? (

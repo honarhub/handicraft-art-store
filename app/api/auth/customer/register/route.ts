@@ -72,11 +72,12 @@ export async function POST(req: Request) {
       ? name.trim() 
       : `کاربر هنرهاب`;
 
-    // 4. Create user with role USER
+    // 4. Create user with role USER and mark emailVerified if registered via email OTP
     const newUser = await prisma.user.create({
       data: {
         phoneNumber: isEmail ? null : normalizedTarget,
         email: isEmail ? normalizedTarget : null,
+        emailVerified: isEmail ? new Date() : null,
         name: cleanName,
         password: hashedPassword,
         role: 'USER'
@@ -96,11 +97,12 @@ export async function POST(req: Request) {
         name: newUser.name,
         phoneNumber: newUser.phoneNumber,
         email: newUser.email,
+        emailVerified: newUser.emailVerified,
         role: newUser.role
       }
     });
   } catch (error) {
     console.error('Customer register error:', error);
-    return NextResponse.json({ error: 'خطای سرور در ثبت‌نام کاربر.' }, { status: 500 });
+    return NextResponse.json({ error: 'خطای سرور در انجام ثبت‌نام کاربر.' }, { status: 500 });
   }
 }
