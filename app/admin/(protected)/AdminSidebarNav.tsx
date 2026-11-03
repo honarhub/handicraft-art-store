@@ -113,6 +113,10 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
       countTitle: 'پیام‌های پشتیبانی در انتظار پاسخ'
     },
     { 
+      href: '/admin/online-support', 
+      label: '💬 پشتیبانی آنلاین' 
+    },
+    { 
       href: '/admin/stock-requests', 
       label: '🔔 درخواست‌های موجودی',
       count: counts.pendingStockRequestsCount,

@@ -32,6 +32,7 @@ export const metadata: Metadata = {
 
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './providers';
+import OnlineSupportWidget from './components/OnlineSupportWidget';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <CartProvider>
             {children}
+            <OnlineSupportWidget />
           </CartProvider>
         </AuthProvider>
       </body>

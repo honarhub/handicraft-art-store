@@ -315,6 +315,20 @@ model SupportMessage {
   createdAt     DateTime  @default(now())
 }
 
+model OnlineSupportMessage {
+  id          String   @id @default(cuid())
+  displayId   Int      @default(autoincrement()) @unique
+  phoneNumber String
+  category    String   // 'REFERRAL_CODE' | 'FEEDBACK' | 'DIRECT_CONTACT'
+  message     String?  @db.Text
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([category])
+  @@index([createdAt])
+  @@index([phoneNumber])
+}
+
 enum SupportStatus {
   PENDING
   RESOLVED
