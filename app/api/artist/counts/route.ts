@@ -33,8 +33,12 @@ export async function GET() {
       prisma.product.count({
         where: {
           artistId: artist.id,
+          deletedAt: null,
           adminFeedbackRead: false,
-          adminFeedback: { not: null }
+          AND: [
+            { adminFeedback: { not: null } },
+            { adminFeedback: { not: '' } }
+          ]
         }
       }),
       prisma.product.count({

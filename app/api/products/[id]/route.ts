@@ -114,6 +114,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           updateData.adminFeedbackRead = false;
         }
       }
+
+      if (status === 'APPROVED' && (!finalFeedback || !finalFeedback.trim())) {
+        updateData.adminFeedback = null;
+        updateData.adminFeedbackRead = true;
+      }
       const updated = await prisma.product.update({
         where: { id },
         data: updateData

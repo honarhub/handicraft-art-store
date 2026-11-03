@@ -53,8 +53,12 @@ export default async function ArtistPanelLayout({ children }: { children: React.
   const unreadFeedbackCount = await prisma.product.count({
     where: {
       artistId: artist.id,
+      deletedAt: null,
       adminFeedbackRead: false,
-      adminFeedback: { not: null }
+      AND: [
+        { adminFeedback: { not: null } },
+        { adminFeedback: { not: '' } }
+      ]
     }
   });
 

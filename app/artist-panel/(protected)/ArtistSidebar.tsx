@@ -19,11 +19,33 @@ interface ArtistSidebarProps {
 
 export default function ArtistSidebar({
   artist,
-  unreadFeedbackCount,
+  unreadFeedbackCount: initialUnreadFeedbackCount,
   verificationLevel,
   isAdmin
 }: ArtistSidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(initialUnreadFeedbackCount);
+
+  React.useEffect(() => {
+    setUnreadCount(initialUnreadFeedbackCount);
+  }, [initialUnreadFeedbackCount]);
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      fetch('/api/artist/counts', { cache: 'no-store' })
+        .then(res => res.json())
+        .then(data => {
+          if (typeof data.unreadFeedbackCount === 'number') {
+            setUnreadCount(data.unreadFeedbackCount);
+          }
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('artist-counts-update', handleUpdate);
+    return () => window.removeEventListener('artist-counts-update', handleUpdate);
+  }, []);
 
   return (
     <>
@@ -56,8 +78,8 @@ export default function ArtistSidebar({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-900 border border-teal-700 hover:bg-teal-800 text-teal-100 text-xs font-bold transition-colors cursor-pointer"
             aria-expanded={mobileMenuOpen}
           >
-            {unreadFeedbackCount > 0 && !mobileMenuOpen && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            {unreadCount > 0 && !mobileMenuOpen && (
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-sm"></span>
             )}
             <span>{mobileMenuOpen ? 'بستن منو' : 'منوی پنل'}</span>
             <span className="text-sm font-mono">{mobileMenuOpen ? '✕' : '☰'}</span>
@@ -68,7 +90,7 @@ export default function ArtistSidebar({
         {mobileMenuOpen && (
           <div className="border-t border-teal-800/80 bg-teal-950 p-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
             <ArtistSidebarNav
-              initialUnreadFeedbackCount={unreadFeedbackCount}
+              initialUnreadFeedbackCount={unreadCount}
               verificationLevel={verificationLevel}
               onNavigate={() => setMobileMenuOpen(false)}
             />
@@ -134,7 +156,7 @@ export default function ArtistSidebar({
 
         <div className="flex-1 overflow-y-auto">
           <ArtistSidebarNav 
-            initialUnreadFeedbackCount={unreadFeedbackCount} 
+            initialUnreadFeedbackCount={unreadCount} 
             verificationLevel={verificationLevel} 
           />
         </div>

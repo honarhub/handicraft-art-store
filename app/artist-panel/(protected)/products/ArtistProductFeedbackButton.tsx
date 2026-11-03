@@ -137,7 +137,7 @@ export default function ArtistProductFeedbackButton({
     }
   };
 
-  const isAlertState = hasUnread || status === 'REJECTED';
+  const isAlertState = hasUnread;
 
   return (
     <>
@@ -145,11 +145,11 @@ export default function ArtistProductFeedbackButton({
       <button
         type="button"
         onClick={handleOpen}
-        title={hasUnread ? 'پیام جدید از ادمین (کلیک جهت مشاهده)' : 'مشاهده تاریخچه پیام‌های ادمین'}
+        title={hasUnread ? 'پیام جدید از ادمین (کلیک جهت مشاهده)' : 'مشاهده تاریخچه پیام‌های ادمین (خوانده شده)'}
         className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer text-xs font-bold ${
           isAlertState
             ? 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 shadow-sm ring-2 ring-rose-400/25'
-            : 'bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200'
+            : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200 hover:text-slate-700'
         }`}
       >
         {/* نشانگر نوتیفیکیشن قرمز رنگ */}

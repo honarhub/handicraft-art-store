@@ -110,6 +110,10 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
   const [level, setLevel] = useState<number>(verificationLevel);
 
   useEffect(() => {
+    setUnreadCount(initialUnreadFeedbackCount);
+  }, [initialUnreadFeedbackCount]);
+
+  useEffect(() => {
     setLevel(verificationLevel);
   }, [verificationLevel]);
 
@@ -222,8 +226,8 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
 
             {item.badge !== undefined && item.badge > 0 && (
               <span 
-                title={`${item.badge} پیام خوانده نشده از ادمین`} 
-                className="bg-amber-400 text-teal-950 font-black text-xs px-2 py-0.5 rounded-full animate-pulse shadow-sm"
+                title={`${item.badge} پیام جدید از ادمین`} 
+                className="bg-red-500 text-white font-black text-xs px-2 py-0.5 rounded-full animate-pulse shadow-sm"
               >
                 {item.badge}
               </span>
