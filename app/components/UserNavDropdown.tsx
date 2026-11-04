@@ -264,9 +264,10 @@ export default function UserNavDropdown() {
           <div className="px-1.5">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setIsOpen(false);
-                signOut({ callbackUrl: '/' });
+                await signOut({ redirect: false });
+                window.location.reload();
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs sm:text-sm font-bold transition-colors cursor-pointer text-right"
             >

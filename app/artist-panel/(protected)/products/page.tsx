@@ -27,7 +27,7 @@ export default async function ArtistProductsPage() {
   const serializedProducts = JSON.parse(JSON.stringify(products));
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full max-w-7xl mx-auto min-w-0">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">محصولات من</h2>

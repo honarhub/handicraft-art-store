@@ -89,7 +89,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans" dir="rtl">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans overflow-x-hidden max-w-full" dir="rtl">
       {/* Artist Sidebar (Desktop persistent + Mobile sticky top header) */}
       <ArtistSidebar 
         artist={artist} 
@@ -99,7 +99,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full overflow-y-auto flex flex-col p-3 sm:p-6 md:p-8">
+      <main className="flex-1 w-full min-w-0 max-w-full overflow-x-hidden flex flex-col p-3 sm:p-6 md:p-8">
         <ArtistVerificationBanner
           artistId={artist.id}
           verificationLevel={artist.verificationLevel || 0}

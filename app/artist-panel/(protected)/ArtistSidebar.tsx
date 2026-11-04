@@ -123,7 +123,7 @@ export default function ArtistSidebar({
       </header>
 
       {/* Desktop Persistent Sidebar (>= md) */}
-      <aside className="hidden md:flex md:w-64 bg-teal-950 text-teal-100 flex-shrink-0 shadow-xl z-20 flex-col min-h-screen">
+      <aside className="hidden md:flex md:w-64 bg-teal-950 text-teal-100 flex-shrink-0 shadow-xl z-20 flex-col sticky top-0 h-screen max-h-screen overflow-hidden">
         {/* برند و عنوان پنل */}
         <div className="p-5 border-b border-teal-800/80 flex items-center justify-between">
           <div className="text-xl font-black tracking-tight flex items-center select-none" dir="rtl">

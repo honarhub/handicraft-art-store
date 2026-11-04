@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { useCart } from '../context/CartContext';
 import SiteHeader from '@/app/components/SiteHeader';
@@ -34,7 +34,11 @@ export default function CheckoutPage() {
   // Saved addresses for logged in user
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | 'new'>('new');
+  const [showOtherAddresses, setShowOtherAddresses] = useState(false);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+  // Track if user manually typed a new address so login doesn't overwrite it
+  const isManuallyTypedRef = useRef(false);
 
   // Address Form State
   const [formData, setFormData] = useState({
@@ -44,7 +48,6 @@ export default function CheckoutPage() {
     city: '',
     address: '',
     postalCode: '',
-    saveToAccount: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -96,6 +99,13 @@ export default function CheckoutPage() {
         .then((data) => {
           if (data?.success && Array.isArray(data.addresses)) {
             setSavedAddresses(data.addresses);
+
+            // If user has manually typed an address before logging in, PRESERVE IT and do not overwrite!
+            if (isManuallyTypedRef.current && formData.address && formData.province) {
+              setSelectedAddressId('new');
+              return;
+            }
+
             const defaultAddr = data.addresses.find((a: SavedAddress) => a.isDefault) || data.addresses[0];
             if (defaultAddr) {
               setSelectedAddressId(defaultAddr.id);
@@ -106,7 +116,6 @@ export default function CheckoutPage() {
                 city: defaultAddr.city,
                 address: defaultAddr.address,
                 postalCode: defaultAddr.postalCode,
-                saveToAccount: false,
               });
             } else {
               setSelectedAddressId('new');
@@ -164,9 +173,10 @@ export default function CheckoutPage() {
     );
   }
 
-  // Handle switching to a saved address card
+  // Handle selecting a saved address
   const handleSelectSavedAddress = (addr: SavedAddress) => {
     setSelectedAddressId(addr.id);
+    isManuallyTypedRef.current = false;
     setFormData({
       recipientName: addr.recipientName,
       phone: addr.phoneNumber,
@@ -174,14 +184,15 @@ export default function CheckoutPage() {
       city: addr.city,
       address: addr.address,
       postalCode: addr.postalCode,
-      saveToAccount: false,
     });
     setErrors({});
+    setShowOtherAddresses(false);
   };
 
   // Switch to new address form
   const handleSelectNewAddress = () => {
     setSelectedAddressId('new');
+    isManuallyTypedRef.current = true;
     setFormData({
       recipientName: session?.user?.name || '',
       phone: '',
@@ -189,12 +200,12 @@ export default function CheckoutPage() {
       city: '',
       address: '',
       postalCode: '',
-      saveToAccount: true,
     });
     setErrors({});
+    setShowOtherAddresses(false);
   };
 
-  // Validate Step 1 Form
+  // Validate Step 1 Form with auto-scroll to first invalid input
   const validateShippingForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -226,11 +237,50 @@ export default function CheckoutPage() {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+
+      // Auto-scroll to the first error input on mobile/desktop
+      const firstErrorKey = Object.keys(newErrors)[0];
+      if (firstErrorKey) {
+        setTimeout(() => {
+          const el = document.getElementById(`checkout-${firstErrorKey}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.focus();
+          }
+        }, 50);
+      }
       return false;
     }
 
     setErrors({});
     return true;
+  };
+
+  // Helper to save current address to DB if newly typed
+  const saveCurrentAddressToDb = async (phoneToUse?: string) => {
+    try {
+      const res = await fetch('/api/user/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'آدرس خرید',
+          recipientName: formData.recipientName,
+          phoneNumber: normalizePhoneNumber(phoneToUse || formData.phone),
+          province: formData.province,
+          city: formData.city,
+          address: formData.address,
+          postalCode: formData.postalCode,
+          isDefault: savedAddresses.length === 0,
+        }),
+      });
+      const data = await res.json();
+      if (data?.success && data?.address) {
+        setSavedAddresses((prev) => [data.address, ...prev]);
+        setSelectedAddressId(data.address.id);
+      }
+    } catch (err) {
+      console.error('Failed to save address to DB:', err);
+    }
   };
 
   // Handle Step 1 Submit (Next to Review)
@@ -241,24 +291,10 @@ export default function CheckoutPage() {
 
     const cleanPhone = normalizePhoneNumber(formData.phone);
 
-    // If User is already logged in, proceed directly to Step 2
+    // If User is already logged in, save address if new and proceed directly to Step 2
     if (session?.user?.id) {
-      // If user selected "new" and checked "saveToAccount", save to DB in background
-      if (selectedAddressId === 'new' && formData.saveToAccount) {
-        fetch('/api/user/addresses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: 'آدرس خرید',
-            recipientName: formData.recipientName,
-            phoneNumber: cleanPhone,
-            province: formData.province,
-            city: formData.city,
-            address: formData.address,
-            postalCode: formData.postalCode,
-            isDefault: savedAddresses.length === 0,
-          }),
-        }).catch((err) => console.error('Failed to save address:', err));
+      if (selectedAddressId === 'new') {
+        await saveCurrentAddressToDb(cleanPhone);
       }
 
       setStep(2);
@@ -267,7 +303,9 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Guest User Flow: Check if phone exists
+    // Guest User Flow: Mark that user typed an address
+    isManuallyTypedRef.current = true;
+
     try {
       const res = await fetch('/api/auth/check-user', {
         method: 'POST',
@@ -329,6 +367,22 @@ export default function CheckoutPage() {
     }
   };
 
+  // Helper to trigger browser password save dialog
+  const triggerBrowserCredentialSave = async (phone: string, pass: string, name: string) => {
+    if (typeof window !== 'undefined' && (window as any).PasswordCredential && navigator.credentials) {
+      try {
+        const cred = new (window as any).PasswordCredential({
+          id: phone,
+          password: pass,
+          name: name || 'کاربر هنرهاب',
+        });
+        await navigator.credentials.store(cred);
+      } catch {
+        // Ignore fallback
+      }
+    }
+  };
+
   // Handle Guest Auth Submission (Auto Register or Login)
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -343,7 +397,7 @@ export default function CheckoutPage() {
           throw new Error('تعیین رمز عبور با حداقل ۶ کاراکتر الزامی است.');
         }
 
-        // Register user
+        // 1. Register user
         const regRes = await fetch('/api/auth/customer/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -358,7 +412,10 @@ export default function CheckoutPage() {
         const regData = await regRes.json();
         if (!regRes.ok) throw new Error(regData.error || 'خطا در ایجاد حساب کاربری');
 
-        // Automatically sign in
+        // Trigger browser credential save
+        await triggerBrowserCredentialSave(authModal.normalizedPhone, authModal.password, formData.recipientName);
+
+        // 2. Automatically sign in
         const signInRes = await signIn('credentials', {
           redirect: false,
           phone: authModal.normalizedPhone,
@@ -370,21 +427,8 @@ export default function CheckoutPage() {
           throw new Error('حساب ایجاد شد اما ورود خودکار با خطا مواجه شد. لطفاً وارد شوید.');
         }
 
-        // Save address
-        fetch('/api/user/addresses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: 'آدرس منزل',
-            recipientName: formData.recipientName,
-            phoneNumber: authModal.normalizedPhone,
-            province: formData.province,
-            city: formData.city,
-            address: formData.address,
-            postalCode: formData.postalCode,
-            isDefault: true,
-          }),
-        }).catch((err) => console.error('Save address error:', err));
+        // 3. Save the newly typed address into the newly created account
+        await saveCurrentAddressToDb(authModal.normalizedPhone);
 
         setAuthModal((prev) => ({ ...prev, isOpen: false, loading: false }));
         setStep(2);
@@ -406,6 +450,12 @@ export default function CheckoutPage() {
           throw new Error('رمز عبور وارد شده نادرست است.');
         }
 
+        // Trigger browser credential save
+        await triggerBrowserCredentialSave(authModal.normalizedPhone, authModal.password, authModal.userName || '');
+
+        // Save newly typed address to the account as a new address
+        await saveCurrentAddressToDb(authModal.normalizedPhone);
+
         setAuthModal((prev) => ({ ...prev, isOpen: false, loading: false }));
         setStep(2);
         setMaxReachedStep((prev) => Math.max(prev, 2));
@@ -425,6 +475,9 @@ export default function CheckoutPage() {
         if (signInRes?.error) {
           throw new Error('کد تایید نامعتبر یا منقضی شده است.');
         }
+
+        // Save newly typed address to the account as a new address
+        await saveCurrentAddressToDb(authModal.normalizedPhone);
 
         setAuthModal((prev) => ({ ...prev, isOpen: false, loading: false }));
         setStep(2);
@@ -494,6 +547,9 @@ export default function CheckoutPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // Find currently active saved address object if any
+  const currentSavedAddress = savedAddresses.find((a) => a.id === selectedAddressId) || savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
@@ -632,81 +688,120 @@ export default function CheckoutPage() {
                       )}
                     </div>
 
-                    {/* Saved Addresses List (if logged in and has addresses) */}
-                    {session?.user && savedAddresses.length > 0 && (
-                      <div className="space-y-3">
-                        <label className="block text-xs font-bold text-slate-700">
-                          انتخاب از نشانی‌های ذخیره‌شده:
-                        </label>
-                        <div className="grid grid-cols-1 gap-2.5">
-                          {savedAddresses.map((addr) => (
-                            <div
-                              key={addr.id}
-                              onClick={() => handleSelectSavedAddress(addr)}
-                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
-                                selectedAddressId === addr.id
-                                  ? 'border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-500/20'
-                                  : 'border-slate-200 hover:border-slate-300 bg-white'
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <input
-                                  type="radio"
-                                  name="savedAddressRadio"
-                                  checked={selectedAddressId === addr.id}
-                                  onChange={() => handleSelectSavedAddress(addr)}
-                                  className="mt-1 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                                />
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-xs sm:text-sm text-slate-900">
-                                      {addr.title || 'آدرس من'}
-                                    </span>
-                                    {addr.isDefault && (
-                                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md">
-                                        پیش‌فرض
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                                    {addr.province}، {addr.city}، {addr.address}
-                                  </p>
-                                  <div className="text-[11px] text-slate-500 mt-1">
-                                    تحویل‌گیرنده: <strong className="text-slate-800">{addr.recipientName}</strong> (
-                                    <span className="font-mono">{toPersianDigits(addr.phoneNumber)}</span>)
-                                  </div>
-                                </div>
-                              </div>
+                    {/* Logged in User: Default Selected Address View + Other Addresses Option */}
+                    {session?.user && savedAddresses.length > 0 && selectedAddressId !== 'new' && currentSavedAddress && (
+                      <div className="space-y-4">
+                        {/* Currently Selected (Default) Address Card */}
+                        <div className="p-4 sm:p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/30 ring-4 ring-emerald-500/10 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                              <span className="font-black text-sm text-slate-900">
+                                {currentSavedAddress.title || 'نشانی پیش‌فرض تحویل سفارش'}
+                              </span>
+                              {currentSavedAddress.isDefault && (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md">
+                                  پیش‌فرض
+                                </span>
+                              )}
                             </div>
-                          ))}
 
-                          {/* Option to type new address */}
-                          <div
-                            onClick={handleSelectNewAddress}
-                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                              selectedAddressId === 'new'
-                                ? 'border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-500/20'
-                                : 'border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/50'
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="savedAddressRadio"
-                              checked={selectedAddressId === 'new'}
-                              onChange={handleSelectNewAddress}
-                              className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                            />
-                            <span className="font-bold text-xs sm:text-sm text-slate-800">
-                              + افزودن و استفاده از یک نشانی جدید
-                            </span>
+                            {/* Button to toggle other addresses */}
+                            <button
+                              type="button"
+                              onClick={() => setShowOtherAddresses(!showOtherAddresses)}
+                              className="text-xs font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-teal-200 shadow-2xs"
+                            >
+                              <span>{showOtherAddresses ? 'بستن لیست نشانی‌ها' : 'انتخاب سایر نشانی‌ها / آدرس جدید'}</span>
+                              <span className={`text-[10px] transition-transform ${showOtherAddresses ? 'rotate-180' : ''}`}>▾</span>
+                            </button>
+                          </div>
+
+                          <p className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
+                            استان {currentSavedAddress.province}، شهر {currentSavedAddress.city}، {currentSavedAddress.address}
+                          </p>
+
+                          <div className="text-xs text-slate-600 pt-2 border-t border-emerald-100 flex flex-wrap items-center gap-x-6 gap-y-1">
+                            <div>
+                              تحویل‌گیرنده: <strong className="text-slate-900">{currentSavedAddress.recipientName}</strong>
+                            </div>
+                            <div>
+                              شماره تماس: <strong className="text-slate-900 font-mono">{toPersianDigits(currentSavedAddress.phoneNumber)}</strong>
+                            </div>
+                            {currentSavedAddress.postalCode && (
+                              <div>
+                                کد پستی: <strong className="text-slate-900 font-mono">{toPersianDigits(currentSavedAddress.postalCode)}</strong>
+                              </div>
+                            )}
                           </div>
                         </div>
+
+                        {/* Expandable list of OTHER saved addresses + Add New Address Button */}
+                        {showOtherAddresses && (
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 animate-in fade-in duration-200">
+                            <div className="text-xs font-bold text-slate-700 mb-1">
+                              سایر نشانی‌های ذخیره‌شده شما:
+                            </div>
+
+                            <div className="space-y-2">
+                              {savedAddresses
+                                .filter((a) => a.id !== currentSavedAddress.id)
+                                .map((addr) => (
+                                  <div
+                                    key={addr.id}
+                                    onClick={() => handleSelectSavedAddress(addr)}
+                                    className="p-3 rounded-xl border border-slate-200 hover:border-emerald-300 bg-white cursor-pointer flex items-center justify-between gap-3 transition-colors"
+                                  >
+                                    <div>
+                                      <div className="font-bold text-xs text-slate-900">{addr.title || 'نشانی'}</div>
+                                      <div className="text-xs text-slate-600 mt-0.5 line-clamp-1">
+                                        {addr.province}، {addr.city}، {addr.address}
+                                      </div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectSavedAddress(addr)}
+                                      className="shrink-0 px-3 py-1 bg-slate-100 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold text-slate-700 transition-colors"
+                                    >
+                                      انتخاب
+                                    </button>
+                                  </div>
+                                ))}
+
+                              {/* Button to add a brand new address */}
+                              <button
+                                type="button"
+                                onClick={handleSelectNewAddress}
+                                className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-teal-400 bg-teal-50/60 hover:bg-teal-100/70 text-teal-800 font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer mt-2"
+                              >
+                                <span className="text-base">+</span>
+                                <span>افزودن و استفاده از یک نشانی جدید</span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* Address Form Fields (Rendered if guest OR if selectedAddressId === 'new') */}
-                    {(!session?.user || selectedAddressId === 'new' || savedAddresses.length === 0) && (
-                      <div className="space-y-4 pt-2">
+                    {/* New Address Input Form (shown if guest OR selectedAddressId === 'new' OR no saved addresses) */}
+                    {(selectedAddressId === 'new' || savedAddresses.length === 0 || !session?.user) && (
+                      <div className="space-y-4 pt-1">
+                        {session?.user && savedAddresses.length > 0 && (
+                          <div className="flex items-center justify-between p-3 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+                            <span className="font-bold text-slate-700">در حال ثبت نشانی جدید:</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const defaultAddr = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+                                if (defaultAddr) handleSelectSavedAddress(defaultAddr);
+                              }}
+                              className="text-teal-700 hover:text-teal-900 font-bold underline cursor-pointer"
+                            >
+                              بازگشت به نشانی‌های ذخیره‌شده
+                            </button>
+                          </div>
+                        )}
+
                         {/* Name and Mobile */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
@@ -720,6 +815,7 @@ export default function CheckoutPage() {
                               autoComplete="name"
                               value={formData.recipientName}
                               onChange={(e) => {
+                                isManuallyTypedRef.current = true;
                                 setFormData({ ...formData, recipientName: e.target.value });
                                 if (errors.recipientName) setErrors({ ...errors, recipientName: '' });
                               }}
@@ -746,6 +842,7 @@ export default function CheckoutPage() {
                               dir="ltr"
                               value={formData.phone}
                               onChange={(e) => {
+                                isManuallyTypedRef.current = true;
                                 const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11);
                                 setFormData({ ...formData, phone: val });
                                 if (errors.phone) setErrors({ ...errors, phone: '' });
@@ -774,6 +871,7 @@ export default function CheckoutPage() {
                               autoComplete="address-level1"
                               value={formData.province}
                               onChange={(e) => {
+                                isManuallyTypedRef.current = true;
                                 const newProv = e.target.value;
                                 const targetProv = IRAN_PROVINCES.find((p) => p.name === newProv);
                                 setFormData({
@@ -810,6 +908,7 @@ export default function CheckoutPage() {
                               autoComplete="address-level2"
                               value={formData.city}
                               onChange={(e) => {
+                                isManuallyTypedRef.current = true;
                                 setFormData({ ...formData, city: e.target.value });
                                 if (errors.city) setErrors({ ...errors, city: '' });
                               }}
@@ -846,6 +945,7 @@ export default function CheckoutPage() {
                             rows={3}
                             value={formData.address}
                             onChange={(e) => {
+                              isManuallyTypedRef.current = true;
                               setFormData({ ...formData, address: e.target.value });
                               if (errors.address) setErrors({ ...errors, address: '' });
                             }}
@@ -873,6 +973,7 @@ export default function CheckoutPage() {
                             dir="ltr"
                             value={formData.postalCode}
                             onChange={(e) => {
+                              isManuallyTypedRef.current = true;
                               const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 10);
                               setFormData({ ...formData, postalCode: val });
                               if (errors.postalCode) setErrors({ ...errors, postalCode: '' });
@@ -903,7 +1004,7 @@ export default function CheckoutPage() {
                   </form>
                 )}
 
-                {/* ---------------- STEP 2: ORDER & SHIPPING REVIEW (NEW) ---------------- */}
+                {/* ---------------- STEP 2: ORDER & SHIPPING REVIEW ---------------- */}
                 {step === 2 && (
                   <div className="space-y-6 animate-in fade-in duration-300">
                     <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -1055,7 +1156,7 @@ export default function CheckoutPage() {
                             value="bank"
                             checked={paymentMethod === 'bank'}
                             onChange={() => setPaymentMethod('bank')}
-                            className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
+                            className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                           />
                           <div className="flex-1">
                             <div className="font-black text-sm text-slate-900">
@@ -1203,7 +1304,7 @@ export default function CheckoutPage() {
                   <h3 className="font-black text-slate-900 text-lg">به جمع هنر دوستان خوش اومدی :)</h3>
                   <p className="text-xs text-slate-500 mt-2 leading-relaxed px-2">
                     کاربر گرامی، با وارد کردن کد تایید پیامک‌شده و تعیین یک رمز عبور، حساب کاربری شما به صورت خودکار ساخته
-                    شده و سفارش در حسابتان ثبت می‌شود.
+                    شده و نشانی به همراه سفارش جاری در حسابتان ثبت می‌شود.
                   </p>
                 </>
               )}
@@ -1215,7 +1316,7 @@ export default function CheckoutPage() {
                   </h3>
                   <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                     حساب کاربری با شماره <span className="font-mono font-bold text-emerald-800 dir-ltr inline-block">{toPersianDigits(authModal.normalizedPhone)}</span> وجود دارد.
-                    لطفاً رمز عبور خود را وارد کنید.
+                    لطفاً رمز عبور خود را وارد کنید تا نشانی جدید به حسابتان اضافه شود.
                   </p>
                 </>
               )}
@@ -1237,15 +1338,31 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {/* Standard HTML Form enabling browser credential saving */}
+            <form onSubmit={handleAuthSubmit} method="post" action="#" autoComplete="on" className="space-y-4">
+              {/* Hidden semantic username field for browser password managers */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={authModal.normalizedPhone}
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+                className="sr-only pointer-events-none opacity-0 absolute -z-10"
+              />
+
               {/* OTP Field (for REGISTER or OTP_LOGIN) */}
               {(authModal.mode === 'REGISTER' || authModal.mode === 'OTP_LOGIN') && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
+                  <label htmlFor="authModal-otp" className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
                     کد تایید ۵ رقمی <span className="text-red-500">*</span>:
                   </label>
                   <input
                     type="text"
+                    id="authModal-otp"
+                    name="one-time-code"
+                    autoComplete="one-time-code"
                     inputMode="numeric"
                     dir="ltr"
                     maxLength={5}
@@ -1285,7 +1402,7 @@ export default function CheckoutPage() {
               {/* Password Field (for REGISTER or PASSWORD_LOGIN) */}
               {(authModal.mode === 'REGISTER' || authModal.mode === 'PASSWORD_LOGIN') && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
+                  <label htmlFor="authModal-password" className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
                     {authModal.mode === 'REGISTER'
                       ? 'تعیین رمز عبور برای ورودهای بعدی (حداقل ۶ کاراکتر)'
                       : 'رمز عبور حساب کاربری'} <span className="text-red-500">*</span>:
@@ -1293,6 +1410,8 @@ export default function CheckoutPage() {
                   <div className="relative">
                     <input
                       type={authModal.showPassword ? 'text' : 'password'}
+                      id="authModal-password"
+                      name="password"
                       autoComplete={authModal.mode === 'REGISTER' ? 'new-password' : 'current-password'}
                       dir="ltr"
                       value={authModal.password}
