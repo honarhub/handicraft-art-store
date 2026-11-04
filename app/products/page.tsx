@@ -280,20 +280,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                     <h3 className="text-lg font-bold text-slate-800 mb-1 line-clamp-1 group-hover:text-emerald-600 transition-colors">{product.title}</h3>
                     <div className="text-xs text-slate-500 mb-4 line-clamp-1">اثر: {product.artist?.user?.name || product.artist?.brandName || 'هنرمند'}</div>
                     
-                    <div className="mt-auto flex justify-between items-end">
-                      <div className="flex flex-wrap gap-1">
-                        {product.specialties.slice(0,1).map(s => (
-                          <span key={s.id} className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md">{s.name}</span>
-                        ))}
-                        {product.specialties.length > 1 && <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md">+{product.specialties.length - 1}</span>}
-                      </div>
-                      <div className="text-left">
-                        <div className="font-black text-emerald-600 text-lg">{(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')}</div>
-                        <div className="text-[10px] font-bold text-emerald-800/60 leading-none">تومان</div>
-                      </div>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {product.specialties.slice(0,1).map(s => (
+                        <span key={s.id} className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">{s.name}</span>
+                      ))}
+                      {product.specialties.length > 1 && <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">+{product.specialties.length - 1}</span>}
                     </div>
 
-                    <div className="mt-3.5 pt-3 border-t border-slate-100">
+                    <div className="mt-auto flex justify-between items-center border-t border-slate-100 pt-3">
                       <QuickAddToCartButton
                         product={{
                           id: product.id,
@@ -306,6 +300,10 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                           isPreOrderEnabled: product.isPreOrderEnabled
                         }}
                       />
+                      <div className="text-left">
+                        <div className="font-black text-emerald-600 text-base sm:text-lg">{(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')}</div>
+                        <div className="text-[10px] font-bold text-emerald-800/60 leading-none">تومان</div>
+                      </div>
                     </div>
                   </div>
                 </a>

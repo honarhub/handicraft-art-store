@@ -9,6 +9,7 @@ import { IRAN_PROVINCES } from '@/lib/provinces';
 import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 import { toPersianDigits } from '@/lib/date';
 import Link from 'next/link';
+import WaveDotsLoader from '@/app/components/WaveDotsLoader';
 
 interface SavedAddress {
   id: string;
@@ -1477,7 +1478,7 @@ export default function CheckoutPage() {
                   className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-black py-3.5 rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
                   {authModal.loading ? (
-                    <span>در حال بررسی...</span>
+                    <WaveDotsLoader />
                   ) : authModal.mode === 'REGISTER' ? (
                     <span>ثبت‌نام و ادامه به بررسی نهایی خرید</span>
                   ) : (

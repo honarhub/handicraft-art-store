@@ -137,48 +137,48 @@ export default async function Home() {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="relative pt-24 pb-32 px-6 md:px-12 overflow-hidden flex flex-col items-center text-center">
+        <section className="relative pt-10 sm:pt-14 pb-12 sm:pb-16 px-4 sm:px-6 md:px-12 overflow-hidden flex flex-col items-center text-center">
           {/* Subtle Ambient Background */}
-          <div className="absolute top-0 inset-x-0 h-[800px] bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100 animate-gradient-x -z-10">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[400px] bg-emerald-200/30 rounded-full blur-[120px] animate-float"></div>
+          <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100 animate-gradient-x -z-10">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[300px] bg-emerald-200/30 rounded-full blur-[100px] animate-float"></div>
           </div>
           
-          <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full glass-panel text-emerald-800 font-bold text-xs mb-10 shadow-sm animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
-            <span className="relative flex h-2.5 w-2.5">
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full glass-panel text-emerald-800 font-bold text-xs mb-4 shadow-xs animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
+            <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             پلتفرم اختصاصی هنرمندان اصیل ایرانی
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-tight mb-8 max-w-4xl drop-shadow-sm animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
-            دست‌سازه‌هایی که <span className="text-emerald-600 font-black relative">روح<span className="absolute -bottom-2 left-0 w-full h-2 bg-emerald-200/50 -rotate-2 rounded-full"></span></span> دارند.
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-3 max-w-3xl drop-shadow-xs animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
+            دست‌سازه‌هایی که <span className="text-emerald-600 font-black relative">روح<span className="absolute -bottom-1.5 left-0 w-full h-1.5 bg-emerald-200/50 -rotate-2 rounded-full"></span></span> دارند.
           </h1>
           
-          <p className="text-lg md:text-xl text-slate-500 mb-14 max-w-2xl leading-relaxed font-medium animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
+          <p className="text-sm sm:text-base md:text-lg text-slate-500 mb-6 max-w-xl leading-relaxed font-medium animate-fade-in-up" style={{ animationDelay: '0.3s', opacity: 0 }}>
             مستقیماً از کارگاه هنرمندان برگزیده به خانه شما. هنر اصیل را بدون واسطه و با تضمین اصالت خریداری کنید.
           </p>
 
-          <div className="w-full max-w-5xl mx-auto mb-16 animate-fade-in-up relative" style={{ animationDelay: '0.35s', opacity: 0 }}>
+          <div className="w-full max-w-4xl mx-auto mb-6 animate-fade-in-up relative" style={{ animationDelay: '0.35s', opacity: 0 }}>
              <HonarHubHero products={heroProducts} />
           </div>
 
           {/* Global Search Component */}
-          <div className="w-full max-w-2xl mx-auto mb-16 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl animate-fade-in-up hover:scale-[1.02] transition-transform duration-300" style={{ animationDelay: '0.4s', opacity: 0 }}>
+          <div className="w-full max-w-2xl mx-auto mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl animate-fade-in-up hover:scale-[1.01] transition-transform duration-300" style={{ animationDelay: '0.4s', opacity: 0 }}>
             <GlobalSearch />
           </div>
 
-          <div className="flex flex-wrap justify-center gap-5">
-            <a href="/products" className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm tracking-wide shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-1">
+          <div className="flex flex-wrap justify-center gap-3.5">
+            <a href="/products" className="px-6 py-3 sm:px-7 sm:py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs sm:text-sm tracking-wide shadow-md shadow-slate-900/15 transition-all hover:-translate-y-0.5">
               گشت و گذار در گالری
             </a>
-            <a href="/artist-panel/login" className="px-8 py-4 bg-white text-slate-800 rounded-xl font-bold text-sm tracking-wide shadow-sm border border-slate-200 transition-all hover:bg-slate-50 hover:-translate-y-1">
+            <a href="/artist-panel/login" className="px-6 py-3 sm:px-7 sm:py-3.5 bg-white text-slate-800 rounded-xl font-bold text-xs sm:text-sm tracking-wide shadow-xs border border-slate-200 transition-all hover:bg-slate-50 hover:-translate-y-0.5">
               ورود هنرمندان
             </a>
           </div>
         </section>
 
-        <div className="max-w-7xl mx-auto space-y-32 pb-32">
+        <div className="max-w-7xl mx-auto space-y-10 sm:space-y-14 pb-16">
           
           {/* Top Artists Row */}
           {topArtists.length > 0 && (

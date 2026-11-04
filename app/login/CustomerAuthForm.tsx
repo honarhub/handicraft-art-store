@@ -8,16 +8,7 @@ import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 
 type AuthStep = 'IDENTIFIER' | 'OTP_LOGIN' | 'PASSWORD_LOGIN' | 'REGISTER';
 
-// Wave Dots Loader Component: pulses from center outward
-const WaveDotsLoader = () => (
-  <span className="inline-flex items-center justify-center gap-1.5 py-1 px-2" aria-label="در حال پردازش">
-    <span className="w-2 h-2 rounded-full bg-current opacity-60 animate-pulse [animation-delay:400ms]" />
-    <span className="w-2.5 h-2.5 rounded-full bg-current opacity-80 animate-pulse [animation-delay:200ms]" />
-    <span className="w-3.5 h-3.5 rounded-full bg-current animate-pulse [animation-delay:0ms] scale-110" />
-    <span className="w-2.5 h-2.5 rounded-full bg-current opacity-80 animate-pulse [animation-delay:200ms]" />
-    <span className="w-2 h-2 rounded-full bg-current opacity-60 animate-pulse [animation-delay:400ms]" />
-  </span>
-);
+import WaveDotsLoader from '@/app/components/WaveDotsLoader';
 
 export default function CustomerAuthForm() {
   const router = useRouter();

@@ -16,7 +16,24 @@ export default function GlobalSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [placeholderText, setPlaceholderText] = useState('جستجو در آثار، هنرمندان...');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Responsive placeholder to ensure text always fits on mobile screens
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        if (window.innerWidth < 640) {
+          setPlaceholderText('جستجو در آثار، هنرمندان...');
+        } else {
+          setPlaceholderText('جستجو در آثار، هنرمندان، صنایع‌دستی و تخصص‌ها...');
+        }
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -72,8 +89,8 @@ export default function GlobalSearch() {
         
         <input 
           type="text" 
-          className="w-full py-4 pr-12 pl-4 text-slate-900 bg-white border border-slate-200/90 rounded-2xl shadow-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all text-base sm:text-lg font-medium placeholder:text-slate-400"
-          placeholder="جستجو در هنرمندان، محصولات، تخصص‌ها..."
+          className="w-full py-3.5 sm:py-4 pr-11 sm:pr-12 pl-4 text-slate-900 bg-white border border-slate-200/90 rounded-2xl shadow-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all text-xs sm:text-sm md:text-base font-medium placeholder:text-xs sm:placeholder:text-sm md:placeholder:text-base placeholder:text-slate-400"
+          placeholder={placeholderText}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => { if (results.length > 0) setIsOpen(true); }}

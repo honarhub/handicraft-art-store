@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { RowType } from '../admin/(protected)/settings/page';
 import ProductImageWithSkeleton from './ProductImageWithSkeleton';
+import QuickAddToCartButton from './QuickAddToCartButton';
 
 interface DynamicProductRowProps {
   title: string;
@@ -143,7 +144,7 @@ export default function DynamicProductRow({
   };
 
   return (
-    <section className={`px-4 sm:px-6 md:px-12 rounded-[2.5rem] py-12 sm:py-16 mx-2 sm:mx-4 md:mx-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative group/section ${
+    <section className={`px-4 sm:px-6 md:px-12 rounded-[2.5rem] py-6 sm:py-8 mx-2 sm:mx-4 md:mx-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative group/section ${
       isAlternate ? 'bg-slate-50/80 border border-slate-100' : 'bg-white border border-slate-100/50'
     }`}>
       
@@ -152,7 +153,7 @@ export default function DynamicProductRow({
       <div className={`absolute bottom-0 left-0 w-96 h-96 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 pointer-events-none ${isAlternate ? 'bg-purple-50/50' : 'bg-emerald-50'}`}></div>
       
       {/* Header Row */}
-      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-10 gap-4">
+      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end mb-5 md:mb-6 gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-black mb-2 text-slate-800 tracking-tight">{title}</h2>
           <p className="text-slate-500 font-medium text-xs sm:text-sm">{subtitle || 'منتخبی از بهترین آثار برای شما'}</p>
@@ -259,31 +260,45 @@ export default function DynamicProductRow({
                     ) : null}
                   </div>
 
-                  <div className="p-5 sm:p-6 flex flex-col flex-1">
-                    <h3 className="text-base sm:text-lg font-black text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors line-clamp-1">
+                  <div className="p-4 sm:p-5 flex flex-col flex-1">
+                    <h3 className="text-sm sm:text-base font-black text-slate-800 mb-1.5 group-hover:text-emerald-600 transition-colors line-clamp-1">
                       {product.title}
                     </h3>
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
                       {product.artist?.user?.image ? (
                         <img 
                           src={product.artist.user.image} 
                           alt={product.artist.user.name || ''} 
-                          className="w-6 h-6 rounded-full object-cover border border-slate-200 shrink-0" 
+                          className="w-5 h-5 rounded-full object-cover border border-slate-200 shrink-0" 
                         />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] text-slate-400 shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] text-slate-400 shrink-0">
                           👤
                         </div>
                       )}
-                      <span className="text-xs sm:text-sm font-bold text-slate-500 truncate">
+                      <span className="text-xs font-bold text-slate-500 truncate">
                         {product.artist?.user?.name || 'هنرمند'}
                       </span>
                     </div>
                     
-                    <div className="mt-auto flex justify-between items-end border-t border-slate-100 pt-3">
-                      <span className="text-xs text-slate-400 font-medium">قیمت اثر:</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-black text-emerald-600 text-base sm:text-lg">
+                    <div className="mt-auto flex justify-between items-center border-t border-slate-100 pt-3">
+                      {rawPrice && rawPrice > 0 ? (
+                        <QuickAddToCartButton
+                          product={{
+                            id: product.id,
+                            title: product.title,
+                            imageUrl: product.imageUrl,
+                            artistName: product.artist?.user?.name || 'هنرمند',
+                            stockQuantity: product.stockQuantity,
+                            price: rawPrice,
+                            isPreOrderEnabled: product.isPreOrderEnabled,
+                          }}
+                        />
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">قیمت اثر:</span>
+                      )}
+                      <div className="flex items-baseline gap-1 text-left">
+                        <span className="font-black text-emerald-600 text-sm sm:text-base">
                           {rawPrice ? rawPrice.toLocaleString('fa-IR') : 'توافقی'}
                         </span>
                         {rawPrice && <span className="text-[10px] font-bold text-slate-400">تومان</span>}

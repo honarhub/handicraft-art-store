@@ -5,6 +5,7 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
+import WaveDotsLoader from '@/app/components/WaveDotsLoader';
 
 // Helper function to extract referral code ONLY from current URL or search params
 function extractReferralFromUrl(searchParams?: URLSearchParams | null): string {
@@ -1066,9 +1067,9 @@ function ArtistLoginContent() {
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  {loginLoading ? 'در حال بررسی...' : 'ورود به حساب کاربری'}
+                  {loginLoading ? <WaveDotsLoader /> : <span>ورود به حساب کاربری</span>}
                 </button>
 
                 {/* Alternative OTP login for mobile or email */}
@@ -1174,9 +1175,9 @@ function ArtistLoginContent() {
                   type="button"
                   onClick={() => handleVerifyLoginOtp(loginOtpCode)}
                   disabled={loginLoading || loginOtpCode.length !== 5}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm flex items-center justify-center cursor-pointer"
                 >
-                  {loginLoading ? 'در حال بررسی...' : 'تایید و ورود'}
+                  {loginLoading ? <WaveDotsLoader /> : <span>تایید و ورود</span>}
                 </button>
               </div>
             </div>
@@ -1515,9 +1516,9 @@ function ArtistLoginContent() {
                 <button
                   type="submit"
                   disabled={regLoading || regOtpCode.length !== 5}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm cursor-pointer"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 text-sm cursor-pointer flex items-center justify-center"
                 >
-                  {regLoading ? 'در حال ثبت‌نام و ساخت حساب...' : 'تکمیل ثبت‌نام و ورود به هنرهاب'}
+                  {regLoading ? <WaveDotsLoader /> : <span>تکمیل ثبت‌نام و ورود به هنرهاب</span>}
                 </button>
 
                 <div className="flex items-center gap-2.5 pt-2">
@@ -1632,9 +1633,9 @@ function ArtistLoginContent() {
                     type="button"
                     onClick={() => handleForgotRequest()}
                     disabled={forgotLoading}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer flex items-center justify-center"
                   >
-                    {forgotLoading ? 'در حال ارسال...' : 'ارسال کد بازیابی'}
+                    {forgotLoading ? <WaveDotsLoader /> : <span>ارسال کد بازیابی</span>}
                   </button>
                   <button
                     type="button"
@@ -1728,9 +1729,9 @@ function ArtistLoginContent() {
                     type="button"
                     onClick={() => handleForgotReset()}
                     disabled={forgotLoading || forgotCode.length !== 5}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer flex items-center justify-center"
                   >
-                    {forgotLoading ? 'در حال ذخیره...' : 'تنظیم رمز جدید و ورود'}
+                    {forgotLoading ? <WaveDotsLoader /> : <span>تنظیم رمز جدید و ورود</span>}
                   </button>
                   <button
                     type="button"

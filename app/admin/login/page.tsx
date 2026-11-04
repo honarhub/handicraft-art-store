@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import WaveDotsLoader from '@/app/components/WaveDotsLoader';
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -160,7 +161,7 @@ export default function AdminLogin() {
             disabled={loading} 
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/30 transition-all mt-4 flex items-center justify-center gap-2"
           >
-            {loading ? 'در حال بررسی هویت...' : 'ورود امن (دستی)'}
+            {loading ? <WaveDotsLoader /> : <span>ورود امن (دستی)</span>}
           </button>
         </form>
         

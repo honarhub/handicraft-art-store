@@ -79,6 +79,38 @@ body {
   100% { background-position: 0% 50%; }
 }
 
+@keyframes waveDot {
+  0%, 100% {
+    transform: translateY(3px) scale(0.85);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(-4px) scale(1.15);
+    opacity: 1;
+  }
+}
+
+.wave-dot-1 {
+  animation: waveDot 0.9s ease-in-out infinite;
+  animation-delay: 0s;
+}
+.wave-dot-2 {
+  animation: waveDot 0.9s ease-in-out infinite;
+  animation-delay: 0.15s;
+}
+.wave-dot-3 {
+  animation: waveDot 0.9s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+.wave-dot-4 {
+  animation: waveDot 0.9s ease-in-out infinite;
+  animation-delay: 0.45s;
+}
+.wave-dot-5 {
+  animation: waveDot 0.9s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
 /* =========================================================================
    HONARHUB ARTISTIC SKELETON ANIMATIONS (4-STAGE LOADING CYCLE)
    ========================================================================= */

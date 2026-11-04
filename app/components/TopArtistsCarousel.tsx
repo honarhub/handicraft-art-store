@@ -60,10 +60,10 @@ export default function TopArtistsCarousel({ artists }: { artists: Artist[] }) {
     <section className="px-6 md:px-12 relative group" 
              onMouseEnter={() => setIsHovered(true)} 
              onMouseLeave={() => setIsHovered(false)}>
-      <div className="flex justify-between items-end mb-10">
+      <div className="flex justify-between items-end mb-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-black text-slate-800 mb-2">هنرمندان ایران زمین</h2>
-          <p className="text-slate-500">آفرینندگان آثار اصیل و ماندگار</p>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-1">هنرمندان ایران زمین</h2>
+          <p className="text-xs sm:text-sm text-slate-500">آفرینندگان آثار اصیل و ماندگار</p>
         </div>
       </div>
 
@@ -71,29 +71,29 @@ export default function TopArtistsCarousel({ artists }: { artists: Artist[] }) {
         {/* Navigation Arrows (Glassmorphism) - show on hover or always on mobile? We'll use group-hover on desktop */}
         <button 
           onClick={() => scroll('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md border border-white/50 text-slate-800 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/60 focus:outline-none hidden md:flex translate-x-1/2"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md border border-white/50 text-slate-800 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/60 focus:outline-none hidden md:flex translate-x-1/2"
           aria-label="Scroll Right"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </button>
 
         <div 
           ref={scrollContainerRef}
-          className="flex overflow-x-auto pb-6 pt-2 gap-8 snap-x snap-mandatory scrollbar-hide" 
+          className="flex overflow-x-auto pb-4 pt-1 gap-5 snap-x snap-mandatory scrollbar-hide" 
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {artists.map(artist => (
-            <a key={artist.id} href={`/artist/${artist.displayId || artist.id}`} className="flex flex-col items-center gap-4 min-w-[140px] md:min-w-[160px] snap-center group/item">
-              <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-slate-200 border-4 border-white shadow-md overflow-hidden group-hover/item:border-emerald-500 group-hover/item:shadow-emerald-200 transition-all duration-300 group-hover/item:-translate-y-2">
+            <a key={artist.id} href={`/artist/${artist.displayId || artist.id}`} className="flex flex-col items-center gap-2.5 min-w-[110px] md:min-w-[130px] snap-center group/item">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-slate-200 border-3 border-white shadow-sm overflow-hidden group-hover/item:border-emerald-500 group-hover/item:shadow-emerald-200 transition-all duration-300 group-hover/item:-translate-y-1">
                 {artist.user?.image ? (
                   <img src={artist.user.image} alt={artist.user?.name || ''} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-slate-100 flex items-center justify-center text-4xl text-slate-400">👤</div>
+                  <div className="w-full h-full bg-slate-100 flex items-center justify-center text-3xl text-slate-400">👤</div>
                 )}
               </div>
               <div className="text-center">
-                <h3 className="font-bold text-slate-800 group-hover/item:text-emerald-600 transition-colors text-base md:text-lg">{artist.user?.name || 'هنرمند'}</h3>
-                <p className="text-xs md:text-sm text-slate-500 mt-1 font-medium bg-slate-100 px-3 py-1 rounded-full group-hover/item:bg-emerald-50 group-hover/item:text-emerald-700 transition-colors">مشاهده آثار</p>
+                <h3 className="font-bold text-slate-800 group-hover/item:text-emerald-600 transition-colors text-xs md:text-sm">{artist.user?.name || 'هنرمند'}</h3>
+                <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 font-medium bg-slate-100 px-2.5 py-0.5 rounded-full group-hover/item:bg-emerald-50 group-hover/item:text-emerald-700 transition-colors">مشاهده آثار</p>
               </div>
             </a>
           ))}
@@ -101,10 +101,10 @@ export default function TopArtistsCarousel({ artists }: { artists: Artist[] }) {
 
         <button 
           onClick={() => scroll('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md border border-white/50 text-slate-800 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/60 focus:outline-none hidden md:flex -translate-x-1/2"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md border border-white/50 text-slate-800 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/60 focus:outline-none hidden md:flex -translate-x-1/2"
           aria-label="Scroll Left"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
       </div>
     </section>
