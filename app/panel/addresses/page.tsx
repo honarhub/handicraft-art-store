@@ -12,13 +12,19 @@ export default async function CustomerAddressesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect('/login?callbackUrl=/panel/addresses');
 
-  const addresses = await prisma.userAddress.findMany({
-    where: { userId: session.user.id },
-    orderBy: [
-      { isDefault: 'desc' },
-      { createdAt: 'desc' }
-    ]
-  });
+  const [addresses, user] = await Promise.all([
+    prisma.userAddress.findMany({
+      where: { userId: session.user.id },
+      orderBy: [
+        { isDefault: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, phoneNumber: true }
+    })
+  ]);
 
-  return <AddressesManager initialAddresses={addresses} />;
+  return <AddressesManager initialAddresses={addresses} defaultRecipient={user} />;
 }

@@ -165,6 +165,30 @@ export default function UserNavDropdown() {
 
           {/* Primary Customer Links */}
           <div className="px-1.5 space-y-0.5 text-xs sm:text-sm font-bold text-slate-700">
+            {/* Customer Panel Dashboard */}
+            <Link
+              href="/panel"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 hover:text-emerald-700 transition-colors"
+            >
+              <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs shrink-0">
+                🏛️
+              </span>
+              <span>پیشخوان</span>
+            </Link>
+
+            {/* Profile Information */}
+            <Link
+              href="/panel/profile"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 hover:text-emerald-700 transition-colors"
+            >
+              <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs shrink-0">
+                👤
+              </span>
+              <span>اطلاعات پروفایل</span>
+            </Link>
+
             {/* Orders */}
             <Link
               href="/panel/orders"
@@ -199,18 +223,6 @@ export default function UserNavDropdown() {
                 🔖
               </span>
               <span>لیست علاقه‌مندی‌ها</span>
-            </Link>
-
-            {/* Customer Panel Hub */}
-            <Link
-              href="/panel"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 hover:text-emerald-700 transition-colors"
-            >
-              <span className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs shrink-0">
-                🏛️
-              </span>
-              <span>پیشخوان کاربری من</span>
             </Link>
           </div>
 

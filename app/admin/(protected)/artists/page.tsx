@@ -1416,7 +1416,7 @@ export default function AdminArtistsPage() {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full bg-white text-slate-900 font-medium placeholder:text-slate-400 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left"
+                  className="w-full bg-white text-slate-900 font-medium placeholder:text-slate-400 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left font-mono"
                   dir="ltr"
                   placeholder="ایمیل هنرمند"
                   autoComplete="off"
@@ -1429,7 +1429,7 @@ export default function AdminArtistsPage() {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-white text-slate-900 font-medium placeholder:text-slate-400 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-left"
+                  className="w-full bg-white text-slate-900 font-medium placeholder:text-slate-400 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-center font-mono tracking-widest"
                   dir="ltr"
                   placeholder="در صورت عدم نیاز، خالی بگذارید"
                   autoComplete="new-password"

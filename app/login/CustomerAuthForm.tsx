@@ -493,7 +493,7 @@ export default function CustomerAuthForm() {
                   placeholder="رمز عبور خود را وارد نمایید"
                   autoFocus
                   required
-                  className="w-full px-4 py-3.5 pl-11 rounded-2xl border border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 outline-none text-right font-medium text-sm text-slate-900 bg-slate-50/50 transition-all"
+                  className="w-full px-4 py-3.5 pl-11 rounded-2xl border border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 outline-none text-center font-mono tracking-wider text-sm text-slate-900 bg-slate-50/50 transition-all"
                 />
                 <button
                   type="button"
@@ -678,7 +678,7 @@ export default function CustomerAuthForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="حداقل ۶ کاراکتر"
                   required
-                  className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 outline-none text-right font-medium text-sm text-slate-900 bg-slate-50/50 transition-all"
+                  className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 outline-none text-center font-mono tracking-wider text-sm text-slate-900 bg-slate-50/50 transition-all"
                 />
                 <button
                   type="button"

@@ -89,7 +89,7 @@ function ResetPasswordForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none text-left"
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none text-center font-mono tracking-widest text-base"
               dir="ltr"
               required
               disabled={!token}
@@ -103,7 +103,7 @@ function ResetPasswordForm() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none text-left"
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-blue-500 outline-none text-center font-mono tracking-widest text-base"
               dir="ltr"
               required
               disabled={!token}

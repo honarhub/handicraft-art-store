@@ -26,6 +26,13 @@ export default function PanelNav({ counts, isArtist, isAdmin }: Props) {
       exact: true
     },
     {
+      href: '/panel/profile',
+      label: 'اطلاعات پروفایل',
+      icon: '👤',
+      badge: null,
+      exact: false
+    },
+    {
       href: '/panel/orders',
       label: 'سفارش‌های من',
       icon: '📦',
@@ -44,13 +51,6 @@ export default function PanelNav({ counts, isArtist, isAdmin }: Props) {
       label: 'علاقه‌مندی‌ها',
       icon: '🔖',
       badge: counts?.wishlist ? counts.wishlist : null,
-      exact: false
-    },
-    {
-      href: '/panel/profile',
-      label: 'اطلاعات پروفایل',
-      icon: '👤',
-      badge: null,
       exact: false
     },
   ];

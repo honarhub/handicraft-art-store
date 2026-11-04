@@ -5,6 +5,7 @@ import ProductsFilterClient from './ProductsFilterClient';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 import ProductImageWithSkeleton from '@/app/components/ProductImageWithSkeleton';
+import QuickAddToCartButton from '@/app/components/QuickAddToCartButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -146,6 +147,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       },
       pricingTiers: {
         select: {
+          id: true,
+          title: true,
           price: true
         }
       }
@@ -288,6 +291,21 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                         <div className="font-black text-emerald-600 text-lg">{(product.pricingTiers[0]?.price || 0).toLocaleString('fa-IR')}</div>
                         <div className="text-[10px] font-bold text-emerald-800/60 leading-none">تومان</div>
                       </div>
+                    </div>
+
+                    <div className="mt-3.5 pt-3 border-t border-slate-100">
+                      <QuickAddToCartButton
+                        product={{
+                          id: product.id,
+                          title: product.title,
+                          imageUrl: product.imageUrl,
+                          artistName: product.artist?.user?.name || product.artist?.brandName || 'هنرمند',
+                          stockQuantity: product.stockQuantity,
+                          price: product.pricingTiers[0]?.price || 0,
+                          tierTitle: product.pricingTiers[0]?.title || undefined,
+                          isPreOrderEnabled: product.isPreOrderEnabled
+                        }}
+                      />
                     </div>
                   </div>
                 </a>

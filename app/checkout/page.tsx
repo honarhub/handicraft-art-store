@@ -1,51 +1,162 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSession, signIn } from 'next-auth/react';
 import { useCart } from '../context/CartContext';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
+import { IRAN_PROVINCES } from '@/lib/provinces';
+import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
+import { toPersianDigits } from '@/lib/date';
+import Link from 'next/link';
+
+interface SavedAddress {
+  id: string;
+  title: string;
+  recipientName: string;
+  phoneNumber: string;
+  province: string;
+  city: string;
+  address: string;
+  postalCode: string;
+  isDefault: boolean;
+}
 
 export default function CheckoutPage() {
+  const { data: session } = useSession();
   const { items, totalPrice, clearCart } = useCart();
   const [mounted, setMounted] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1); // 1: Shipping, 2: Payment
-  
-  // Form State
+
+  // 3-Step Checkout: 1: Shipping, 2: Review, 3: Payment
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [maxReachedStep, setMaxReachedStep] = useState<number>(1);
+
+  // Saved addresses for logged in user
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | 'new'>('new');
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+  // Address Form State
   const [formData, setFormData] = useState({
-    fullName: '',
+    recipientName: '',
     phone: '',
+    province: '',
+    city: '',
     address: '',
-    postalCode: ''
+    postalCode: '',
+    saveToAccount: true,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
+  // Auth Modal State for Guest Users during Checkout
+  const [authModal, setAuthModal] = useState<{
+    isOpen: boolean;
+    mode: 'REGISTER' | 'PASSWORD_LOGIN' | 'OTP_LOGIN';
+    normalizedPhone: string;
+    userName?: string;
+    otpCode: string;
+    password: string;
+    showPassword: boolean;
+    loading: boolean;
+    error: string;
+    timer: number;
+  }>({
+    isOpen: false,
+    mode: 'REGISTER',
+    normalizedPhone: '',
+    userName: '',
+    otpCode: '',
+    password: '',
+    showPassword: false,
+    loading: false,
+    error: '',
+    timer: 120,
+  });
+
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState<'bank'>('bank');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const toEnglishDigits = (str: string) => {
     return str
-      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
-      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
+      .replace(/[۰-۹]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d).toString())
+      .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString());
   };
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Fetch saved addresses if user is logged in
+  useEffect(() => {
+    if (session?.user?.id) {
+      setLoadingAddresses(true);
+      fetch('/api/user/addresses')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.success && Array.isArray(data.addresses)) {
+            setSavedAddresses(data.addresses);
+            const defaultAddr = data.addresses.find((a: SavedAddress) => a.isDefault) || data.addresses[0];
+            if (defaultAddr) {
+              setSelectedAddressId(defaultAddr.id);
+              setFormData({
+                recipientName: defaultAddr.recipientName,
+                phone: defaultAddr.phoneNumber,
+                province: defaultAddr.province,
+                city: defaultAddr.city,
+                address: defaultAddr.address,
+                postalCode: defaultAddr.postalCode,
+                saveToAccount: false,
+              });
+            } else {
+              setSelectedAddressId('new');
+              setFormData((prev) => ({
+                ...prev,
+                recipientName: prev.recipientName || session.user.name || '',
+              }));
+            }
+          }
+        })
+        .catch((err) => console.error('Failed to load user addresses:', err))
+        .finally(() => setLoadingAddresses(false));
+    }
+  }, [session?.user?.id]);
+
+  // Cities for the currently selected province in the form
+  const availableCities = useMemo(() => {
+    if (!formData.province) return [];
+    const found = IRAN_PROVINCES.find((p) => p.name === formData.province);
+    return found ? found.cities : [];
+  }, [formData.province]);
+
+  // Auth Timer Countdown
+  useEffect(() => {
+    let interval: any;
+    if (authModal.isOpen && (authModal.mode === 'REGISTER' || authModal.mode === 'OTP_LOGIN') && authModal.timer > 0) {
+      interval = setInterval(() => {
+        setAuthModal((prev) => ({ ...prev, timer: Math.max(0, prev.timer - 1) }));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [authModal.isOpen, authModal.mode, authModal.timer]);
+
   if (!mounted) return null;
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50" dir="rtl">
+      <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
         <SiteHeader />
         <main className="flex-1 w-full flex items-center justify-center p-6">
-          <div className="bg-white p-8 rounded-3xl shadow-sm text-center max-w-md w-full">
+          <div className="bg-white p-8 rounded-3xl shadow-xs border border-slate-200 text-center max-w-md w-full">
             <div className="text-5xl mb-4">🛒</div>
-            <h2 className="text-xl font-bold mb-4">سبد خرید شما خالی است</h2>
-            <a href="/products" className="block w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors">
-              بازگشت به فروشگاه
-            </a>
+            <h2 className="text-xl font-bold mb-2 text-slate-800">سبد خرید شما خالی است</h2>
+            <p className="text-xs text-slate-500 mb-6">هیچ اثر هنری در سبد خرید شما وجود ندارد.</p>
+            <Link
+              href="/products"
+              className="inline-block w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-600 transition-colors"
+            >
+              بازگشت به گالری آثار
+            </Link>
           </div>
         </main>
         <SiteFooter />
@@ -53,285 +164,1228 @@ export default function CheckoutPage() {
     );
   }
 
-  const handleShippingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle switching to a saved address card
+  const handleSelectSavedAddress = (addr: SavedAddress) => {
+    setSelectedAddressId(addr.id);
+    setFormData({
+      recipientName: addr.recipientName,
+      phone: addr.phoneNumber,
+      province: addr.province,
+      city: addr.city,
+      address: addr.address,
+      postalCode: addr.postalCode,
+      saveToAccount: false,
+    });
+    setErrors({});
+  };
+
+  // Switch to new address form
+  const handleSelectNewAddress = () => {
+    setSelectedAddressId('new');
+    setFormData({
+      recipientName: session?.user?.name || '',
+      phone: '',
+      province: '',
+      city: '',
+      address: '',
+      postalCode: '',
+      saveToAccount: true,
+    });
+    setErrors({});
+  };
+
+  // Validate Step 1 Form
+  const validateShippingForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'لطفاً نام و نام خانوادگی را وارد کنید.';
+    if (!formData.recipientName.trim()) {
+      newErrors.recipientName = 'لطفاً نام و نام خانوادگی تحویل‌گیرنده را وارد کنید.';
     }
 
-    const cleanPhone = toEnglishDigits(formData.phone).replace(/\D/g, '');
-    if (!cleanPhone) {
-      newErrors.phone = 'لطفاً شماره موبایل را وارد کنید.';
-    } else if (!/^09\d{9}$/.test(cleanPhone)) {
-      newErrors.phone = 'شماره موبایل باید ۱۱ رقم بوده و با ۰۹ شروع شود.';
+    const cleanPhone = normalizePhoneNumber(formData.phone);
+    if (!cleanPhone || !isValidIranianMobile(cleanPhone)) {
+      newErrors.phone = 'شماره موبایل معتبر الزامی است (مثال: ۰۹۱۲۳۴۵۶۷۸۹).';
     }
 
-    if (!formData.address.trim()) {
-      newErrors.address = 'لطفاً آدرس دقیق پستی را وارد کنید.';
+    if (!formData.province.trim()) {
+      newErrors.province = 'لطفاً استان تحویل سفارش را انتخاب کنید.';
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'لطفاً شهر تحویل سفارش را انتخاب کنید.';
+    }
+
+    if (!formData.address.trim() || formData.address.trim().length < 8) {
+      newErrors.address = 'نشانی پستی دقیق الزامی است (حداقل ۸ حرف).';
     }
 
     const cleanPostal = toEnglishDigits(formData.postalCode).replace(/\D/g, '');
-    if (!cleanPostal) {
-      newErrors.postalCode = 'لطفاً کد پستی را وارد کنید.';
-    } else if (cleanPostal.length !== 10) {
-      newErrors.postalCode = 'کد پستی باید دقیقاً ۱۰ رقم باشد.';
+    if (!cleanPostal || cleanPostal.length !== 10) {
+      newErrors.postalCode = 'کد پستی باید دقیقاً ۱۰ رقمی باشد.';
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      return;
+      return false;
     }
 
     setErrors({});
-    setFormData(prev => ({
-      ...prev,
-      phone: cleanPhone,
-      postalCode: cleanPostal
-    }));
-    setStep(2);
+    return true;
   };
 
-  const handlePayment = () => {
+  // Handle Step 1 Submit (Next to Review)
+  const handleShippingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateShippingForm()) return;
+
+    const cleanPhone = normalizePhoneNumber(formData.phone);
+
+    // If User is already logged in, proceed directly to Step 2
+    if (session?.user?.id) {
+      // If user selected "new" and checked "saveToAccount", save to DB in background
+      if (selectedAddressId === 'new' && formData.saveToAccount) {
+        fetch('/api/user/addresses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'آدرس خرید',
+            recipientName: formData.recipientName,
+            phoneNumber: cleanPhone,
+            province: formData.province,
+            city: formData.city,
+            address: formData.address,
+            postalCode: formData.postalCode,
+            isDefault: savedAddresses.length === 0,
+          }),
+        }).catch((err) => console.error('Failed to save address:', err));
+      }
+
+      setStep(2);
+      setMaxReachedStep((prev) => Math.max(prev, 2));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Guest User Flow: Check if phone exists
+    try {
+      const res = await fetch('/api/auth/check-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: cleanPhone, loginType: 'user' }),
+      });
+      const data = await res.json();
+
+      if (data.exists) {
+        // Existing user: Open Password / OTP login modal
+        setAuthModal({
+          isOpen: true,
+          mode: data.hasPassword ? 'PASSWORD_LOGIN' : 'OTP_LOGIN',
+          normalizedPhone: cleanPhone,
+          userName: data.name || '',
+          otpCode: '',
+          password: '',
+          showPassword: false,
+          loading: false,
+          error: '',
+          timer: 120,
+        });
+
+        // If they don't have password, send OTP immediately
+        if (!data.hasPassword) {
+          fetch('/api/auth/otp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: cleanPhone, type: 'PHONE_OTP', purpose: 'customer' }),
+          }).catch((err) => console.error('Send OTP error:', err));
+        }
+      } else {
+        // New user: Send OTP and open Auto-Registration Modal
+        setAuthModal({
+          isOpen: true,
+          mode: 'REGISTER',
+          normalizedPhone: cleanPhone,
+          userName: formData.recipientName,
+          otpCode: '',
+          password: '',
+          showPassword: false,
+          loading: false,
+          error: '',
+          timer: 120,
+        });
+
+        fetch('/api/auth/otp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: cleanPhone, type: 'PHONE_OTP', purpose: 'customer' }),
+        }).catch((err) => console.error('Send OTP error:', err));
+      }
+    } catch (err) {
+      console.error('Check user error:', err);
+      // Fallback: allow proceeding directly
+      setStep(2);
+      setMaxReachedStep((prev) => Math.max(prev, 2));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Handle Guest Auth Submission (Auto Register or Login)
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthModal((prev) => ({ ...prev, error: '', loading: true }));
+
+    try {
+      if (authModal.mode === 'REGISTER') {
+        if (!authModal.otpCode || authModal.otpCode.trim().length !== 5) {
+          throw new Error('کد تایید ۵ رقمی پیامک‌شده را وارد نمایید.');
+        }
+        if (!authModal.password || authModal.password.length < 6) {
+          throw new Error('تعیین رمز عبور با حداقل ۶ کاراکتر الزامی است.');
+        }
+
+        // Register user
+        const regRes = await fetch('/api/auth/customer/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: authModal.normalizedPhone,
+            name: formData.recipientName,
+            password: authModal.password,
+            code: authModal.otpCode.trim(),
+          }),
+        });
+
+        const regData = await regRes.json();
+        if (!regRes.ok) throw new Error(regData.error || 'خطا در ایجاد حساب کاربری');
+
+        // Automatically sign in
+        const signInRes = await signIn('credentials', {
+          redirect: false,
+          phone: authModal.normalizedPhone,
+          password: authModal.password,
+          loginType: 'user',
+        });
+
+        if (signInRes?.error) {
+          throw new Error('حساب ایجاد شد اما ورود خودکار با خطا مواجه شد. لطفاً وارد شوید.');
+        }
+
+        // Save address
+        fetch('/api/user/addresses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'آدرس منزل',
+            recipientName: formData.recipientName,
+            phoneNumber: authModal.normalizedPhone,
+            province: formData.province,
+            city: formData.city,
+            address: formData.address,
+            postalCode: formData.postalCode,
+            isDefault: true,
+          }),
+        }).catch((err) => console.error('Save address error:', err));
+
+        setAuthModal((prev) => ({ ...prev, isOpen: false, loading: false }));
+        setStep(2);
+        setMaxReachedStep((prev) => Math.max(prev, 2));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (authModal.mode === 'PASSWORD_LOGIN') {
+        if (!authModal.password) {
+          throw new Error('رمز عبور خود را وارد نمایید.');
+        }
+
+        const signInRes = await signIn('credentials', {
+          redirect: false,
+          phone: authModal.normalizedPhone,
+          password: authModal.password,
+          loginType: 'user',
+        });
+
+        if (signInRes?.error) {
+          throw new Error('رمز عبور وارد شده نادرست است.');
+        }
+
+        setAuthModal((prev) => ({ ...prev, isOpen: false, loading: false }));
+        setStep(2);
+        setMaxReachedStep((prev) => Math.max(prev, 2));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (authModal.mode === 'OTP_LOGIN') {
+        if (!authModal.otpCode || authModal.otpCode.trim().length !== 5) {
+          throw new Error('کد تایید ۵ رقمی را کامل وارد نمایید.');
+        }
+
+        const signInRes = await signIn('credentials', {
+          redirect: false,
+          phone: authModal.normalizedPhone,
+          code: authModal.otpCode.trim(),
+          loginType: 'user',
+        });
+
+        if (signInRes?.error) {
+          throw new Error('کد تایید نامعتبر یا منقضی شده است.');
+        }
+
+        setAuthModal((prev) => ({ ...prev, isOpen: false, loading: false }));
+        setStep(2);
+        setMaxReachedStep((prev) => Math.max(prev, 2));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (err: any) {
+      setAuthModal((prev) => ({ ...prev, error: err.message || 'خطا در پردازش اطلاعات', loading: false }));
+    }
+  };
+
+  // Resend OTP in modal
+  const handleResendOtp = async () => {
+    setAuthModal((prev) => ({ ...prev, error: '', loading: true }));
+    try {
+      const res = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: authModal.normalizedPhone,
+          type: 'PHONE_OTP',
+          purpose: 'customer',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'خطا در ارسال کد');
+      setAuthModal((prev) => ({ ...prev, timer: 120, loading: false }));
+    } catch (err: any) {
+      setAuthModal((prev) => ({ ...prev, error: err.message || 'خطا در ارسال مجدد کد', loading: false }));
+    }
+  };
+
+  // Step 3 Payment Handler
+  const handlePayment = async () => {
     setIsProcessing(true);
-    // Simulate API call and payment processing
-    setTimeout(() => {
-      clearCart();
-      const orderId = 'ORD-' + Math.floor(Math.random() * 1000000);
-      window.location.href = `/checkout/success?orderId=${orderId}`;
-    }, 2500);
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items,
+          total: totalPrice,
+          shippingAddress: formData,
+        }),
+      });
+      const data = await res.json();
+
+      setTimeout(() => {
+        clearCart();
+        const orderId = data.orderId || 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+        window.location.href = `/checkout/success?orderId=${orderId}`;
+      }, 1500);
+    } catch (err) {
+      console.error('Payment error:', err);
+      setTimeout(() => {
+        clearCart();
+        const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+        window.location.href = `/checkout/success?orderId=${orderId}`;
+      }, 1500);
+    }
+  };
+
+  // Navigate to step if allowed
+  const goToStep = (targetStep: 1 | 2 | 3) => {
+    if (targetStep <= maxReachedStep || (targetStep === 2 && validateShippingForm())) {
+      setStep(targetStep);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
       <SiteHeader />
-      <main className="flex-1 w-full py-12 px-6">
+
+      <main className="flex-1 w-full py-8 sm:py-12 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
-          <a href="/cart" className="text-slate-500 hover:text-slate-800 font-medium flex items-center gap-1 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            بازگشت به سبد خرید
-          </a>
-          <h1 className="text-2xl font-black text-slate-800">تکمیل سفارش</h1>
-        </div>
+          {/* Header & Back Link */}
+          <div className="mb-8 flex items-center justify-between">
+            <Link
+              href="/cart"
+              className="text-slate-500 hover:text-slate-800 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
+            >
+              <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+              <span>بازگشت به سبد خرید</span>
+            </Link>
 
-        {/* Stepper */}
-        <div className="flex items-center justify-center mb-10">
-          <div className="flex items-center w-full max-w-sm">
-            <div className={`flex flex-col items-center relative z-10`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${step >= 1 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'bg-slate-200 text-slate-500'}`}>1</div>
-              <div className="absolute top-12 whitespace-nowrap text-xs font-bold text-slate-600">اطلاعات ارسال</div>
-            </div>
-            <div className={`flex-1 h-1 mx-2 rounded-full ${step >= 2 ? 'bg-emerald-600' : 'bg-slate-200'}`}></div>
-            <div className={`flex flex-col items-center relative z-10`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${step >= 2 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30' : 'bg-slate-200 text-slate-500'}`}>2</div>
-              <div className="absolute top-12 whitespace-nowrap text-xs font-bold text-slate-600">پرداخت</div>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
+              تکمیل سفارش و خرید
+            </h1>
           </div>
-        </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 mt-16">
-          <div className="lg:w-2/3">
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8">
-              
-              {step === 1 ? (
-                // Step 1: Shipping Info
-                <form onSubmit={handleShippingSubmit} noValidate className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                    اطلاعات گیرنده
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label htmlFor="fullName" className="block text-sm font-bold text-slate-700 mb-2">
-                        نام و نام خانوادگی <span className="text-red-500 font-bold">*</span>
-                      </label>
-                      <input 
-                        type="text" 
-                        id="fullName"
-                        name="name"
-                        autoComplete="name"
-                        value={formData.fullName} 
-                        onChange={e => {
-                          setFormData({...formData, fullName: e.target.value});
-                          if (errors.fullName) setErrors({...errors, fullName: ''});
-                        }} 
-                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.fullName ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none transition-all`} 
-                        placeholder="مثال: علی رضایی" 
-                      />
-                      {errors.fullName && (
-                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.fullName}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-bold text-slate-700 mb-2">
-                        شماره موبایل <span className="text-red-500 font-bold">*</span>
-                      </label>
-                      <input 
-                        type="tel" 
-                        id="phone"
-                        name="tel"
-                        autoComplete="tel"
-                        value={formData.phone} 
-                        onChange={e => {
-                          const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11);
-                          setFormData({...formData, phone: val});
-                          if (errors.phone) setErrors({...errors, phone: ''});
-                        }} 
-                        onKeyDown={e => {
-                          // Allow control keys like backspace, tab, enter, delete, arrows
-                          if (['Backspace', 'Tab', 'Enter', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-                          if (e.ctrlKey || e.metaKey) return;
-                          if (!/[\d۰-۹٠-٩]/.test(e.key)) {
-                            e.preventDefault();
-                          }
-                        }}
-                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.phone ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
-                        placeholder="09123456789" 
-                        dir="ltr" 
-                      />
-                      {errors.phone && (
-                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.phone}</p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <label htmlFor="address" className="block text-sm font-bold text-slate-700 mb-2">
-                        آدرس دقیق پستی <span className="text-red-500 font-bold">*</span>
-                      </label>
-                      <textarea 
-                        id="address"
-                        name="street-address"
-                        autoComplete="street-address"
-                        value={formData.address} 
-                        onChange={e => {
-                          setFormData({...formData, address: e.target.value});
-                          if (errors.address) setErrors({...errors, address: ''});
-                        }} 
-                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.address ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none resize-none h-24 transition-all`} 
-                        placeholder="نام استان، شهر، خیابان، کوچه، پلاک، واحد"
-                      ></textarea>
-                      {errors.address && (
-                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.address}</p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <label htmlFor="postalCode" className="block text-sm font-bold text-slate-700 mb-2">
-                        کد پستی (۱۰ رقمی) <span className="text-red-500 font-bold">*</span>
-                      </label>
-                      <input 
-                        type="text" 
-                        id="postalCode"
-                        name="postal-code"
-                        autoComplete="postal-code"
-                        value={formData.postalCode} 
-                        onChange={e => {
-                          const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 10);
-                          setFormData({...formData, postalCode: val});
-                          if (errors.postalCode) setErrors({...errors, postalCode: ''});
-                        }} 
-                        onKeyDown={e => {
-                          if (['Backspace', 'Tab', 'Enter', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-                          if (e.ctrlKey || e.metaKey) return;
-                          if (!/[\d۰-۹٠-٩]/.test(e.key)) {
-                            e.preventDefault();
-                          }
-                        }}
-                        className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 ${errors.postalCode ? 'border-red-400 bg-red-50/30' : 'border-slate-300'} focus:border-emerald-500 outline-none text-left font-mono transition-all`} 
-                        placeholder="1234567890" 
-                        dir="ltr" 
-                      />
-                      {errors.postalCode && (
-                        <p className="text-red-500 text-xs font-bold mt-1.5 text-right">{errors.postalCode}</p>
-                      )}
-                    </div>
-                  </div>
-                  <button type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-slate-800 transition-colors">
-                    تایید و ادامه به مرحله پرداخت
-                  </button>
-                </form>
-              ) : (
-                // Step 2: Payment
-                <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
-                      انتخاب روش پرداخت
-                    </h2>
-                    <button onClick={() => setStep(1)} className="text-sm font-bold text-slate-400 hover:text-slate-600">اصلاح آدرس</button>
-                  </div>
-                  
-                  <div className="space-y-4 mb-8">
-                    {/* Bank Gateway */}
-                    <label className={`block cursor-pointer border-2 rounded-2xl p-4 transition-all ${paymentMethod === 'bank' ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-200 hover:border-slate-300'}`}>
-                      <div className="flex items-center gap-4">
-                        <input type="radio" name="payment" value="bank" checked={paymentMethod === 'bank'} onChange={() => setPaymentMethod('bank')} className="w-5 h-5 text-emerald-600 focus:ring-emerald-500" />
-                        <div className="flex-1">
-                          <div className="font-bold text-slate-800">درگاه پرداخت بانکی (شتاب)</div>
-                          <div className="text-xs text-slate-500 mt-1">پرداخت امن آنلاین با تمامی کارت‌های عضو شتاب</div>
-                        </div>
-                        <div className="text-2xl opacity-80">💳</div>
-                      </div>
-                    </label>
-
-                    {/* Crypto Gateway (Disabled) */}
-                    <div className="border-2 border-slate-200 bg-slate-50/70 rounded-2xl p-4 opacity-50 cursor-not-allowed select-none">
-                      <div className="flex items-center gap-4">
-                        <input type="radio" disabled name="payment" value="crypto" className="w-5 h-5 cursor-not-allowed" />
-                        <div className="flex-1">
-                          <div className="font-bold text-slate-500 flex items-center gap-2">
-                            <span>پرداخت رمزارزی (Crypto)</span>
-                            <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">به زودی - موقتاً غیرفعال</span>
-                          </div>
-                          <div className="text-xs text-slate-400 mt-1">پشتیبانی از USDT (Tether) بر بستر TRC20</div>
-                        </div>
-                        <div className="text-2xl opacity-40">🪙</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={handlePayment} 
-                    disabled={isProcessing}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        درحال انتقال به درگاه...
-                      </>
-                    ) : (
-                      <>پرداخت مبلغ {totalPrice.toLocaleString('fa-IR')} تومان</>
-                    )}
-                  </button>
+          {/* Interactive 3-Step Stepper with Clickable Circles */}
+          <div className="flex items-center justify-center mb-12 sm:mb-14">
+            <div className="flex items-center w-full max-w-md px-2">
+              {/* Step 1 Circle */}
+              <div className="flex flex-col items-center relative z-10">
+                <button
+                  type="button"
+                  onClick={() => goToStep(1)}
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-black text-sm transition-all cursor-pointer ${
+                    step >= 1
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-emerald-100'
+                      : 'bg-slate-200 text-slate-500'
+                  }`}
+                  title="مرحله ۱: اطلاعات ارسال"
+                >
+                  {toPersianDigits(1)}
+                </button>
+                <div
+                  onClick={() => goToStep(1)}
+                  className={`absolute top-12 sm:top-13 whitespace-nowrap text-xs font-bold cursor-pointer ${
+                    step === 1 ? 'text-emerald-700' : 'text-slate-600'
+                  }`}
+                >
+                  اطلاعات ارسال
                 </div>
-              )}
+              </div>
+
+              {/* Progress Line 1-2 */}
+              <div
+                className={`flex-1 h-1.5 mx-2 rounded-full transition-colors duration-300 ${
+                  step >= 2 ? 'bg-emerald-600' : 'bg-slate-200'
+                }`}
+              />
+
+              {/* Step 2 Circle */}
+              <div className="flex flex-col items-center relative z-10">
+                <button
+                  type="button"
+                  onClick={() => goToStep(2)}
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-black text-sm transition-all cursor-pointer ${
+                    step >= 2
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-emerald-100'
+                      : maxReachedStep >= 2
+                      ? 'bg-slate-300 text-slate-700'
+                      : 'bg-slate-200 text-slate-400'
+                  }`}
+                  title="مرحله ۲: بررسی نهایی خرید"
+                >
+                  {toPersianDigits(2)}
+                </button>
+                <div
+                  onClick={() => goToStep(2)}
+                  className={`absolute top-12 sm:top-13 whitespace-nowrap text-xs font-bold cursor-pointer ${
+                    step === 2 ? 'text-emerald-700' : 'text-slate-600'
+                  }`}
+                >
+                  بررسی نهایی خرید
+                </div>
+              </div>
+
+              {/* Progress Line 2-3 */}
+              <div
+                className={`flex-1 h-1.5 mx-2 rounded-full transition-colors duration-300 ${
+                  step >= 3 ? 'bg-emerald-600' : 'bg-slate-200'
+                }`}
+              />
+
+              {/* Step 3 Circle */}
+              <div className="flex flex-col items-center relative z-10">
+                <button
+                  type="button"
+                  onClick={() => goToStep(3)}
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-black text-sm transition-all cursor-pointer ${
+                    step >= 3
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 ring-4 ring-emerald-100'
+                      : maxReachedStep >= 3
+                      ? 'bg-slate-300 text-slate-700'
+                      : 'bg-slate-200 text-slate-400'
+                  }`}
+                  title="مرحله ۳: پرداخت"
+                >
+                  {toPersianDigits(3)}
+                </button>
+                <div
+                  onClick={() => goToStep(3)}
+                  className={`absolute top-12 sm:top-13 whitespace-nowrap text-xs font-bold cursor-pointer ${
+                    step === 3 ? 'text-emerald-700' : 'text-slate-600'
+                  }`}
+                >
+                  پرداخت و ثبت نهایی
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="lg:w-1/3">
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sticky top-8">
-              <h3 className="font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4">فاکتور شما</h3>
-              <div className="space-y-3 mb-6 max-h-48 overflow-y-auto pr-2">
-                {items.map(item => (
-                  <div key={item.id || `${item.productId}_${item.isPreOrder ? item.tierTitle : 'instock'}`} className="flex items-center gap-3">
-                    <img src={item.imageUrl} alt={item.title} className="w-12 h-12 rounded-lg object-cover" />
-                    <div className="flex-1">
-                      <div className="text-sm font-bold text-slate-800 line-clamp-1">{item.title}</div>
-                      <div className="text-xs text-slate-500">{item.quantity} عدد</div>
+          <div className="flex flex-col lg:flex-row gap-8 mt-12 sm:mt-16">
+            {/* Main Stage Content */}
+            <div className="lg:w-2/3">
+              <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-6 md:p-8">
+                {/* ---------------- STEP 1: SHIPPING & ADDRESS ---------------- */}
+                {step === 1 && (
+                  <form onSubmit={handleShippingSubmit} noValidate className="space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                      <h2 className="text-lg sm:text-xl font-black text-slate-800 flex items-center gap-2">
+                        <span className="text-xl">📍</span>
+                        <span>نشانی تحویل و اطلاعات گیرنده</span>
+                      </h2>
+                      {session?.user && (
+                        <span className="text-[11px] font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
+                          حساب کاربری فعال
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Saved Addresses List (if logged in and has addresses) */}
+                    {session?.user && savedAddresses.length > 0 && (
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-slate-700">
+                          انتخاب از نشانی‌های ذخیره‌شده:
+                        </label>
+                        <div className="grid grid-cols-1 gap-2.5">
+                          {savedAddresses.map((addr) => (
+                            <div
+                              key={addr.id}
+                              onClick={() => handleSelectSavedAddress(addr)}
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
+                                selectedAddressId === addr.id
+                                  ? 'border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-500/20'
+                                  : 'border-slate-200 hover:border-slate-300 bg-white'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <input
+                                  type="radio"
+                                  name="savedAddressRadio"
+                                  checked={selectedAddressId === addr.id}
+                                  onChange={() => handleSelectSavedAddress(addr)}
+                                  className="mt-1 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                />
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-xs sm:text-sm text-slate-900">
+                                      {addr.title || 'آدرس من'}
+                                    </span>
+                                    {addr.isDefault && (
+                                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-md">
+                                        پیش‌فرض
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    {addr.province}، {addr.city}، {addr.address}
+                                  </p>
+                                  <div className="text-[11px] text-slate-500 mt-1">
+                                    تحویل‌گیرنده: <strong className="text-slate-800">{addr.recipientName}</strong> (
+                                    <span className="font-mono">{toPersianDigits(addr.phoneNumber)}</span>)
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Option to type new address */}
+                          <div
+                            onClick={handleSelectNewAddress}
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                              selectedAddressId === 'new'
+                                ? 'border-emerald-600 bg-emerald-50/40 ring-2 ring-emerald-500/20'
+                                : 'border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/50'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="savedAddressRadio"
+                              checked={selectedAddressId === 'new'}
+                              onChange={handleSelectNewAddress}
+                              className="text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                            />
+                            <span className="font-bold text-xs sm:text-sm text-slate-800">
+                              + افزودن و استفاده از یک نشانی جدید
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Address Form Fields (Rendered if guest OR if selectedAddressId === 'new') */}
+                    {(!session?.user || selectedAddressId === 'new' || savedAddresses.length === 0) && (
+                      <div className="space-y-4 pt-2">
+                        {/* Name and Mobile */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label htmlFor="checkout-recipientName" className="block text-xs font-bold text-slate-700 mb-1.5">
+                              نام و نام خانوادگی تحویل‌گیرنده <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              id="checkout-recipientName"
+                              name="name"
+                              autoComplete="name"
+                              value={formData.recipientName}
+                              onChange={(e) => {
+                                setFormData({ ...formData, recipientName: e.target.value });
+                                if (errors.recipientName) setErrors({ ...errors, recipientName: '' });
+                              }}
+                              placeholder="مثال: علی رضایی"
+                              required
+                              className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 text-xs sm:text-sm outline-none transition-all ${
+                                errors.recipientName ? 'border-red-400 bg-red-50/30' : 'border-slate-300 focus:border-emerald-500'
+                              }`}
+                            />
+                            {errors.recipientName && (
+                              <p className="text-red-500 text-[11px] font-bold mt-1">{errors.recipientName}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label htmlFor="checkout-phone" className="block text-xs font-bold text-slate-700 mb-1.5">
+                              شماره تماس تحویل‌گیرنده <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="tel"
+                              id="checkout-phone"
+                              name="tel"
+                              autoComplete="tel"
+                              dir="ltr"
+                              value={formData.phone}
+                              onChange={(e) => {
+                                const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11);
+                                setFormData({ ...formData, phone: val });
+                                if (errors.phone) setErrors({ ...errors, phone: '' });
+                              }}
+                              placeholder="09123456789"
+                              required
+                              className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-mono text-center tracking-wider text-xs sm:text-sm outline-none transition-all ${
+                                errors.phone ? 'border-red-400 bg-red-50/30' : 'border-slate-300 focus:border-emerald-500'
+                              }`}
+                            />
+                            {errors.phone && (
+                              <p className="text-red-500 text-[11px] font-bold mt-1">{errors.phone}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Province and City Dropdowns */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label htmlFor="checkout-province" className="block text-xs font-bold text-slate-700 mb-1.5">
+                              استان تحویل سفارش <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              id="checkout-province"
+                              name="address-level1"
+                              autoComplete="address-level1"
+                              value={formData.province}
+                              onChange={(e) => {
+                                const newProv = e.target.value;
+                                const targetProv = IRAN_PROVINCES.find((p) => p.name === newProv);
+                                setFormData({
+                                  ...formData,
+                                  province: newProv,
+                                  city: targetProv && targetProv.cities.length > 0 ? targetProv.cities[0] : '',
+                                });
+                                if (errors.province) setErrors({ ...errors, province: '', city: '' });
+                              }}
+                              required
+                              className={`w-full px-3.5 py-3 rounded-xl border bg-white text-slate-900 font-medium text-xs sm:text-sm outline-none transition-all cursor-pointer ${
+                                errors.province ? 'border-red-400 bg-red-50/30' : 'border-slate-300 focus:border-emerald-500'
+                              }`}
+                            >
+                              <option value="">انتخاب استان...</option>
+                              {IRAN_PROVINCES.map((p) => (
+                                <option key={p.name} value={p.name}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            {errors.province && (
+                              <p className="text-red-500 text-[11px] font-bold mt-1">{errors.province}</p>
+                            )}
+                          </div>
+
+                          <div>
+                            <label htmlFor="checkout-city" className="block text-xs font-bold text-slate-700 mb-1.5">
+                              شهر / شهرستان <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              id="checkout-city"
+                              name="address-level2"
+                              autoComplete="address-level2"
+                              value={formData.city}
+                              onChange={(e) => {
+                                setFormData({ ...formData, city: e.target.value });
+                                if (errors.city) setErrors({ ...errors, city: '' });
+                              }}
+                              disabled={!formData.province || availableCities.length === 0}
+                              required
+                              className={`w-full px-3.5 py-3 rounded-xl border bg-white text-slate-900 font-medium text-xs sm:text-sm outline-none transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 ${
+                                errors.city ? 'border-red-400 bg-red-50/30' : 'border-slate-300 focus:border-emerald-500'
+                              }`}
+                            >
+                              <option value="">
+                                {formData.province ? 'انتخاب شهر...' : 'ابتدا استان را انتخاب کنید'}
+                              </option>
+                              {availableCities.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                            {errors.city && (
+                              <p className="text-red-500 text-[11px] font-bold mt-1">{errors.city}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Postal Address */}
+                        <div>
+                          <label htmlFor="checkout-address" className="block text-xs font-bold text-slate-700 mb-1.5">
+                            نشانی دقیق پستی (خیابان، کوچه، پلاک، واحد) <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            id="checkout-address"
+                            name="street-address"
+                            autoComplete="street-address"
+                            rows={3}
+                            value={formData.address}
+                            onChange={(e) => {
+                              setFormData({ ...formData, address: e.target.value });
+                              if (errors.address) setErrors({ ...errors, address: '' });
+                            }}
+                            placeholder="مثال: خیابان شریعتی، بالاتر از پل رومی، کوچه بنفشه، پلاک ۱۸، واحد ۴"
+                            required
+                            className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-medium placeholder:text-slate-400 text-xs sm:text-sm outline-none resize-none transition-all ${
+                              errors.address ? 'border-red-400 bg-red-50/30' : 'border-slate-300 focus:border-emerald-500'
+                            }`}
+                          />
+                          {errors.address && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">{errors.address}</p>
+                          )}
+                        </div>
+
+                        {/* Postal Code */}
+                        <div>
+                          <label htmlFor="checkout-postalCode" className="block text-xs font-bold text-slate-700 mb-1.5">
+                            کد پستی (۱۰ رقم) <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            id="checkout-postalCode"
+                            name="postal-code"
+                            autoComplete="postal-code"
+                            dir="ltr"
+                            value={formData.postalCode}
+                            onChange={(e) => {
+                              const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 10);
+                              setFormData({ ...formData, postalCode: val });
+                              if (errors.postalCode) setErrors({ ...errors, postalCode: '' });
+                            }}
+                            placeholder="1234567890"
+                            required
+                            className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 font-mono text-center tracking-wider text-xs sm:text-sm outline-none transition-all ${
+                              errors.postalCode ? 'border-red-400 bg-red-50/30' : 'border-slate-300 focus:border-emerald-500'
+                            }`}
+                          />
+                          {errors.postalCode && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">{errors.postalCode}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 1 Submit Button */}
+                    <button
+                      type="submit"
+                      className="w-full bg-slate-900 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-slate-900/10 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                    >
+                      <span>تایید و ادامه به بررسی نهایی خرید</span>
+                      <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </form>
+                )}
+
+                {/* ---------------- STEP 2: ORDER & SHIPPING REVIEW (NEW) ---------------- */}
+                {step === 2 && (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                      <h2 className="text-lg sm:text-xl font-black text-slate-800 flex items-center gap-2">
+                        <span>🔍</span>
+                        <span>بررسی نهایی اطلاعات خرید</span>
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(1)}
+                        className="text-xs font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1 cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        <span>ویرایش آدرس</span>
+                      </button>
+                    </div>
+
+                    {/* Shipping Address Summary Card */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-500">نشانی تحویل گیرنده:</span>
+                        <span className="text-xs font-black text-emerald-800 bg-emerald-100/70 px-2.5 py-0.5 rounded-full">
+                          تایید شده ✓
+                        </span>
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-slate-800 font-bold leading-relaxed">
+                        استان {formData.province}، شهر {formData.city}، {formData.address}
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 pt-2 border-t border-slate-200/60">
+                        <div>
+                          تحویل‌گیرنده: <strong className="text-slate-900">{formData.recipientName}</strong>
+                        </div>
+                        <div>
+                          شماره تماس: <strong className="text-slate-900 font-mono">{toPersianDigits(formData.phone)}</strong>
+                        </div>
+                        <div>
+                          کد پستی: <strong className="text-slate-900 font-mono">{toPersianDigits(formData.postalCode)}</strong>
+                        </div>
+                        <div>
+                          نحوه ارسال: <strong className="text-teal-800">پست پیشتاز با بسته‌بندی امن</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Items Breakdown in Review */}
+                    <div className="space-y-3">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-700">اقلام انتخابی شما:</h3>
+                      <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-4">
+                        {items.map((item) => (
+                          <div key={item.id || item.productId} className="py-3 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={item.imageUrl}
+                                alt={item.title}
+                                className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0"
+                              />
+                              <div>
+                                <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1">{item.title}</h4>
+                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                  هنرمند: <span className="font-semibold text-teal-800">{item.artistName}</span>
+                                </div>
+                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                  تعداد: <span className="font-bold font-mono text-slate-800">{toPersianDigits(item.quantity)}</span>
+                                  {item.isPreOrder && (
+                                    <span className="mr-2 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                                      پیش‌سفارش ساخت
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-left shrink-0">
+                              <div className="font-black text-sm text-slate-900">
+                                {toPersianDigits((item.price * item.quantity).toLocaleString())}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-medium">تومان</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons for Step 2 */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => goToStep(1)}
+                        className="w-full sm:w-auto px-6 py-4 rounded-2xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        <span>بازگشت به اطلاعات ارسال</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep(3);
+                          setMaxReachedStep((prev) => Math.max(prev, 3));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="flex-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                      >
+                        <span>تایید سفارش و انتخاب درگاه پرداخت</span>
+                        <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-lg">
-                <span className="font-bold text-slate-800">جمع کل:</span>
-                <span className="font-black text-emerald-600">{totalPrice.toLocaleString('fa-IR')} <span className="text-xs">تومان</span></span>
+                )}
+
+                {/* ---------------- STEP 3: PAYMENT ---------------- */}
+                {step === 3 && (
+                  <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                      <h2 className="text-lg sm:text-xl font-black text-slate-800 flex items-center gap-2">
+                        <span>💳</span>
+                        <span>انتخاب روش پرداخت بانکی</span>
+                      </h2>
+                      <button
+                        type="button"
+                        onClick={() => goToStep(2)}
+                        className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>بازگشت به بررسی</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Bank Gateway */}
+                      <label
+                        className={`block cursor-pointer border-2 rounded-2xl p-4.5 transition-all ${
+                          paymentMethod === 'bank'
+                            ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/10'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="radio"
+                            name="paymentOption"
+                            value="bank"
+                            checked={paymentMethod === 'bank'}
+                            onChange={() => setPaymentMethod('bank')}
+                            className="w-5 h-5 text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <div className="flex-1">
+                            <div className="font-black text-sm text-slate-900">
+                              درگاه پرداخت اینترنتی شاپرک (تمامی کارت‌های شتاب)
+                            </div>
+                            <div className="text-xs text-slate-500 mt-1">
+                              اتصال ایمن به شبکه پرداخت الکترونیک کشور با ضمانت بازگشت وجه هنرهاب
+                            </div>
+                          </div>
+                          <div className="text-3xl opacity-80 shrink-0">💳</div>
+                        </div>
+                      </label>
+
+                      {/* Crypto Gateway (Disabled) */}
+                      <div className="border-2 border-slate-200 bg-slate-50/70 rounded-2xl p-4.5 opacity-50 cursor-not-allowed select-none">
+                        <div className="flex items-center gap-4">
+                          <input type="radio" disabled name="paymentOption" value="crypto" className="w-5 h-5 cursor-not-allowed" />
+                          <div className="flex-1">
+                            <div className="font-bold text-sm text-slate-500 flex items-center gap-2">
+                              <span>پرداخت رمزارزی (تتر USDT)</span>
+                              <span className="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">
+                                به‌زودی
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-400 mt-1">
+                              پشتیبانی از تتر بر بستر شبکه TRC20 و Arbitrum
+                            </div>
+                          </div>
+                          <div className="text-3xl opacity-40 shrink-0">🪙</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons for Step 3 */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => goToStep(2)}
+                        disabled={isProcessing}
+                        className="w-full sm:w-auto px-6 py-4 rounded-2xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        <span>بازگشت به بررسی سفارش</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handlePayment}
+                        disabled={isProcessing}
+                        className="flex-1 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-98"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <span>در حال انتقال به درگاه پرداخت...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>پرداخت امن مبلغ {toPersianDigits(totalPrice.toLocaleString())} تومان</span>
+                            <span>←</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+
+            {/* Invoice Sidebar */}
+            <div className="lg:w-1/3">
+              <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-6 sticky top-24 space-y-4">
+                <h3 className="font-black text-slate-900 text-base border-b border-slate-100 pb-3 flex items-center gap-2">
+                  <span>🧾</span>
+                  <span>خلاصه فاکتور خرید</span>
+                </h3>
+
+                {/* Items Mini List */}
+                <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                  {items.map((item) => (
+                    <div key={item.id || item.productId} className="flex items-center gap-3">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
+                      />
+                      <div className="flex-1 overflow-hidden">
+                        <div className="text-xs font-bold text-slate-900 truncate">{item.title}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {toPersianDigits(item.quantity)} عدد • {toPersianDigits(item.price.toLocaleString())} ت
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span>مجموع ارزش آثار:</span>
+                    <span className="font-bold text-slate-800">{toPersianDigits(totalPrice.toLocaleString())} تومان</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span>بسته‌بندی و ارسال بیمه‌شده:</span>
+                    <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">رایگان (هدیه هنرهاب)</span>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+                    <span className="font-black text-slate-900 text-sm">مبلغ نهایی قابل پرداخت:</span>
+                    <div className="text-left">
+                      <span className="font-black text-emerald-700 text-lg sm:text-xl font-mono">
+                        {toPersianDigits(totalPrice.toLocaleString())}
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-900 mr-1">تومان</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-[11px] text-slate-400 text-center leading-relaxed">
+                  🔒 خرید شما مشمول ضمانت اصالت فیزیکی و بازگشت وجه تا ۷ روز کاری است.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
+
+      {/* ---------------- GUEST AUTH MODAL (AUTO REGISTRATION / LOGIN) ---------------- */}
+      {authModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 sm:p-8 animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-2xl mb-3 shadow-2xs">
+                {authModal.mode === 'REGISTER' ? '🎨' : '👋'}
+              </div>
+
+              {authModal.mode === 'REGISTER' && (
+                <>
+                  <h3 className="font-black text-slate-900 text-lg">به جمع هنر دوستان خوش اومدی :)</h3>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed px-2">
+                    کاربر گرامی، با وارد کردن کد تایید پیامک‌شده و تعیین یک رمز عبور، حساب کاربری شما به صورت خودکار ساخته
+                    شده و سفارش در حسابتان ثبت می‌شود.
+                  </p>
+                </>
+              )}
+
+              {authModal.mode === 'PASSWORD_LOGIN' && (
+                <>
+                  <h3 className="font-black text-slate-900 text-lg">
+                    {authModal.userName ? `${authModal.userName} خوش اومدی :)` : 'خوش اومدی :)'}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                    حساب کاربری با شماره <span className="font-mono font-bold text-emerald-800 dir-ltr inline-block">{toPersianDigits(authModal.normalizedPhone)}</span> وجود دارد.
+                    لطفاً رمز عبور خود را وارد کنید.
+                  </p>
+                </>
+              )}
+
+              {authModal.mode === 'OTP_LOGIN' && (
+                <>
+                  <h3 className="font-black text-slate-900 text-lg">ورود با رمز یکبار مصرف پیامکی</h3>
+                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                    کد تایید ۵ رقمی به شماره <span className="font-mono font-bold text-emerald-800 dir-ltr inline-block">{toPersianDigits(authModal.normalizedPhone)}</span> پیامک شد.
+                  </p>
+                </>
+              )}
+            </div>
+
+            {authModal.error && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{authModal.error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              {/* OTP Field (for REGISTER or OTP_LOGIN) */}
+              {(authModal.mode === 'REGISTER' || authModal.mode === 'OTP_LOGIN') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
+                    کد تایید ۵ رقمی <span className="text-red-500">*</span>:
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    dir="ltr"
+                    maxLength={5}
+                    autoFocus
+                    value={authModal.otpCode}
+                    onChange={(e) => {
+                      const val = toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 5);
+                      setAuthModal({ ...authModal, otpCode: val });
+                    }}
+                    placeholder="— — — — —"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 outline-none text-center font-mono text-xl tracking-widest bg-slate-50/50"
+                  />
+
+                  {/* Resend OTP Timer */}
+                  <div className="mt-2 text-center text-xs text-slate-500">
+                    {authModal.timer > 0 ? (
+                      <span>
+                        امکان ارسال مجدد کد تا{' '}
+                        <strong className="font-mono text-emerald-700">
+                          {toPersianDigits(Math.floor(authModal.timer / 60))}:{toPersianDigits((authModal.timer % 60).toString().padStart(2, '0'))}
+                        </strong>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        className="text-emerald-700 hover:text-emerald-800 font-bold underline cursor-pointer"
+                      >
+                        ارسال مجدد کد تایید
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Password Field (for REGISTER or PASSWORD_LOGIN) */}
+              {(authModal.mode === 'REGISTER' || authModal.mode === 'PASSWORD_LOGIN') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
+                    {authModal.mode === 'REGISTER'
+                      ? 'تعیین رمز عبور برای ورودهای بعدی (حداقل ۶ کاراکتر)'
+                      : 'رمز عبور حساب کاربری'} <span className="text-red-500">*</span>:
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={authModal.showPassword ? 'text' : 'password'}
+                      autoComplete={authModal.mode === 'REGISTER' ? 'new-password' : 'current-password'}
+                      dir="ltr"
+                      value={authModal.password}
+                      onChange={(e) => setAuthModal({ ...authModal, password: e.target.value })}
+                      placeholder="••••••••"
+                      required
+                      className="w-full px-4 py-3 pl-11 rounded-xl border border-slate-300 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 outline-none text-center font-mono tracking-widest text-base text-slate-900 bg-slate-50/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAuthModal({ ...authModal, showPassword: !authModal.showPassword })}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                      title={authModal.showPassword ? 'مخفی‌سازی رمز' : 'نمایش رمز'}
+                    >
+                      {authModal.showPassword ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mode switch links */}
+              {authModal.mode === 'PASSWORD_LOGIN' && (
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthModal((prev) => ({ ...prev, mode: 'OTP_LOGIN', error: '', timer: 120 }));
+                      fetch('/api/auth/otp/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phone: authModal.normalizedPhone, type: 'PHONE_OTP', purpose: 'customer' }),
+                      });
+                    }}
+                    className="text-teal-700 hover:text-teal-900 font-bold cursor-pointer"
+                  >
+                    ورود با رمز یکبار مصرف پیامکی
+                  </button>
+                  <Link href="/forgot-password" target="_blank" className="text-slate-500 hover:text-slate-800">
+                    فراموشی رمز؟
+                  </Link>
+                </div>
+              )}
+
+              {authModal.mode === 'OTP_LOGIN' && (
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setAuthModal((prev) => ({ ...prev, mode: 'PASSWORD_LOGIN', error: '' }))}
+                    className="text-xs text-teal-700 hover:text-teal-900 font-bold cursor-pointer"
+                  >
+                    ورود با رمز عبور ثابت
+                  </button>
+                </div>
+              )}
+
+              {/* Modal Buttons */}
+              <div className="pt-3 space-y-2">
+                <button
+                  type="submit"
+                  disabled={authModal.loading}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-black py-3.5 rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  {authModal.loading ? (
+                    <span>در حال بررسی...</span>
+                  ) : authModal.mode === 'REGISTER' ? (
+                    <span>ثبت‌نام و ادامه به بررسی نهایی خرید</span>
+                  ) : (
+                    <span>ورود و ادامه به بررسی نهایی خرید</span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAuthModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+                >
+                  انصراف و تغییر اطلاعات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <SiteFooter />
     </div>
   );

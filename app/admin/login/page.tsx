@@ -122,7 +122,7 @@ export default function AdminLogin() {
               required 
               value={email} 
               onChange={e => setEmail(e.target.value)} 
-              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600" 
+              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600 font-mono" 
               placeholder="admin@mydomain.com" 
               dir="ltr" 
             />
@@ -138,7 +138,7 @@ export default function AdminLogin() {
               required 
               value={password} 
               onChange={e => setPassword(e.target.value)} 
-              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600" 
+              className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder-slate-600 text-center font-mono tracking-widest text-base" 
               placeholder="••••••••" 
               dir="ltr" 
             />

@@ -510,7 +510,7 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="••••••••"
                       dir="ltr"
-                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-sm font-mono"
+                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-sm font-mono text-center tracking-widest"
                     />
                     <button
                       type="button"
@@ -544,7 +544,7 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="حداقل ۶ کاراکتر"
                       dir="ltr"
-                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-sm font-mono"
+                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-sm font-mono text-center tracking-widest"
                     />
                     <button
                       type="button"
@@ -576,7 +576,7 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="تکرار رمز عبور جدید"
                       dir="ltr"
-                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-sm font-mono"
+                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 text-sm font-mono text-center tracking-widest"
                     />
                     <button
                       type="button"

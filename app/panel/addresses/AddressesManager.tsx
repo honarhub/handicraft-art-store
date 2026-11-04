@@ -19,7 +19,13 @@ interface Address {
 const toPersianDigits = (num: number | string) =>
   String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
-export default function AddressesManager({ initialAddresses }: { initialAddresses: Address[] }) {
+export default function AddressesManager({ 
+  initialAddresses, 
+  defaultRecipient 
+}: { 
+  initialAddresses: Address[];
+  defaultRecipient?: { name?: string | null; phoneNumber?: string | null } | null;
+}) {
   const [addresses, setAddresses] = useState<Address[]>(initialAddresses);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -47,8 +53,8 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
   const openNewModal = () => {
     setEditingId(null);
     setTitle('منزل');
-    setRecipientName('');
-    setPhoneNumber('');
+    setRecipientName(defaultRecipient?.name || '');
+    setPhoneNumber(defaultRecipient?.phoneNumber || '');
     setProvince('');
     setCity('');
     setAddress('');
@@ -321,11 +327,13 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
             <form onSubmit={handleSave} className="space-y-4">
               {/* عنوان آدرس (تنها فیلد اختیاری) */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="addressTitle" className="block text-xs font-bold text-slate-700 mb-1">
                   عنوان آدرس <span className="text-slate-400 font-normal text-[11px]">(اختیاری)</span>:
                 </label>
                 <input
                   type="text"
+                  id="addressTitle"
+                  name="addressTitle"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="مثال: منزل، محل کار"
@@ -335,11 +343,14 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="name" className="block text-xs font-bold text-slate-700 mb-1">
                     نام و نام خانوادگی تحویل‌گیرنده <span className="text-red-500">*</span>:
                   </label>
                   <input
                     type="text"
+                    id="name"
+                    name="name"
+                    autoComplete="name"
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
                     placeholder="مثال: علی رضایی"
@@ -348,11 +359,14 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="tel" className="block text-xs font-bold text-slate-700 mb-1">
                     شماره تماس تحویل‌گیرنده <span className="text-red-500">*</span>:
                   </label>
                   <input
                     type="tel"
+                    id="tel"
+                    name="tel"
+                    autoComplete="tel"
                     dir="ltr"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
@@ -365,10 +379,13 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="province" className="block text-xs font-bold text-slate-700 mb-1">
                     استان <span className="text-red-500">*</span>:
                   </label>
                   <select
+                    id="province"
+                    name="address-level1"
+                    autoComplete="address-level1"
                     value={province}
                     onChange={(e) => {
                       const newProv = e.target.value;
@@ -392,10 +409,13 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                  <label htmlFor="city" className="block text-xs font-bold text-slate-700 mb-1">
                     شهر <span className="text-red-500">*</span>:
                   </label>
                   <select
+                    id="city"
+                    name="address-level2"
+                    autoComplete="address-level2"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     disabled={!province || availableCities.length === 0}
@@ -413,10 +433,13 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="address" className="block text-xs font-bold text-slate-700 mb-1">
                   نشانی پستی دقیق (خیابان، کوچه، پلاک، واحد) <span className="text-red-500">*</span>:
                 </label>
                 <textarea
+                  id="address"
+                  name="street-address"
+                  autoComplete="street-address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   rows={2}
@@ -427,11 +450,14 @@ export default function AddressesManager({ initialAddresses }: { initialAddresse
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label htmlFor="postalCode" className="block text-xs font-bold text-slate-700 mb-1">
                   کد پستی (۱۰ رقم) <span className="text-red-500">*</span>:
                 </label>
                 <input
                   type="text"
+                  id="postalCode"
+                  name="postal-code"
+                  autoComplete="postal-code"
                   dir="ltr"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
