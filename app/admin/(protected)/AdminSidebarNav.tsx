@@ -107,6 +107,10 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
       newTitle: 'محصول جدید در انتظار تایید'
     },
     { 
+      href: '/admin/orders', 
+      label: '🛍️ مدیریت سفارش‌ها' 
+    },
+    { 
       href: '/admin/specialties', 
       label: '🏷️ مدیریت تخصص‌ها', 
       count: counts.pendingSpecialtiesCount,

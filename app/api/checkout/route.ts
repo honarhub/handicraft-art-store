@@ -43,6 +43,7 @@ export async function POST(req: Request) {
           userId,
           total: Number(total) || 0,
           status: 'PAID',
+          isTest: true,
           items: {
             create: orderItemsData
           }

@@ -262,6 +262,7 @@ model Order {
   user       User        @relation(fields: [userId], references: [id])
   total      Float
   status     OrderStatus @default(PENDING)
+  isTest     Boolean     @default(true)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 

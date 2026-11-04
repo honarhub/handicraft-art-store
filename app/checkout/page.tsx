@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { useCart } from '../context/CartContext';
+import { useCart, getCartItemId } from '../context/CartContext';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 import { IRAN_PROVINCES } from '@/lib/provinces';
@@ -24,7 +24,7 @@ interface SavedAddress {
 
 export default function CheckoutPage() {
   const { data: session } = useSession();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice, clearCart, removeFromCart } = useCart();
   const [mounted, setMounted] = useState(false);
 
   // 3-Step Checkout: 1: Shipping, 2: Review, 3: Payment
@@ -673,6 +673,50 @@ export default function CheckoutPage() {
             {/* Main Stage Content */}
             <div className="lg:w-2/3">
               <div className="bg-white rounded-3xl shadow-xs border border-slate-200/80 p-6 md:p-8">
+                {/* Top Navigation Bar: Back button at top right (RTL start) */}
+                <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+                  {step === 1 ? (
+                    <Link
+                      href="/cart"
+                      className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50/80 border border-slate-200/80 hover:border-emerald-200 px-3.5 py-2 rounded-xl transition-all group"
+                      title="بازگشت به سبد خرید"
+                    >
+                      <svg className="w-4 h-4 text-slate-500 group-hover:text-emerald-600 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span>بازگشت به سبد خرید</span>
+                    </Link>
+                  ) : step === 2 ? (
+                    <button
+                      type="button"
+                      onClick={() => goToStep(1)}
+                      className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50/80 border border-slate-200/80 hover:border-emerald-200 px-3.5 py-2 rounded-xl transition-all cursor-pointer group"
+                      title="بازگشت به مرحله قبلی"
+                    >
+                      <svg className="w-4 h-4 text-slate-500 group-hover:text-emerald-600 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span>بازگشت</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => goToStep(2)}
+                      className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50/80 border border-slate-200/80 hover:border-emerald-200 px-3.5 py-2 rounded-xl transition-all cursor-pointer group"
+                      title="بازگشت به مرحله قبلی"
+                    >
+                      <svg className="w-4 h-4 text-slate-500 group-hover:text-emerald-600 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span>بازگشت</span>
+                    </button>
+                  )}
+
+                  <span className="text-[11px] font-bold text-slate-400">
+                    مرحله {toPersianDigits(step)} از {toPersianDigits(3)}
+                  </span>
+                </div>
+
                 {/* ---------------- STEP 1: SHIPPING & ADDRESS ---------------- */}
                 {step === 1 && (
                   <form onSubmit={handleShippingSubmit} noValidate className="space-y-6 animate-in fade-in duration-300">
@@ -1008,8 +1052,12 @@ export default function CheckoutPage() {
                 {step === 2 && (
                   <div className="space-y-6 animate-in fade-in duration-300">
                     <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                      <h2 className="text-lg sm:text-xl font-black text-slate-800 flex items-center gap-2">
-                        <span>🔍</span>
+                      <h2 className="text-lg sm:text-xl font-black text-slate-800 flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                          <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                        </span>
                         <span>بررسی نهایی اطلاعات خرید</span>
                       </h2>
                       <button
@@ -1053,58 +1101,8 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    {/* Items Breakdown in Review */}
-                    <div className="space-y-3">
-                      <h3 className="text-xs sm:text-sm font-bold text-slate-700">اقلام انتخابی شما:</h3>
-                      <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-4">
-                        {items.map((item) => (
-                          <div key={item.id || item.productId} className="py-3 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={item.imageUrl}
-                                alt={item.title}
-                                className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0"
-                              />
-                              <div>
-                                <h4 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1">{item.title}</h4>
-                                <div className="text-[11px] text-slate-500 mt-0.5">
-                                  هنرمند: <span className="font-semibold text-teal-800">{item.artistName}</span>
-                                </div>
-                                <div className="text-[11px] text-slate-500 mt-0.5">
-                                  تعداد: <span className="font-bold font-mono text-slate-800">{toPersianDigits(item.quantity)}</span>
-                                  {item.isPreOrder && (
-                                    <span className="mr-2 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
-                                      پیش‌سفارش ساخت
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="text-left shrink-0">
-                              <div className="font-black text-sm text-slate-900">
-                                {toPersianDigits((item.price * item.quantity).toLocaleString())}
-                              </div>
-                              <div className="text-[10px] text-slate-400 font-medium">تومان</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons for Step 2 */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-3">
-                      <button
-                        type="button"
-                        onClick={() => goToStep(1)}
-                        className="w-full sm:w-auto px-6 py-4 rounded-2xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-                        </svg>
-                        <span>بازگشت به اطلاعات ارسال</span>
-                      </button>
-
+                    {/* Action Buttons for Step 2 - Forward action only, back button moved to top right */}
+                    <div className="pt-3">
                       <button
                         type="button"
                         onClick={() => {
@@ -1112,7 +1110,7 @@ export default function CheckoutPage() {
                           setMaxReachedStep((prev) => Math.max(prev, 3));
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className="flex-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                       >
                         <span>تایید سفارش و انتخاب درگاه پرداخت</span>
                         <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1131,13 +1129,6 @@ export default function CheckoutPage() {
                         <span>💳</span>
                         <span>انتخاب روش پرداخت بانکی</span>
                       </h2>
-                      <button
-                        type="button"
-                        onClick={() => goToStep(2)}
-                        className="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>بازگشت به بررسی</span>
-                      </button>
                     </div>
 
                     <div className="space-y-3">
@@ -1190,25 +1181,13 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    {/* Action Buttons for Step 3 */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-3">
-                      <button
-                        type="button"
-                        onClick={() => goToStep(2)}
-                        disabled={isProcessing}
-                        className="w-full sm:w-auto px-6 py-4 rounded-2xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" />
-                        </svg>
-                        <span>بازگشت به بررسی سفارش</span>
-                      </button>
-
+                    {/* Action Buttons for Step 3 - Payment forward action only, back button moved to top right */}
+                    <div className="pt-3">
                       <button
                         type="button"
                         onClick={handlePayment}
                         disabled={isProcessing}
-                        className="flex-1 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-98"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-98"
                       >
                         {isProcessing ? (
                           <>
@@ -1254,6 +1233,20 @@ export default function CheckoutPage() {
                           {toPersianDigits(item.quantity)} عدد • {toPersianDigits(item.price.toLocaleString())} ت
                         </div>
                       </div>
+
+                      {/* Allow deletion only in step 1 (اطلاعات ارسال) */}
+                      {step === 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(getCartItemId(item))}
+                          title="حذف از سبد خرید"
+                          className="w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

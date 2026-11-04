@@ -286,8 +286,15 @@ export default async function CustomerPanelDashboardPage() {
                     </div>
 
                     <div>
-                      <div className="font-black text-sm text-slate-900">
-                        سفارش #{order.id.slice(-6).toUpperCase()}
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-sm text-slate-900">
+                          سفارش #{order.id.slice(-6).toUpperCase()}
+                        </span>
+                        {order.isTest && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                            آزمایشی
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5">
                         {toPersianDigits(order.items.length)} اثر • {formatPersianDateTime(order.createdAt)}

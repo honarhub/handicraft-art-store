@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toPersianDigits, formatPersianDateTime } from '@/lib/date';
+import DeleteTestOrderButton from './DeleteTestOrderButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -74,19 +75,29 @@ export default async function CustomerOrdersPage() {
               >
                 {/* Order Meta Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <span className="font-black text-sm text-slate-900">
                       سفارش #{order.id.slice(-6).toUpperCase()}
                     </span>
+                    {order.isTest && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-200">
+                        🧪 سفارش آزمایشی
+                      </span>
+                    )}
                     <span className="text-xs text-slate-400">•</span>
                     <span className="text-xs text-slate-500 font-medium">
                       {formatPersianDateTime(order.createdAt)}
                     </span>
                   </div>
 
-                  <span className={`text-xs font-bold px-3 py-1 rounded-xl border self-start sm:self-auto ${statusBadge.cls}`}>
-                    {statusBadge.text}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                    <span className={`text-xs font-bold px-3 py-1 rounded-xl border ${statusBadge.cls}`}>
+                      {statusBadge.text}
+                    </span>
+                    {order.isTest && (
+                      <DeleteTestOrderButton orderId={order.id} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Items */}
