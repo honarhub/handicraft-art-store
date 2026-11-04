@@ -5,12 +5,10 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import Image from 'next/image';
+import { toPersianDigits, formatPersianDateTime } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const toPersianDigits = (num: number | string) =>
-  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
 export default async function CustomerOrdersPage() {
   const session = await getServerSession(authOptions);
@@ -82,7 +80,7 @@ export default async function CustomerOrdersPage() {
                     </span>
                     <span className="text-xs text-slate-400">•</span>
                     <span className="text-xs text-slate-500 font-medium">
-                      {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                      {formatPersianDateTime(order.createdAt)}
                     </span>
                   </div>
 

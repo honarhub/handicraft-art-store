@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { toPersianDigits, formatPersianDateTime } from '@/lib/date';
 
 interface UserProfileData {
   id: string;
@@ -16,9 +17,6 @@ interface UserProfileData {
   isAdmin: boolean;
   createdAt: string;
 }
-
-const toPersianDigits = (num: number | string) =>
-  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
 export default function ProfileManager({ initialUser }: { initialUser: UserProfileData }) {
   const [user, setUser] = useState<UserProfileData>(initialUser);
@@ -260,6 +258,11 @@ export default function ProfileManager({ initialUser }: { initialUser: UserProfi
                   </>
                 ) : (
                   <span>عضو باشگاه هنردوستان</span>
+                )}
+                {user.createdAt && (
+                  <span className="block text-[11px] text-stone-400 mt-1">
+                    تاریخ عضویت: {formatPersianDateTime(user.createdAt)}
+                  </span>
                 )}
               </p>
             </div>

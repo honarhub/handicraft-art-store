@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { formatPersianDateTime } from '@/lib/date';
 
 interface SupportMsg {
   id: string;
@@ -103,8 +104,8 @@ export default function AdminSupportPage() {
                       ✓ رسیدگی شده
                     </span>
                   )}
-                  <span className="text-xs text-slate-500 font-mono" dir="ltr">
-                    {new Date(msg.createdAt).toLocaleDateString('fa-IR')}
+                  <span className="text-xs text-slate-500 font-mono" dir="rtl">
+                    {formatPersianDateTime(msg.createdAt)}
                   </span>
                 </div>
 
@@ -227,8 +228,8 @@ export default function AdminSupportPage() {
                       <a href={`/product/${msg.product.id}`} target="_blank" rel="noreferrer" className="text-emerald-600 hover:underline">{msg.product.title}</a>
                     ) : '-'}
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-xs" dir="ltr">
-                    {new Date(msg.createdAt).toLocaleDateString('fa-IR')}
+                  <td className="px-6 py-4 text-slate-500 text-xs" dir="rtl">
+                    {formatPersianDateTime(msg.createdAt)}
                   </td>
                   <td className="px-6 py-4 text-left">
                     <button

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { formatPersianDateTime } from '@/lib/date';
 
 interface ReferralCodeItem {
   id: string;
@@ -243,7 +244,7 @@ export default function ArtistReferralsPage() {
                       )}
                       {item.usedAt && (
                         <p className="text-[11px] text-slate-400">
-                          تاریخ استفاده: {new Date(item.usedAt).toLocaleDateString('fa-IR')}
+                          تاریخ استفاده: {formatPersianDateTime(item.usedAt)}
                         </p>
                       )}
                       <p className="text-[11px] text-slate-400 italic">

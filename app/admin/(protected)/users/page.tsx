@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { formatPersianDate, formatPersianTime, formatPersianDateTime } from '@/lib/date';
 
 interface UserItem {
   id: string;
@@ -367,9 +368,9 @@ export default function AdminUsersPage() {
 
                     {/* Join Date */}
                     <td className="py-3.5 px-4 text-xs text-slate-600">
-                      <div>{toPersianDigits(new Date(u.createdAt).toLocaleDateString('fa-IR'))}</div>
-                      <div className="text-[10px] text-slate-400">
-                        {toPersianDigits(new Date(u.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }))}
+                      <div className="font-bold text-slate-700">{formatPersianDate(u.createdAt, { format: 'numeric' })}</div>
+                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        ساعت {formatPersianTime(u.createdAt)}
                       </div>
                     </td>
 
@@ -571,7 +572,7 @@ export default function AdminUsersPage() {
                       <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
                         <span className="text-slate-400 block font-medium">تاریخ و زمان ثبت‌نام:</span>
                         <span className="font-bold text-slate-700">
-                          {toPersianDigits(new Date(selectedUser.createdAt).toLocaleDateString('fa-IR'))} - ساعت {toPersianDigits(new Date(selectedUser.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }))}
+                          {formatPersianDateTime(selectedUser.createdAt)}
                         </span>
                       </div>
                       {selectedUser.artistProfile && (
@@ -601,7 +602,7 @@ export default function AdminUsersPage() {
                                 </span>
                               </div>
                               <p className="text-[11px] text-slate-500 mt-1">
-                                {toPersianDigits(new Date(o.createdAt).toLocaleDateString('fa-IR'))} • {toPersianDigits(o.items?.length || 0)} قلم کالا
+                                <span className="font-bold text-slate-700">{formatPersianDateTime(o.createdAt)}</span> • {toPersianDigits(o.items?.length || 0)} قلم کالا
                               </p>
                             </div>
                             <div className="font-bold text-emerald-700 font-mono text-sm">

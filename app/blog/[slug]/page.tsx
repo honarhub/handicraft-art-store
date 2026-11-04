@@ -5,6 +5,7 @@ import Link from 'next/link';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 import RelatedProductsCarousel, { RelatedProductItem } from '@/app/components/RelatedProductsCarousel';
+import { formatPersianDate } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -223,7 +224,7 @@ export default async function BlogPostPage({ params }: Props) {
 
             <div className="text-slate-400 text-xs md:text-sm flex items-center justify-center gap-4">
               <time dateTime={post.publishedAt.toISOString()}>
-                انتشار: {new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }).format(post.publishedAt)}
+                انتشار: {formatPersianDate(post.publishedAt, { format: 'long' })}
               </time>
               <span>•</span>
               <span className="text-emerald-400 font-bold">مجله فرهنگی هنرهاب</span>

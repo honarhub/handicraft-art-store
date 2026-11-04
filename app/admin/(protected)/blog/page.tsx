@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { formatPersianDate } from '@/lib/date';
 
 interface BlogPost {
   id: string;
@@ -230,8 +231,8 @@ export default function AdminBlogPage() {
                     <span className="text-slate-400">عمومی</span>
                   )}
 
-                  <span className="text-slate-500 font-mono text-[11px]" dir="ltr">
-                    {new Date(post.publishedAt || post.createdAt).toLocaleDateString('fa-IR')}
+                  <span className="text-slate-500 font-mono text-[11px]" dir="rtl">
+                    {formatPersianDate(post.publishedAt || post.createdAt)}
                   </span>
                 </div>
 
@@ -378,8 +379,8 @@ export default function AdminBlogPage() {
                       </td>
 
                       {/* Date */}
-                      <td className="py-4 px-4 text-center whitespace-nowrap text-xs text-slate-500 font-medium">
-                        {new Date(post.publishedAt || post.createdAt).toLocaleDateString('fa-IR')}
+                      <td className="py-4 px-4 text-center whitespace-nowrap text-xs text-slate-500 font-medium font-mono">
+                        {formatPersianDate(post.publishedAt || post.createdAt)}
                       </td>
 
                       {/* Actions */}

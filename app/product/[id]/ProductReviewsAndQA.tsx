@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { formatPersianDate } from '@/lib/date';
 
 interface Review {
   id: string;
@@ -383,7 +384,7 @@ export default function ProductReviewsAndQA({ productId, artistUserId }: Product
                           )}
                         </div>
                         <span className="text-xs text-slate-400">
-                          {new Date(r.createdAt).toLocaleDateString('fa-IR')}
+                          {formatPersianDate(r.createdAt)}
                         </span>
                       </div>
                     </div>
@@ -463,7 +464,7 @@ export default function ProductReviewsAndQA({ productId, artistUserId }: Product
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-1">
                         <span className="font-bold text-slate-800 text-sm">{q.user.name || 'کاربر'}</span>
-                        <span className="text-[11px] text-slate-400">{new Date(q.createdAt).toLocaleDateString('fa-IR')}</span>
+                        <span className="text-[11px] text-slate-400">{formatPersianDate(q.createdAt)}</span>
                       </div>
                       <p className="text-slate-700 text-sm leading-relaxed">{q.question}</p>
                     </div>
@@ -479,7 +480,7 @@ export default function ProductReviewsAndQA({ productId, artistUserId }: Product
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-bold text-emerald-800 text-xs">پاسخ هنرمند اثر / پشتیبانی</span>
                           {q.answeredAt && (
-                            <span className="text-[10px] text-slate-400">{new Date(q.answeredAt).toLocaleDateString('fa-IR')}</span>
+                            <span className="text-[10px] text-slate-400">{formatPersianDate(q.answeredAt)}</span>
                           )}
                         </div>
                         <p className="text-slate-600 text-xs md:text-sm leading-relaxed">{q.answer}</p>

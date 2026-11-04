@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AdminPromptModal from '@/app/components/AdminPromptModal';
+import { formatPersianDate, formatPersianTime, formatPersianDateTime } from '@/lib/date';
 
 // Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
 function AdminLevelMedalIcon({ level }: { level: number }) {
@@ -354,22 +355,6 @@ export default function AdminArtistsPage() {
     setActiveFilterField(activeFilterField === field ? null : field);
   };
 
-  const formatPersianDate = (dateStr: string) => {
-    if (!dateStr) return '—';
-    try {
-      const d = new Date(dateStr);
-      return new Intl.DateTimeFormat('fa-IR', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(d);
-    } catch {
-      return '—';
-    }
-  };
-
   // Active counts for filters
   const level0Artists = artists.filter(a => a.status !== 'DELETED' && (a.verificationLevel || 0) === 0);
   const level1Artists = artists.filter(a => a.status !== 'DELETED' && (a.verificationLevel || 0) === 1);
@@ -568,7 +553,7 @@ export default function AdminArtistsPage() {
                       <div className="text-xs text-slate-500 font-mono mt-0.5" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
                     </div>
                     <span className="text-[11px] text-slate-400 shrink-0">
-                      {formatPersianDate(artist.deletionRequestedAt || artist.createdAt)}
+                      {formatPersianDateTime(artist.deletionRequestedAt || artist.createdAt)}
                     </span>
                   </div>
 
@@ -637,7 +622,7 @@ export default function AdminArtistsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">
-                        {formatPersianDate(artist.deletionRequestedAt || artist.createdAt)}
+                        {formatPersianDateTime(artist.deletionRequestedAt || artist.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-left">
                         <div className="flex justify-end items-center gap-2">
@@ -701,7 +686,7 @@ export default function AdminArtistsPage() {
                       <div className="text-xs text-slate-500 font-mono mt-0.5" dir="ltr">{artist.email || 'بدون ایمیل'}</div>
                     </div>
                     <span className="text-[11px] text-slate-400 shrink-0">
-                      {formatPersianDate(artist.createdAt)}
+                      {formatPersianDateTime(artist.createdAt)}
                     </span>
                   </div>
 
@@ -779,7 +764,7 @@ export default function AdminArtistsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">
-                        {formatPersianDate(artist.createdAt)}
+                        {formatPersianDateTime(artist.createdAt)}
                       </td>
                       <td className="px-6 py-4 text-left">
                         <div className="flex justify-end items-center gap-2">
@@ -1155,7 +1140,7 @@ export default function AdminArtistsPage() {
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">تاریخ عضویت:</span>
-                    <span className="text-slate-500 text-[11px]">{formatPersianDate(artist.createdAt)}</span>
+                    <span className="text-slate-500 text-[11px]">{formatPersianDateTime(artist.createdAt)}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">تعداد آثار:</span>
@@ -1299,7 +1284,8 @@ export default function AdminArtistsPage() {
                   </td>
 
                   <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
-                    {formatPersianDate(artist.createdAt)}
+                    <div className="font-bold text-slate-700">{formatPersianDate(artist.createdAt, { format: 'numeric' })}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5 font-mono">ساعت {formatPersianTime(artist.createdAt)}</div>
                   </td>
 
                   <td className="px-6 py-4 text-center">

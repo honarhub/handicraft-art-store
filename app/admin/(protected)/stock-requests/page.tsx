@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { formatPersianDateTime } from '@/lib/date';
 
 interface StockReq {
   id: string;
@@ -104,8 +105,8 @@ export default function AdminStockRequestsPage() {
                       ✓ اطلاع‌رسانی شد
                     </span>
                   )}
-                  <span className="text-xs text-slate-500 font-mono" dir="ltr">
-                    {new Date(req.createdAt).toLocaleDateString('fa-IR')}
+                  <span className="text-xs text-slate-500 font-mono" dir="rtl">
+                    {formatPersianDateTime(req.createdAt)}
                   </span>
                 </div>
 
@@ -219,8 +220,8 @@ export default function AdminStockRequestsPage() {
                       <span className="text-red-500 font-bold">ناموجود (۰)</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-xs" dir="ltr">
-                    {new Date(req.createdAt).toLocaleDateString('fa-IR')}
+                  <td className="px-6 py-4 text-slate-500 text-xs" dir="rtl">
+                    {formatPersianDateTime(req.createdAt)}
                   </td>
                   <td className="px-6 py-4 text-left">
                     <button

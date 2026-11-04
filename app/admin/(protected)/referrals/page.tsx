@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { formatPersianDateTime } from '@/lib/date';
 
 interface ReferralAdminItem {
   id: string;
@@ -621,7 +622,7 @@ export default function AdminReferralsPage() {
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
                     <div className="flex items-center justify-between text-slate-500 text-[11px]">
                       <span>هنرمند معرّف (صاحب کد):</span>
-                      <span>{new Date(item.createdAt).toLocaleDateString('fa-IR')}</span>
+                      <span className="font-mono">{formatPersianDateTime(item.createdAt)}</span>
                     </div>
                     {item.creator ? (
                       <div>
@@ -647,7 +648,7 @@ export default function AdminReferralsPage() {
                     <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 text-xs space-y-1">
                       <div className="flex items-center justify-between text-slate-500 text-[11px]">
                         <span>استفاده‌شده توسط:</span>
-                        <span>{item.usedAt ? new Date(item.usedAt).toLocaleDateString('fa-IR') : '-'}</span>
+                        <span className="font-mono">{item.usedAt ? formatPersianDateTime(item.usedAt) : '-'}</span>
                       </div>
                       <div>
                         <p className="font-bold text-slate-900">
@@ -792,13 +793,13 @@ export default function AdminReferralsPage() {
                       </td>
 
                       {/* Created At */}
-                      <td className="py-4 px-4 text-slate-500">
-                        {new Date(item.createdAt).toLocaleDateString('fa-IR')}
+                      <td className="py-4 px-4 text-slate-500 font-mono text-xs">
+                        {formatPersianDateTime(item.createdAt)}
                       </td>
 
                       {/* Used At */}
-                      <td className="py-4 px-4 text-slate-500">
-                        {item.usedAt ? new Date(item.usedAt).toLocaleDateString('fa-IR') : '-'}
+                      <td className="py-4 px-4 text-slate-500 font-mono text-xs">
+                        {item.usedAt ? formatPersianDateTime(item.usedAt) : '-'}
                       </td>
 
                       {/* Actions: ONLY Copy Link (chain icon) and Delete (standard trash icon) */}

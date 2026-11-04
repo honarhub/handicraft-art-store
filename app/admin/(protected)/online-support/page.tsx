@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatPersianDateTime } from '@/lib/date';
 
 interface SupportItem {
   id: string;
@@ -97,18 +98,7 @@ export default function AdminOnlineSupportPage() {
   };
 
   const formatJalaliDate = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      return new Intl.DateTimeFormat('fa-IR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date);
-    } catch {
-      return dateStr;
-    }
+    return formatPersianDateTime(dateStr, { format: 'long' });
   };
 
   const getCategoryBadge = (cat: string) => {

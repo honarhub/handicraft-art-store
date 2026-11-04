@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { formatPersianTime } from '@/lib/date';
 
 export interface SmsSettingsProps {
   initialSettings: {
@@ -1328,7 +1329,7 @@ export default function SmsSettingsCard({ initialSettings, onSave }: SmsSettings
                   return (
                     <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]" dir="ltr">
-                        {new Date(log.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        {formatPersianTime(log.createdAt, true)}
                       </td>
                       <td className="py-2.5 px-3 font-mono font-bold text-slate-700 text-[11px]" dir="ltr">
                         {log.ip}

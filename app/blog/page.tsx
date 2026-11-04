@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
+import { formatPersianDate } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -103,7 +104,7 @@ export default async function BlogIndex() {
                   
                   <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-100 pt-4 mt-auto">
                     <time dateTime={post.publishedAt.toISOString()}>
-                      {new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }).format(post.publishedAt)}
+                      {formatPersianDate(post.publishedAt, { format: 'long' })}
                     </time>
                     <Link
                       href={`/blog/${post.slug}`}

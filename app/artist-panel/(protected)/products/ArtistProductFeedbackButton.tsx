@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { formatPersianDateTime } from '@/lib/date';
 
 export interface FeedbackHistoryItem {
   id?: string;
@@ -97,18 +98,7 @@ export default function ArtistProductFeedbackButton({
 
   const formatJalaliDate = (dateStr?: string) => {
     if (!dateStr) return 'ثبت شده در آخرین بررسی';
-    try {
-      const date = new Date(dateStr);
-      return new Intl.DateTimeFormat('fa-IR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date);
-    } catch {
-      return dateStr;
-    }
+    return formatPersianDateTime(dateStr, { format: 'long' });
   };
 
   const getStatusBadge = (itemStatus?: string) => {

@@ -5,12 +5,10 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import Image from 'next/image';
+import { toPersianDigits, formatPersianDate, formatPersianDateTime, formatPersianFullDate } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const toPersianDigits = (num: number | string) =>
-  String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
 export default async function CustomerPanelDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -100,15 +98,10 @@ export default async function CustomerPanelDashboardPage() {
   ]);
 
   const displayName = user?.name || (user?.email ? user.email.split('@')[0] : 'هنردوست گرامی');
-  const todayPersian = new Intl.DateTimeFormat('fa-IR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(new Date());
+  const todayPersian = formatPersianFullDate();
 
   const memberSince = user?.createdAt 
-    ? new Date(user.createdAt).toLocaleDateString('fa-IR')
+    ? formatPersianDate(user.createdAt, { format: 'long' })
     : 'امروز';
 
   return (
@@ -297,7 +290,7 @@ export default async function CustomerPanelDashboardPage() {
                         سفارش #{order.id.slice(-6).toUpperCase()}
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5">
-                        {toPersianDigits(order.items.length)} اثر • {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                        {toPersianDigits(order.items.length)} اثر • {formatPersianDateTime(order.createdAt)}
                       </div>
                     </div>
                   </div>

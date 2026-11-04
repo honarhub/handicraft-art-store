@@ -1,6 +1,7 @@
 import React from 'react';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
+import { formatPersianFullDate, formatPersianDateTime } from '@/lib/date';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -56,9 +57,7 @@ export default async function AdminDashboardPage() {
     })
   ]);
 
-  const todayPersian = new Intl.DateTimeFormat('fa-IR', {
-    dateStyle: 'full'
-  }).format(new Date());
+  const todayPersian = formatPersianFullDate();
 
   const totalActionRequired = pendingArtists + pendingProducts + unresolvedSupportMessages + pendingStockRequests;
 
@@ -482,7 +481,7 @@ export default async function AdminDashboardPage() {
                   </div>
                   <div className="mt-4 pt-3 border-t border-slate-200/60 flex justify-between items-center text-xs">
                     <span className="text-slate-400 text-[11px]">
-                      {new Intl.DateTimeFormat('fa-IR', { dateStyle: 'short' }).format(new Date(msg.createdAt))}
+                      {formatPersianDateTime(msg.createdAt)}
                     </span>
                     <Link
                       href="/admin/support"

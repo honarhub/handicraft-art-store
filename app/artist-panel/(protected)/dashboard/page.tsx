@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import ArtistDashboardCopyId from './ArtistDashboardCopyId';
+import { formatPersianFullDate, formatPersianDate } from '@/lib/date';
 
 const toPersianDigits = (num: number | string) =>
   String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
@@ -87,12 +88,7 @@ export default async function ArtistDashboardPage() {
   ]);
 
   // Today's Persian Date
-  const todayPersian = new Intl.DateTimeFormat('fa-IR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  }).format(new Date());
+  const todayPersian = formatPersianFullDate();
 
   // Profile completion calculation
   const profileChecks = [
@@ -615,8 +611,8 @@ export default async function ArtistDashboardPage() {
                             {p.specialties[0].name}
                           </span>
                         )}
-                        <span className="text-[11px] text-slate-400">
-                          {new Date(p.createdAt).toLocaleDateString('fa-IR')}
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {formatPersianDate(p.createdAt)}
                         </span>
                       </div>
                     </div>

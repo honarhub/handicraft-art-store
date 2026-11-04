@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { formatPersianDateTime } from '@/lib/date';
 
 export default function ArtistDeleteAccountCard() {
   const [loading, setLoading] = useState(true);
@@ -91,17 +92,7 @@ export default function ArtistDeleteAccountCard() {
 
   const formatPersianDate = (dateStr?: string | null) => {
     if (!dateStr) return '';
-    try {
-      return new Intl.DateTimeFormat('fa-IR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(new Date(dateStr));
-    } catch {
-      return '';
-    }
+    return formatPersianDateTime(dateStr, { format: 'long' });
   };
 
   if (loading) {

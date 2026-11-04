@@ -4,6 +4,7 @@ import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
+import { formatPersianDateTime } from '@/lib/date';
 
 // Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
 function ReviewLevelMedalIcon({ level }: { level: number }) {
@@ -182,19 +183,7 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
   };
 
   const formatPersianDate = (dateStr: string) => {
-    if (!dateStr) return '—';
-    try {
-      const d = new Date(dateStr);
-      return new Intl.DateTimeFormat('fa-IR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(d);
-    } catch {
-      return '—';
-    }
+    return formatPersianDateTime(dateStr, { format: 'long' });
   };
 
   useEffect(() => {
