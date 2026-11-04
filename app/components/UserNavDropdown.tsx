@@ -50,7 +50,7 @@ export default function UserNavDropdown() {
   // Loading state skeleton
   if (status === 'loading') {
     return (
-      <div className="w-24 sm:w-28 h-9 rounded-xl bg-slate-100 animate-pulse border border-slate-200/60" />
+      <div className="w-14 h-9 rounded-xl bg-slate-100 animate-pulse border border-slate-200/60" />
     );
   }
 
@@ -77,28 +77,27 @@ export default function UserNavDropdown() {
 
   return (
     <div className="relative font-sans" ref={dropdownRef} dir="rtl">
-      {/* User Button Trigger */}
+      {/* User Button Trigger: Avatar or standard user icon + down chevron arrow */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs sm:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer select-none"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl shadow-xs transition-all active:scale-98 cursor-pointer select-none"
         aria-expanded={isOpen}
         title={displayName}
       >
-        {/* Simple User Icon (Clean without green box) */}
-        <span className="flex items-center justify-center shrink-0 text-slate-700">
+        {/* User Avatar if available, otherwise standard simple user icon */}
+        <span className="flex items-center justify-center shrink-0">
           {user.image ? (
-            <img src={user.image} alt={displayName} className="w-5 h-5 rounded-full object-cover" />
+            <img
+              src={user.image}
+              alt={displayName}
+              className="w-6 h-6 rounded-full object-cover border border-slate-200 shadow-2xs"
+            />
           ) : (
-            <svg className="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           )}
-        </span>
-
-        {/* User Name */}
-        <span className="max-w-[100px] sm:max-w-[130px] truncate text-slate-800">
-          {displayName}
         </span>
 
         {/* Down Chevron Arrow */}
@@ -115,16 +114,24 @@ export default function UserNavDropdown() {
       {/* Dropdown Menu Modal */}
       {isOpen && (
         <div className="absolute left-0 sm:left-0 top-full mt-2 w-64 sm:w-72 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-          {/* Top User Info Header - Clicking navigates to Profile */}
+          {/* Top User Info Header - First row prominently displaying User Name and Image */}
           <Link
             href="/panel/profile"
             onClick={() => setIsOpen(false)}
             className="block px-4 py-3 mx-2 rounded-xl bg-slate-50 hover:bg-teal-50/60 border border-slate-100 hover:border-teal-200 transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
-                {displayName.charAt(0)}
-              </div>
+              {user.image ? (
+                <img
+                  src={user.image}
+                  alt={displayName}
+                  className="w-10 h-10 rounded-xl object-cover shrink-0 border border-slate-200 shadow-xs"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                  {displayName.charAt(0)}
+                </div>
+              )}
               <div className="overflow-hidden">
                 <div className="font-black text-sm text-slate-900 group-hover:text-teal-800 truncate">
                   {displayName}

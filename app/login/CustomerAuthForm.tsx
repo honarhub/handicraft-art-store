@@ -340,7 +340,7 @@ export default function CustomerAuthForm() {
           {(step === 'OTP_LOGIN' || step === 'PASSWORD_LOGIN') && (
             <>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                خوش‌آمدید{userName ? `، ${userName}` : ''} 👋
+                {userName ? `${userName} خوش اومدی :)` : 'خوش اومدی :)'}
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
                 حساب شما: <span className="font-mono text-emerald-800 font-bold dir-ltr inline-block">{normalizedTarget}</span>
@@ -351,7 +351,7 @@ export default function CustomerAuthForm() {
           {step === 'REGISTER' && (
             <>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                به جمع هنردوستان خوش آمدید 🎨
+                به جمع هنر دوستان خوش اومدی :)
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
                 عضویت با: <span className="font-mono text-emerald-800 font-bold dir-ltr inline-block">{normalizedTarget}</span>

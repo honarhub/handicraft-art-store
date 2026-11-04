@@ -125,6 +125,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            image: user.image,
           };
         }
 
@@ -183,6 +184,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            image: user.image,
           };
         }
 
@@ -261,6 +263,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          image: user.image,
         };
       }
     })
@@ -389,6 +392,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         if (user.name) token.name = user.name;
         if (user.email) token.email = user.email;
+        if (user.image) token.picture = user.image;
       }
       if (trigger === "update" && session?.role) {
         token.role = session.role;
@@ -404,6 +408,7 @@ export const authOptions: NextAuthOptions = {
             name: true, 
             role: true, 
             email: true, 
+            image: true,
             password: true,
             artistProfile: { select: { id: true, isDeleted: true } } 
           }
@@ -417,6 +422,7 @@ export const authOptions: NextAuthOptions = {
             name: true, 
             role: true, 
             email: true, 
+            image: true,
             password: true,
             artistProfile: { select: { id: true, isDeleted: true } } 
           }
@@ -439,6 +445,7 @@ export const authOptions: NextAuthOptions = {
         token.id = dbUser.id;
         token.name = dbUser.name;
         token.email = dbUser.email;
+        token.picture = dbUser.image || token.picture || null;
         token.hasPassword = Boolean(dbUser.password);
         
         if (isAdmin) {
@@ -477,6 +484,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = (token.role as string) || 'USER';
         session.user.name = token.name as string;
         session.user.email = token.email as string;
+        session.user.image = (token.picture as string) || (token.image as string) || null;
         session.user.hasPassword = Boolean(token.hasPassword);
       }
       return session;
