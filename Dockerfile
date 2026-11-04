@@ -20,7 +20,7 @@ COPY . .
 
 # Generate Prisma Client & Build Next.js standalone
 ENV NEXT_TELEMETRY_DISABLED 1
-RUN npx prisma generate && npx next build --webpack
+RUN npx prisma generate && (npx prisma db push --skip-generate || true) && npx next build --webpack
 
 # Production image, copy all the files and run next
 FROM base AS runner

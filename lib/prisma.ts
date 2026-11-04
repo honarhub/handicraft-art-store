@@ -31,6 +31,8 @@ const MIGRATION_STATEMENTS = [
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "deletionRequestedAt" TIMESTAMP(3)',
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "pendingEdits" JSONB',
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "adminFeedback" TEXT',
+  'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true',
+  'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isDeleted" BOOLEAN NOT NULL DEFAULT false',
   'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "mustChangePassword" BOOLEAN NOT NULL DEFAULT false',
   'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "smsReferralTemplateId" TEXT',
   'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "smsReferralParamName" TEXT NOT NULL DEFAULT \'Code\'',
@@ -69,7 +71,33 @@ const MIGRATION_STATEMENTS = [
   'CREATE UNIQUE INDEX IF NOT EXISTS "ReferralCode_code_key" ON "ReferralCode"("code")',
   'CREATE UNIQUE INDEX IF NOT EXISTS "ReferralCode_usedById_key" ON "ReferralCode"("usedById")',
   'CREATE INDEX IF NOT EXISTS "ReferralCode_creatorId_idx" ON "ReferralCode"("creatorId")',
-  'CREATE INDEX IF NOT EXISTS "ReferralCode_code_idx" ON "ReferralCode"("code")'
+  'CREATE INDEX IF NOT EXISTS "ReferralCode_code_idx" ON "ReferralCode"("code")',
+  `CREATE TABLE IF NOT EXISTS "UserAddress" (
+      "id" TEXT NOT NULL,
+      "userId" TEXT NOT NULL,
+      "title" TEXT NOT NULL DEFAULT 'آدرس من',
+      "recipientName" TEXT NOT NULL,
+      "phoneNumber" TEXT NOT NULL,
+      "province" TEXT NOT NULL,
+      "city" TEXT NOT NULL,
+      "address" TEXT NOT NULL,
+      "postalCode" TEXT NOT NULL,
+      "isDefault" BOOLEAN NOT NULL DEFAULT false,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "UserAddress_pkey" PRIMARY KEY ("id")
+  )`,
+  'CREATE INDEX IF NOT EXISTS "UserAddress_userId_idx" ON "UserAddress"("userId")',
+  `CREATE TABLE IF NOT EXISTS "WishlistItem" (
+      "id" TEXT NOT NULL,
+      "userId" TEXT NOT NULL,
+      "productId" TEXT NOT NULL,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "WishlistItem_pkey" PRIMARY KEY ("id")
+  )`,
+  'CREATE UNIQUE INDEX IF NOT EXISTS "WishlistItem_userId_productId_key" ON "WishlistItem"("userId", "productId")',
+  'CREATE INDEX IF NOT EXISTS "WishlistItem_userId_idx" ON "WishlistItem"("userId")',
+  'CREATE INDEX IF NOT EXISTS "WishlistItem_productId_idx" ON "WishlistItem"("productId")'
 ];
 
 let isMigrating = false;

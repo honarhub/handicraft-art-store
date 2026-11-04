@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import ProfileManager from './ProfileManager';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'پروفایل و اطلاعات حساب | هنرهاب',
   description: 'مدیریت اطلاعات کاربری، نام، شماره موبایل و رمز عبور در فروشگاه آنلاین صنایع دستی هنرهاب'

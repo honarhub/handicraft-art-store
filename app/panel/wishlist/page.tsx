@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import WishlistManager from './WishlistManager';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'لیست علاقه‌مندی‌ها | هنرهاب',
   description: 'آثار هنری و دست‌سازه‌های نشان‌شده شما در فروشگاه آنلاین صنایع دستی هنرهاب'

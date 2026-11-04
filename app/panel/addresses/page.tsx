@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import AddressesManager from './AddressesManager';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function CustomerAddressesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect('/login?callbackUrl=/panel/addresses');

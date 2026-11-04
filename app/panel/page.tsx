@@ -6,6 +6,9 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import Image from 'next/image';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const toPersianDigits = (num: number | string) =>
   String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 
