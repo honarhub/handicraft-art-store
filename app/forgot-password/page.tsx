@@ -118,6 +118,11 @@ function ForgotPasswordContent() {
         return;
       }
 
+      setCode('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPassword(false);
+      setShowConfirmPassword(false);
       setStep('reset');
       setTimer(60);
 
@@ -215,6 +220,18 @@ function ForgotPasswordContent() {
         setErrorMsg(data.error || 'خطا در تنظیم رمز عبور جدید.');
         setLoading(false);
         return;
+      }
+
+      // Prompt browser natively to update credentials with the correct username/identifier
+      if (typeof window !== 'undefined' && 'PasswordCredential' in window && (navigator as any).credentials?.store) {
+        try {
+          const cred = new (window as any).PasswordCredential({
+            id: normalizedTarget,
+            password: newPassword,
+            name: normalizedTarget
+          });
+          await (navigator as any).credentials.store(cred);
+        } catch {}
       }
 
       setStep('success');
@@ -316,7 +333,20 @@ function ForgotPasswordContent() {
 
             {/* STEP 2: VERIFY CODE & RESET PASSWORD */}
             {step === 'reset' && (
-              <form onSubmit={handleResetSubmit} className="space-y-4">
+              <form onSubmit={handleResetSubmit} className="space-y-4" autoComplete="off">
+                {/* Hidden username input for browser password managers (associates new-password with target instead of OTP code) */}
+                <input
+                  type="text"
+                  name="username"
+                  id="username"
+                  autoComplete="username"
+                  value={normalizedTarget}
+                  readOnly
+                  tabIndex={-1}
+                  className="sr-only"
+                  aria-hidden="true"
+                />
+
                 <div className="flex items-center justify-between bg-slate-50 border border-slate-200/80 px-3.5 py-2 rounded-xl text-xs">
                   <div className="flex items-center gap-2">
                     <span className="text-slate-500">ارسال شده به:</span>
@@ -326,6 +356,9 @@ function ForgotPasswordContent() {
                     type="button"
                     onClick={() => {
                       setStep('request');
+                      setCode('');
+                      setNewPassword('');
+                      setConfirmPassword('');
                       setErrorMsg('');
                       setInfoMsg('');
                     }}
@@ -336,11 +369,14 @@ function ForgotPasswordContent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label htmlFor="otp-code" className="block text-xs font-bold text-slate-700 mb-1.5">
                     کد تایید ۵ رقمی
                   </label>
                   <input
                     ref={codeInputRef}
+                    id="otp-code"
+                    name="otp"
+                    autoComplete="one-time-code"
                     type="text"
                     inputMode="numeric"
                     maxLength={5}
@@ -349,7 +385,7 @@ function ForgotPasswordContent() {
                     dir="ltr"
                     required
                     placeholder="•••••"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-center font-mono text-xl tracking-[0.4em] placeholder-slate-300 font-black"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-center font-mono text-xl tracking-[0.4em] placeholder-slate-300 font-black text-slate-900"
                   />
                   
                   {/* Resend button / Timer */}
@@ -372,49 +408,83 @@ function ForgotPasswordContent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label htmlFor="new-password" className="block text-xs font-bold text-slate-700 mb-1.5">
                     رمز عبور جدید (حداقل ۶ کاراکتر)
                   </label>
                   <div className="relative">
                     <input
+                      id="new-password"
+                      name="new-password"
+                      autoComplete="new-password"
                       type={showPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       dir="ltr"
                       required
                       placeholder="••••••••"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-center font-mono text-sm tracking-widest"
+                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-center font-mono text-sm tracking-widest text-slate-900"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer p-1"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                      title={showPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                      aria-label={showPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
                     >
-                      {showPassword ? 'مخفی' : 'نمایش'}
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label htmlFor="confirm-new-password" className="block text-xs font-bold text-slate-700 mb-1.5">
                     تکرار رمز عبور جدید
                   </label>
                   <div className="relative">
                     <input
+                      id="confirm-new-password"
+                      name="confirm-new-password"
+                      autoComplete="new-password"
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       dir="ltr"
                       required
                       placeholder="••••••••"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-center font-mono text-sm tracking-widest"
+                      className="w-full px-4 py-2.5 pl-11 rounded-xl border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all text-center font-mono text-sm tracking-widest text-slate-900"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer p-1"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                      title={showConfirmPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
+                      aria-label={showConfirmPassword ? 'مخفی‌سازی رمز عبور' : 'نمایش رمز عبور'}
                     >
-                      {showConfirmPassword ? 'مخفی' : 'نمایش'}
+                      {showConfirmPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                          <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                          <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                          <line x1="2" y1="2" x2="22" y2="22" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
                     </button>
                   </div>
                 </div>
