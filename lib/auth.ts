@@ -34,15 +34,19 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
+      idToken: false,
       checks: ["state"],
       authorization: {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
-          scope: "openid email profile",
+          scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
           prompt: "select_account",
           access_type: "offline",
           response_type: "code"
         }
       },
+      token: "https://oauth2.googleapis.com/token",
+      userinfo: "https://www.googleapis.com/oauth2/v3/userinfo",
       profile(profile) {
         const isAdmin = isAdminEmail(profile.email);
         return {
@@ -493,8 +497,8 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/login',
-    error: '/login-error',
+    signIn: '/admin/login',
+    error: '/admin/login',
   },
   debug: process.env.NODE_ENV === 'development',
   logger: {

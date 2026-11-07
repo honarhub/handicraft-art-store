@@ -126,7 +126,11 @@ function ArtistLoginContent() {
 
     // If an error redirected from an Admin route, immediately redirect back to Admin Login!
     if (callbackUrl.includes('/admin')) {
-      router.replace(`/admin/login${err ? `?error=${err}` : ''}`);
+      if (typeof window !== 'undefined') {
+        window.location.replace(`/admin/login${err ? `?error=${err}` : ''}`);
+      } else {
+        router.replace(`/admin/login${err ? `?error=${err}` : ''}`);
+      }
       return;
     }
 
@@ -793,6 +797,15 @@ function ArtistLoginContent() {
       setForgotLoading(false);
     }
   };
+
+  if (searchParams.get('callbackUrl')?.includes('/admin')) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 text-center font-sans" dir="rtl">
+        <WaveDotsLoader />
+        <p className="text-slate-400 text-xs mt-4">در حال بازگشت به صفحه مدیریت...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans" dir="rtl">
