@@ -22,12 +22,10 @@ body, button, input, select, textarea {
 
 input, select, textarea {
   color: #0f172a;
-  -webkit-text-fill-color: #0f172a;
 }
 
 input::placeholder, textarea::placeholder {
   color: #64748b;
-  -webkit-text-fill-color: #64748b;
   opacity: 1;
 }
 

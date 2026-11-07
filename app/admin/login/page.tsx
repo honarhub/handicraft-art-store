@@ -95,6 +95,25 @@ function AdminLoginContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans text-slate-200 relative overflow-hidden" dir="rtl">
+      {/* Styles ensuring high-contrast white text and consistent background while typing or autofilling */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .admin-login-input {
+          color: #ffffff !important;
+          -webkit-text-fill-color: #ffffff !important;
+          background-color: #1e293b !important;
+          caret-color: #60a5fa !important;
+        }
+        .admin-login-input:-webkit-autofill,
+        .admin-login-input:-webkit-autofill:hover,
+        .admin-login-input:-webkit-autofill:focus,
+        .admin-login-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #1e293b inset !important;
+          -webkit-text-fill-color: #ffffff !important;
+          color: #ffffff !important;
+          caret-color: #60a5fa !important;
+        }
+      ` }} />
+
       {/* Ambient background glows */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/15 blur-[150px] rounded-full pointer-events-none" />
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/15 blur-[150px] rounded-full pointer-events-none" />
@@ -178,7 +197,8 @@ function AdminLoginContent() {
                   required 
                   value={email} 
                   onChange={e => setEmail(e.target.value)} 
-                  className="w-full bg-slate-950/80 border border-slate-700/80 text-white px-4 py-2.5 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all placeholder-slate-600 font-mono text-xs" 
+                  style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff', backgroundColor: '#1e293b' }}
+                  className="admin-login-input w-full bg-slate-800 border border-slate-600 text-white px-4 py-2.5 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none transition-all placeholder-slate-400 font-mono text-xs" 
                   placeholder="admin@honarhub.ir" 
                   dir="ltr" 
                 />
@@ -207,7 +227,8 @@ function AdminLoginContent() {
                   required 
                   value={password} 
                   onChange={e => setPassword(e.target.value)} 
-                  className="w-full bg-slate-950/80 border border-slate-700/80 text-white px-4 py-2.5 pl-11 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all placeholder-slate-600 text-center font-mono tracking-widest text-sm" 
+                  style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff', backgroundColor: '#1e293b' }}
+                  className="admin-login-input w-full bg-slate-800 border border-slate-600 text-white px-4 py-2.5 pl-11 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none transition-all placeholder-slate-400 text-center font-mono tracking-widest text-sm" 
                   placeholder="••••••••" 
                   dir="ltr" 
                 />
