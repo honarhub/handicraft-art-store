@@ -111,6 +111,10 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
       label: '🛍️ مدیریت سفارش‌ها' 
     },
     { 
+      href: '/admin/finances', 
+      label: '💰 تسویه‌حساب و امور مالی' 
+    },
+    { 
       href: '/admin/specialties', 
       label: '🏷️ مدیریت تخصص‌ها', 
       count: counts.pendingSpecialtiesCount,

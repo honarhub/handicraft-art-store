@@ -149,6 +149,7 @@ model ArtistProfile {
   
   products    Product[]
   transactions Transaction[]
+  settlementRequests SettlementRequest[]
   specialties Specialty[] // ارتباط Many-to-Many با تخصص‌ها
   blogPosts   BlogPost[]
   createdAt   DateTime @default(now())
@@ -207,11 +208,39 @@ model Transaction {
   artistId    String
   artist      ArtistProfile  @relation(fields: [artistId], references: [id], onDelete: Cascade)
   orderId     String?
+  order       Order?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
   amount      Float
   type        TransactionType
   status      TransactionStatus @default(COMPLETED)
+  referenceId String?        // شناسه مرجع یا تراکنش
   description String?
   createdAt   DateTime       @default(now())
+
+  @@index([artistId])
+  @@index([orderId])
+}
+
+model SettlementRequest {
+  id            String            @id @default(cuid())
+  artistId      String
+  artist        ArtistProfile     @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  amount        Float
+  shebaNumber   String
+  status        SettlementStatus  @default(PENDING)
+  trackingCode  String?           // شماره پیگیری یا حواله پایا/ساتنا
+  adminNote     String?
+  paidAt        DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([artistId])
+  @@index([status])
+}
+
+enum SettlementStatus {
+  PENDING
+  PAID
+  REJECTED
 }
 
 enum TransactionType {
@@ -257,28 +286,67 @@ model PricingTier {
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-  total      Float
-  status     OrderStatus @default(PENDING)
-  isTest     Boolean     @default(true)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id                 String         @id @default(cuid())
+  orderNumber        String?        @unique
+  invoiceNumber      String?        @unique
+  userId             String
+  user               User           @relation(fields: [userId], references: [id])
+  total              Float
+  subtotal           Float?
+  shippingCost       Float?         @default(0)
+  discountAmount     Float?         @default(0)
+  status             OrderStatus    @default(PENDING)
+  isTest             Boolean        @default(true)
+  
+  // اطلاعات تحویل گیرنده
+  recipientName      String?
+  phoneNumber        String?
+  province           String?
+  city               String?
+  shippingAddress    String?
+  postalCode         String?
+  postalTrackingCode String?        // کد رهگیری پستی مرسوله
 
-  items      OrderItem[]
+  // اطلاعات پرداخت
+  paymentMethod      String?        @default("ONLINE")
+  paymentRefId       String?        // شماره مرجع تراکنش بانکی (RRN)
+  paymentCardMask    String?        // شماره کارت ماسک شده (مثلا ۶۰۳۷۹۹****۱۲۳۴)
+  paidAt             DateTime?
+
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  items              OrderItem[]
+  transactions       Transaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+  @@index([invoiceNumber])
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
-  orderId       String
-  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId     String
-  product       Product  @relation(fields: [productId], references: [id])
-  pricingTierId String
-  priceAtTime   Float
-  quantity      Int      @default(1)
-  certificate   ProductCertificate?
+  id                 String              @id @default(cuid())
+  orderId            String
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId          String
+  product            Product             @relation(fields: [productId], references: [id])
+  pricingTierId      String
+  priceAtTime        Float
+  quantity           Int                 @default(1)
+  
+  // اطلاعات تفکیکی هنرمند و تسهیم مالی
+  artistId           String?
+  artistEarnings     Float?              // سهم خالص هنرمند
+  platformFee        Float?              // کارمزد سهم پلتفرم
+  itemStatus         String?             @default("PENDING") // PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  postalTrackingCode String?             // کد رهگیری پستی مجزا در صورت ارسال مستقیم از هنرمند
+
+  certificate        ProductCertificate?
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([artistId])
 }
 
 enum OrderStatus {

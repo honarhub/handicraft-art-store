@@ -525,19 +525,19 @@ export default function CheckoutPage() {
         }),
       });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'خطا در ثبت سفارش');
 
-      setTimeout(() => {
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      } else {
         clearCart();
         const orderId = data.orderId || 'ORD-' + Math.floor(100000 + Math.random() * 900000);
         window.location.href = `/checkout/success?orderId=${orderId}`;
-      }, 1500);
-    } catch (err) {
+      }
+    } catch (err: any) {
       console.error('Payment error:', err);
-      setTimeout(() => {
-        clearCart();
-        const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
-        window.location.href = `/checkout/success?orderId=${orderId}`;
-      }, 1500);
+      alert(err.message || 'خطا در اتصال به درگاه پرداخت');
+      setIsProcessing(false);
     }
   };
 

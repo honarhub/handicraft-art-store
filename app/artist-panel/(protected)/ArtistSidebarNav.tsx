@@ -171,6 +171,16 @@ export default function ArtistSidebarNav({ initialUnreadFeedbackCount, verificat
       icon: <span className="text-base">📊</span>,
     },
     {
+      href: '/artist-panel/orders',
+      label: 'سفارش‌های دریافتی',
+      icon: <span className="text-base">🛍️</span>,
+    },
+    {
+      href: '/artist-panel/finances',
+      label: 'امور مالی و تسویه‌حساب',
+      icon: <span className="text-base">💰</span>,
+    },
+    {
       href: '/artist-panel/products',
       label: 'مدیریت آثار و محصولات',
       icon: <span className="text-base">📦</span>,

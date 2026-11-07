@@ -139,14 +139,33 @@ export default async function CustomerOrdersPage() {
                   })}
                 </div>
 
-                {/* Order Footer Total */}
-                <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500">
-                    مبلغ کل پرداخت‌شده:
-                  </span>
-                  <span className="text-base sm:text-lg font-black text-slate-900">
-                    {toPersianDigits(order.total.toLocaleString())} تومان
-                  </span>
+                {/* Order Footer Total & Actions */}
+                <div className="pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500">
+                      مبلغ کل پرداخت‌شده:
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-slate-900">
+                      {toPersianDigits(order.total.toLocaleString())} تومان
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Link
+                      href={`/panel/orders/${order.id}`}
+                      className="flex-1 sm:flex-none text-center bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-bold px-4 py-2 rounded-xl transition-colors"
+                    >
+                      پیگیری و جزئیات مرسوله
+                    </Link>
+                    <Link
+                      href={`/checkout/invoice/${order.id}`}
+                      target="_blank"
+                      className="text-center bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors"
+                      title="مشاهده فاکتور رسمی"
+                    >
+                      📄 فاکتور
+                    </Link>
+                  </div>
                 </div>
               </div>
             );
