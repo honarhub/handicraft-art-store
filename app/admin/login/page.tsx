@@ -19,7 +19,7 @@ function AdminLoginContent() {
   useEffect(() => {
     const err = searchParams.get('error');
     if (err === 'OAuthCallback' || err === 'OAuthSignin') {
-      setErrorMsg('خطا در ورود با گوگل (سرویس SSO در محیط لوکال به دلیل فیلترینگ یا عدم ثبت آدرس لوکال در گوگل کنسول در دسترس نیست). لطفاً از طریق ایمیل و رمز عبور زیر وارد شوید.');
+      setErrorMsg('خطا در ارتباط با سرویس گوگل (OAuthCallback). لطفاً مطمئن شوید دقیقاً از دامنه http://localhost:3000 وارد شده‌اید و کوکی‌های مرورگر مسدود نیستند، یا از طریق فرم زیر وارد شوید.');
     } else if (err === 'AccessDenied') {
       setErrorMsg('دسترسی غیرمجاز: حساب شما دارای نقش مدیر سیستم (ADMIN) نمی‌باشد.');
     } else if (err) {
@@ -166,8 +166,7 @@ function AdminLoginContent() {
               placeholder="••••••••" 
               dir="ltr" 
             />
-            <div className="flex justify-between items-center mt-2 text-[11px] text-slate-400">
-              <span>رمز پیش‌فرض لوکال: <code className="text-amber-300 font-mono">admin123456</code></span>
+            <div className="flex justify-end mt-2 text-[11px] text-slate-400">
               <Link href="/forgot-password" className="text-slate-400 hover:text-slate-200 transition-colors">
                 فراموشی رمز؟
               </Link>

@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
+          scope: "openid email profile",
           prompt: "select_account",
           access_type: "offline",
           response_type: "code"
@@ -495,5 +496,13 @@ export const authOptions: NextAuthOptions = {
     error: '/login-error',
   },
   debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error(code, metadata) {
+      console.error('[NextAuth Error]', code, metadata);
+    },
+    warn(code) {
+      console.warn('[NextAuth Warn]', code);
+    },
+  },
   secret: process.env.NEXTAUTH_SECRET,
 };
