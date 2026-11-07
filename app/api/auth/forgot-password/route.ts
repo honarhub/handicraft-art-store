@@ -8,7 +8,19 @@ import { checkAndEnforceOtpLimits, logOtpSent, logOtpFailure, isLocalhostRequest
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, target, code, newPassword } = body;
+    let { action, target, code, newPassword, email, phone } = body;
+
+    // Normalize target from legacy fields (email or phone)
+    target = (target || email || phone || '').toString().trim();
+
+    // Default action if omitted
+    if (!action) {
+      if (code && newPassword) {
+        action = 'reset';
+      } else {
+        action = 'request';
+      }
+    }
 
     // Action 1: Request Password Reset Code
     if (action === 'request') {

@@ -167,7 +167,7 @@ function AdminLoginContent() {
               dir="ltr" 
             />
             <div className="flex justify-end mt-2 text-[11px] text-slate-400">
-              <Link href="/forgot-password" className="text-slate-400 hover:text-slate-200 transition-colors">
+              <Link href="/forgot-password?from=admin" className="text-slate-400 hover:text-slate-200 transition-colors">
                 فراموشی رمز؟
               </Link>
             </div>
