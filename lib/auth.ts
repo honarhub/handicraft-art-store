@@ -233,8 +233,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("رمز عبور اشتباه است.");
         }
 
-        if (credentials.loginType === 'admin' && user.role !== 'ADMIN') {
-          throw new Error("شما دسترسی ورود به پنل ادمین را ندارید");
+        if (credentials.loginType === 'admin') {
+          if (user.role !== 'ADMIN' || !isAdminEmail(user.email)) {
+            throw new Error("شما دسترسی ورود به پنل ادمین را ندارید");
+          }
         }
 
         if (credentials.loginType === 'artist') {
@@ -334,6 +336,16 @@ export const authOptions: NextAuthOptions = {
               });
             }
           } else {
+            // STRICT ZERO-TRUST: Demote any non-admin email that somehow had ADMIN role in DB
+            if (dbUser.role === 'ADMIN') {
+              const fallbackRole = dbUser.artistProfile ? 'ARTIST' : 'USER';
+              await prisma.user.update({
+                where: { id: dbUser.id },
+                data: { role: fallbackRole }
+              });
+              dbUser.role = fallbackRole;
+            }
+
             if (dbUser.artistProfile?.isDeleted) {
               return '/artist-panel/login?error=archived';
             }
@@ -463,6 +475,16 @@ export const authOptions: NextAuthOptions = {
           }
           token.role = 'ADMIN';
         } else {
+          // STRICT ZERO-TRUST: Non-admin email must NEVER have ADMIN role
+          if (dbUser.role === 'ADMIN') {
+            const fallbackRole = dbUser.artistProfile ? 'ARTIST' : 'USER';
+            await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { role: fallbackRole }
+            });
+            dbUser.role = fallbackRole;
+          }
+
           // Auto-create artist profile for new ARTIST users if missing
           if (dbUser.role === 'ARTIST' && !dbUser.artistProfile) {
             await prisma.artistProfile.create({

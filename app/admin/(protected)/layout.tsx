@@ -4,30 +4,30 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import AdminSidebarNav from './AdminSidebarNav';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authOptions, isAdminEmail } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import LogoutButton from '@/app/components/LogoutButton';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
 
-  // Admin Auth Check
+  // Admin Auth Check (Zero-trust: both role AND environment variable whitelist)
   if (!session || !session.user || !session.user.id) {
     redirect('/admin/login');
-  } else if (session.user.role !== 'ADMIN') {
+  } else if (session.user.role !== 'ADMIN' || !isAdminEmail(session.user.email)) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4" dir="rtl">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center">
           <div className="text-5xl mb-4">🛑</div>
-          <h1 className="text-2xl font-black text-slate-800 mb-2">دسترسی غیرمجاز</h1>
-          <p className="text-slate-600 mb-6">
-            شما با حساب کاربری <strong>{session.user.name || session.user.email || 'ناشناس'}</strong> (نقش: {session.user.role || 'نامشخص'}) وارد شده‌اید که دسترسی ادمین ندارد.
+          <h1 className="text-2xl font-black text-slate-800 mb-2">دسترسی غیرمجاز به پنل مدیریت</h1>
+          <p className="text-slate-600 mb-6 text-sm leading-relaxed">
+            شما با حساب کاربری (<strong className="font-mono text-slate-800">{session.user.email || session.user.name}</strong>) وارد شده‌اید، اما این حساب در لیست مدیران ارشد سیستم (متغیر محیطی ADMIN_EMAILS) مجاز نیست.
           </p>
           <div className="space-y-3">
-            <LogoutButton callbackUrl="/admin/login" className="block w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition">
-              خروج از حساب فعلی
+            <LogoutButton callbackUrl="/admin/login" className="block w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition text-xs sm:text-sm cursor-pointer">
+              خروج و ورود با حساب مدیر ارشد
             </LogoutButton>
-            <a href="/" className="block w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">
+            <a href="/" className="block w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition text-xs sm:text-sm">
               بازگشت به صفحه اصلی
             </a>
           </div>
