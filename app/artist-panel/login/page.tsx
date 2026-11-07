@@ -122,6 +122,13 @@ function ArtistLoginContent() {
     const tab = searchParams.get('tab') || searchParams.get('mode') || windowParams?.get('tab') || windowParams?.get('mode');
     const urlReferral = extractReferralFromUrl(searchParams);
     const err = searchParams.get('error') || windowParams?.get('error');
+    const callbackUrl = searchParams.get('callbackUrl') || windowParams?.get('callbackUrl') || '';
+
+    // If an error redirected from an Admin route, immediately redirect back to Admin Login!
+    if (callbackUrl.includes('/admin')) {
+      router.replace(`/admin/login${err ? `?error=${err}` : ''}`);
+      return;
+    }
 
     if (urlReferral) {
       setRegReferralCode(urlReferral);
