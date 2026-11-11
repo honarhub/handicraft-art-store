@@ -329,10 +329,11 @@ export default function CustomerAuthForm() {
     }
   };
 
-  // Google SSO Handler
+  // Google SSO Handler — uses custom OAuth route that bypasses NextAuth cookie issues
   const handleGoogleLogin = () => {
     setSsoLoading(true);
-    signIn('google', { callbackUrl });
+    const params = new URLSearchParams({ callbackUrl, portal: 'user' });
+    window.location.href = `/api/auth/google?${params.toString()}`;
   };
 
   return (

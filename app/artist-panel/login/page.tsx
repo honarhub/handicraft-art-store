@@ -1216,7 +1216,7 @@ function ArtistLoginContent() {
 
             <button
               type="button"
-              onClick={() => signIn('google', { callbackUrl: '/artist-panel/dashboard' })}
+              onClick={() => { window.location.href = '/api/auth/google?callbackUrl=%2Fartist-panel%2Fdashboard&portal=artist'; }}
               className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">

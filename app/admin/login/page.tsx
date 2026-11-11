@@ -160,7 +160,7 @@ function AdminLoginContent() {
           {/* Google SSO Button */}
           <button 
             type="button"
-            onClick={() => signIn('google', { callbackUrl: '/admin' })}
+            onClick={() => { window.location.href = '/api/auth/google?callbackUrl=%2Fadmin&portal=admin'; }}
             className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-slate-700 hover:border-slate-600 rounded-xl shadow-sm bg-slate-950/70 text-xs font-bold text-white hover:bg-slate-800 transition-all cursor-pointer group"
           >
             <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg" className="shrink-0 transition-transform group-hover:scale-110">
