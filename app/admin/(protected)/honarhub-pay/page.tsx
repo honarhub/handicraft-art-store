@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { toPersianDigits, formatPersianDateTime } from '@/lib/date';
-import { isValidIranianCardNumber, getBankInfoByCardNumber } from '@/lib/sms';
+import { isValidIranianCardNumber, isValidIranianSheba, getBankInfoByCardNumber } from '@/lib/sms';
 
 interface AdminAccount {
   cardNumber: string | null;
@@ -46,7 +46,6 @@ interface PaymentLogItem {
   offsetAmount: number | null;
   status: string;
   gateway: string;
-  isSandbox: boolean;
   cardNumber: string | null;
   cardOwnerName: string | null;
   bankTitle: string | null;
@@ -68,7 +67,6 @@ export default function HonarHubPayAdminPage() {
   const [config, setConfig] = useState({
     apiKey: '',
     baseUrl: 'https://pay.honarhub.com',
-    isSandbox: true,
   });
   const [adminAccount, setAdminAccount] = useState<AdminAccount | null>(null);
   const [artists, setArtists] = useState<ArtistItem[]>([]);
@@ -96,7 +94,6 @@ export default function HonarHubPayAdminPage() {
   // Settings Form State
   const [settingsForm, setSettingsForm] = useState({
     apiKey: '',
-    isSandbox: true,
     baseUrl: 'https://pay.honarhub.com',
   });
   const [savingSettings, setSavingSettings] = useState(false);
@@ -115,6 +112,25 @@ export default function HonarHubPayAdminPage() {
   const [logFilter, setLogFilter] = useState<'ALL' | 'PAID' | 'FAILED' | 'PENDING'>('ALL');
   const [actionLoadingArtistId, setActionLoadingArtistId] = useState<string | null>(null);
   const [inquiringId, setInquiringId] = useState<string | null>(null);
+
+  // Derived real-time card validation
+  const cleanCardDigits = adminForm.cardNumber.replace(/\D/g, '').slice(0, 16);
+  const isCardComplete = cleanCardDigits.length === 16;
+  const isCardValid = isCardComplete ? isValidIranianCardNumber(cleanCardDigits) : null;
+  const detectedBank = getBankInfoByCardNumber(cleanCardDigits);
+
+  // Derived real-time IBAN validation
+  const cleanShebaBody = adminForm.iban.replace(/\s+/g, '').toUpperCase().replace(/^IR/i, '').replace(/\D/g, '').slice(0, 24);
+  const hasShebaInput = adminForm.iban.trim().length > 0;
+  const isShebaComplete = cleanShebaBody.length === 24;
+  const isShebaValid = hasShebaInput ? (isShebaComplete ? isValidIranianSheba(`IR${cleanShebaBody}`) : false) : null;
+
+  // Can submit check: Card must be 16 valid digits, and if IBAN entered it must be valid
+  const canSubmitAdminCard =
+    adminForm.ownerName.trim().length > 0 &&
+    isCardComplete &&
+    isCardValid === true &&
+    (!hasShebaInput || isShebaValid === true);
 
   const fetchData = async () => {
     try {
@@ -140,7 +156,6 @@ export default function HonarHubPayAdminPage() {
       }
       setSettingsForm({
         apiKey: data.config?.apiKey || '',
-        isSandbox: Boolean(data.config?.isSandbox),
         baseUrl: data.config?.baseUrl || 'https://pay.honarhub.com',
       });
     } catch (err: any) {
@@ -166,7 +181,6 @@ export default function HonarHubPayAdminPage() {
         body: JSON.stringify({
           apiKey: overrideApiKey || settingsForm.apiKey,
           baseUrl: settingsForm.baseUrl,
-          isSandbox: settingsForm.isSandbox,
         }),
       });
 
@@ -187,29 +201,52 @@ export default function HonarHubPayAdminPage() {
     }
   };
 
+  // Card Number Change Handler with Real-time Formatting
+  const handleCardNumberChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 16);
+    const bank = getBankInfoByCardNumber(digits);
+    setAdminForm((prev) => ({
+      ...prev,
+      cardNumber: digits,
+      bankTitle: bank.title,
+      bankSlug: bank.slug,
+    }));
+    setAdminCardMsg(null);
+  };
+
+  // IBAN Change Handler with Real-time Formatting
+  const handleIbanChange = (raw: string) => {
+    let clean = raw.trim().toUpperCase().replace(/\s+/g, '');
+    if (clean && !clean.startsWith('IR') && /^\d/.test(clean)) {
+      clean = 'IR' + clean;
+    }
+    const digits = clean.replace(/^IR/i, '').replace(/\D/g, '').slice(0, 24);
+    const formatted = digits.length > 0 ? `IR${digits}` : clean.startsWith('IR') ? 'IR' : '';
+    setAdminForm((prev) => ({
+      ...prev,
+      iban: formatted,
+    }));
+    setAdminCardMsg(null);
+  };
+
   // Save Admin Card & Sync with HonarHub Pay
   const handleSaveAdminCard = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmitAdminCard) return;
+
     setSavingAdminCard(true);
     setAdminCardMsg(null);
-
-    const cleanCard = adminForm.cardNumber.replace(/\D/g, '');
-    if (!isValidIranianCardNumber(cleanCard)) {
-      setAdminCardMsg({ text: 'شماره کارت ۱۶ رقمی شتاب نامعتبر است (الگوریتم تایید نشد).', isError: true });
-      setSavingAdminCard(false);
-      return;
-    }
 
     try {
       const res = await fetch('/api/admin/honarhub-pay/admin-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cardNumber: cleanCard,
-          ownerName: adminForm.ownerName,
-          iban: adminForm.iban,
-          bankTitle: adminForm.bankTitle,
-          bankSlug: adminForm.bankSlug,
+          cardNumber: cleanCardDigits,
+          ownerName: adminForm.ownerName.trim(),
+          iban: cleanShebaBody ? `IR${cleanShebaBody}` : undefined,
+          bankTitle: adminForm.bankTitle || detectedBank.title,
+          bankSlug: adminForm.bankSlug || detectedBank.slug,
         }),
       });
 
@@ -217,10 +254,10 @@ export default function HonarHubPayAdminPage() {
       if (!res.ok) throw new Error(data.error || 'خطا در ثبت کارت ادمین');
 
       setAdminAccount(data.adminAccount);
-      setAdminCardMsg({ text: data.message || 'کارت ادمین با موفقیت در درگاه هنرهاب پی همگام‌سازی شد.', isError: false });
+      setAdminCardMsg({ text: data.message || 'کارت ادمین با موفقیت ذخیره شد.', isError: false });
       setIsEditingAdminCard(false);
     } catch (err: any) {
-      setAdminCardMsg({ text: err.message || 'خطا در اتصال به درگاه', isError: true });
+      setAdminCardMsg({ text: err.message || 'خطا در ذخیره کارت', isError: true });
     } finally {
       setSavingAdminCard(false);
     }
@@ -274,14 +311,17 @@ export default function HonarHubPayAdminPage() {
       const res = await fetch('/api/admin/honarhub-pay/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settingsForm),
+        body: JSON.stringify({
+          apiKey: settingsForm.apiKey.trim(),
+          baseUrl: settingsForm.baseUrl.trim(),
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'خطا در ذخیره تنظیمات');
 
       setConfig(data.config);
-      setSettingsMsg({ text: data.message || 'تنظیمات با موفقیت ذخیره شد.', isError: false });
+      setSettingsMsg({ text: data.message || 'تنظیمات درگاه عملیاتی با موفقیت ذخیره شد.', isError: false });
     } catch (err: any) {
       setSettingsMsg({ text: err.message || 'خطا در ذخیره تنظیمات', isError: true });
     } finally {
@@ -357,21 +397,13 @@ export default function HonarHubPayAdminPage() {
             </p>
           </div>
 
-          {/* Gateway Status Badge & Quick Test */}
+          {/* Operational Status Badge & Quick Test */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
-            <div className="text-right">
-              <div className="text-[11px] text-slate-500 font-medium">محیط اتصال درگاه:</div>
-              <div className="font-mono text-xs font-bold mt-0.5">
-                {config.isSandbox ? (
-                  <span className="text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300 inline-block">
-                    محیط آزمایشی (سندباکس)
-                  </span>
-                ) : (
-                  <span className="text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-md border border-emerald-300 inline-block">
-                    محیط عملیاتی (Live)
-                  </span>
-                )}
-              </div>
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span className="text-xs font-black text-emerald-800">
+                درگاه عملیاتی فعال (Live)
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -379,8 +411,8 @@ export default function HonarHubPayAdminPage() {
                 type="button"
                 onClick={() => handleTestConnection()}
                 disabled={testingConnection}
-                className="text-xs bg-white hover:bg-slate-100 text-slate-700 px-3 py-2 rounded-xl transition flex items-center gap-1.5 border border-slate-300 font-bold shadow-sm cursor-pointer disabled:opacity-50"
-                title="تست زنده اتصال با کلید فعلی"
+                className="text-xs bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 border border-slate-300 font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                title="تست زنده اتصال با کلید وب‌سرویس"
               >
                 <span>{testingConnection ? '⏳' : '⚡'}</span>
                 <span>{testingConnection ? 'در حال تست...' : 'تست اتصال API'}</span>
@@ -412,7 +444,7 @@ export default function HonarHubPayAdminPage() {
             </div>
             <button
               onClick={() => setConnectionTestResult(null)}
-              className="text-slate-400 hover:text-slate-600 text-xs font-normal"
+              className="text-slate-400 hover:text-slate-600 text-xs font-normal cursor-pointer"
             >
               ✕ بستن
             </button>
@@ -515,60 +547,172 @@ export default function HonarHubPayAdminPage() {
 
             {/* Admin Card Details or Edit Form */}
             {isEditingAdminCard ? (
-              <form onSubmit={handleSaveAdminCard} className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    شماره ۱۶ رقمی کارت بانکی ادمین *
-                  </label>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    maxLength={19}
-                    required
-                    value={adminForm.cardNumber.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')}
-                    onChange={(e) => setAdminForm({ ...adminForm, cardNumber: e.target.value.replace(/\D/g, '').slice(0, 16) })}
-                    placeholder="۶۰۳۷ ۹۹۱۹ ۸۷۶۵ ۴۳۲۱"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-mono text-center text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none tracking-widest"
-                  />
-                  {adminForm.cardNumber.replace(/\D/g, '').length >= 6 && (
-                    <div className="text-[11px] mt-1 font-bold text-emerald-700">
-                      بانک تشخیص داده شده: {getBankInfoByCardNumber(adminForm.cardNumber).title}
+              <form onSubmit={handleSaveAdminCard} className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  
+                  {/* 1. Card Number with LIVE Luhn Algorithm Check */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-800">
+                        شماره ۱۶ رقمی کارت بانکی ادمین *
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-500" dir="ltr">
+                        {toPersianDigits(cleanCardDigits.length)}/۱۶ رقم
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    نام و نام خانوادگی صاحب کارت *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={adminForm.ownerName}
-                    onChange={(e) => setAdminForm({ ...adminForm, ownerName: e.target.value })}
-                    placeholder="مثال: مدیریت هنرهاب"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
-                  />
-                </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        dir="ltr"
+                        maxLength={19}
+                        required
+                        value={cleanCardDigits.replace(/(\d{4})(?=\d)/g, '$1 ')}
+                        onChange={(e) => handleCardNumberChange(e.target.value)}
+                        placeholder="۶۰۳۷ ۹۹۱۹ ۸۷۶۵ ۴۳۲۱"
+                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-sm font-mono text-center text-slate-900 outline-none tracking-widest transition-all ${
+                          isCardComplete
+                            ? isCardValid
+                              ? 'border-emerald-500 ring-2 ring-emerald-100 bg-emerald-50/20'
+                              : 'border-rose-500 ring-2 ring-rose-100 bg-rose-50/20'
+                            : 'border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                        }`}
+                      />
+                      {/* Live icon inside input */}
+                      {isCardComplete && (
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                          {isCardValid ? (
+                            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                              ✓
+                            </span>
+                          ) : (
+                            <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                              ✕
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    شماره شبا (IBAN) - اختیاری
-                  </label>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    value={adminForm.iban}
-                    onChange={(e) => setAdminForm({ ...adminForm, iban: e.target.value.toUpperCase() })}
-                    placeholder="IR120600000000123456789012"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
-                  />
-                  <div className="text-[10px] text-slate-500 mt-1">
-                    جهت تسویه‌های مبالغ بالای ۱۵ میلیون تومان از طریق سامانه پل
+                    {/* Instant Feedback Badge */}
+                    {isCardComplete ? (
+                      isCardValid ? (
+                        <div className="flex items-center justify-between text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
+                            <span>شماره کارت معتبر است (تایید شتاب)</span>
+                          </div>
+                          <span className="text-emerald-700 bg-white px-2 py-0.5 rounded-lg border border-emerald-200 text-[11px]">
+                            🏦 {detectedBank.title}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                          <span className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px]">✕</span>
+                          <span>شماره کارت نامعتبر است (رقم کنترلی شتاب تایید نشد)</span>
+                        </div>
+                      )
+                    ) : (
+                      cleanCardDigits.length >= 6 && (
+                        <div className="text-[11px] mt-1.5 font-bold text-emerald-700 flex items-center gap-1">
+                          <span>🏦</span>
+                          <span>بانک تشخیص داده شده: {detectedBank.title}</span>
+                        </div>
+                      )
+                    )}
                   </div>
+
+                  {/* 2. Owner Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                      نام و نام خانوادگی صاحب کارت *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={adminForm.ownerName}
+                      onChange={(e) => setAdminForm({ ...adminForm, ownerName: e.target.value })}
+                      placeholder="مثال: عباس رنجبر / مدیریت هنرهاب"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
+                    />
+                  </div>
+
+                  {/* 3. IBAN with LIVE ISO 7064 Checksum */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-800">
+                        شماره شبا (IBAN) - اختیاری
+                      </label>
+                      {hasShebaInput && (
+                        <span className="text-[10px] font-mono text-slate-500" dir="ltr">
+                          {toPersianDigits(cleanShebaBody.length)}/۲۴ رقم
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        dir="ltr"
+                        value={adminForm.iban}
+                        onChange={(e) => handleIbanChange(e.target.value)}
+                        placeholder="IR120600000000123456789012"
+                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-xs font-mono text-slate-900 outline-none transition-all ${
+                          hasShebaInput
+                            ? isShebaComplete
+                              ? isShebaValid
+                                ? 'border-emerald-500 ring-2 ring-emerald-100 bg-emerald-50/20'
+                                : 'border-rose-500 ring-2 ring-rose-100 bg-rose-50/20'
+                              : 'border-amber-400 bg-amber-50/20'
+                            : 'border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                        }`}
+                      />
+                      {/* Live icon inside input */}
+                      {hasShebaInput && isShebaComplete && (
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                          {isShebaValid ? (
+                            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                              ✓
+                            </span>
+                          ) : (
+                            <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                              ✕
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Instant IBAN Feedback Badge */}
+                    {hasShebaInput ? (
+                      isShebaComplete ? (
+                        isShebaValid ? (
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                            <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
+                            <span>شماره شبا معتبر است (تایید پایا / پل)</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                            <span className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px]">✕</span>
+                            <span>شماره شبا نامعتبر است (رقم کنترلی تایید نشد)</span>
+                          </div>
+                        )
+                      ) : (
+                        <div className="text-[11px] text-amber-700 mt-1.5 font-bold">
+                          {toPersianDigits(24 - cleanShebaBody.length)} رقم تا تکمیل ۲۴ رقم شماره شبا
+                        </div>
+                      )
+                    ) : (
+                      <div className="text-[10px] text-slate-500 mt-1">
+                        جهت تسویه‌های مبالغ بالای ۱۵ میلیون تومان از طریق سامانه پل
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
-                <div className="sm:col-span-3 flex items-center justify-between pt-2">
+                {/* Form Actions */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                   {adminCardMsg && (
                     <div className={`text-xs font-bold ${adminCardMsg.isError ? 'text-rose-600' : 'text-emerald-700'}`}>
                       {adminCardMsg.text}
@@ -578,16 +722,17 @@ export default function HonarHubPayAdminPage() {
                     <button
                       type="button"
                       onClick={() => setIsEditingAdminCard(false)}
-                      className="text-xs text-slate-600 hover:text-slate-900 px-4 py-2 rounded-xl cursor-pointer"
+                      className="text-xs text-slate-600 hover:text-slate-900 px-4 py-2.5 rounded-xl cursor-pointer"
                     >
                       انصراف
                     </button>
                     <button
                       type="submit"
-                      disabled={savingAdminCard}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-sm"
+                      disabled={savingAdminCard || !canSubmitAdminCard}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
                     >
-                      {savingAdminCard ? 'در حال ارسال به درگاه...' : 'ذخیره و همگام‌سازی با هنرهاب پی'}
+                      <span>{savingAdminCard ? '⏳' : '💾'}</span>
+                      <span>{savingAdminCard ? 'در حال ثبت...' : 'ذخیره کارت ادمین'}</span>
                     </button>
                   </div>
                 </div>
@@ -621,26 +766,26 @@ export default function HonarHubPayAdminPage() {
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                   <span className="text-[11px] text-slate-500 font-bold block mb-1">شناسه در درگاه هنرهاب پی:</span>
                   <span className="font-mono text-xs font-semibold text-slate-800 block truncate" dir="ltr">
-                    {adminAccount?.cardId || 'ثبت نشده'}
+                    {adminAccount?.cardId || 'ثبت در سیستم'}
                   </span>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                  <span className="text-[11px] text-slate-500 font-bold block mb-1">وضعیت همگام‌سازی درگاه:</span>
-                  {adminAccount?.cardId ? (
+                  <span className="text-[11px] text-slate-500 font-bold block mb-1">وضعیت فعال درگاه:</span>
+                  {adminAccount?.cardNumber ? (
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold">
                         <span>✓</span>
-                        <span>همگام‌شده</span>
-                        {adminAccount.syncedAt && (
-                          <span className="text-[10px] text-slate-500 font-normal">
-                            ({formatPersianDateTime(adminAccount.syncedAt)})
-                          </span>
-                        )}
+                        <span>کارت فعال و آماده پرداخت</span>
                       </div>
+                      {adminAccount.syncedAt && (
+                        <span className="text-[10px] text-slate-500 font-normal">
+                          (همگام‌سازی: {formatPersianDateTime(adminAccount.syncedAt)})
+                        </span>
+                      )}
                     </div>
                   ) : (
-                    <span className="text-xs text-amber-700 font-bold">نیازمند ثبت و اتصال</span>
+                    <span className="text-xs text-amber-700 font-bold">نیازمند ثبت کارت</span>
                   )}
                 </div>
               </div>
@@ -656,7 +801,7 @@ export default function HonarHubPayAdminPage() {
                   <span>سطرهای هنرمندان احراز هویت سطح ۳ (واجد شرایط تسویه مستقیم)</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  با زدن تیک تایید، کارت بانکی هنرمند مستقیماً در هنرهاب پی ثبت شده و در سبد خرید خریداران، برای کالاهای این هنرمند فاکتور مجزا صادر و مستقیماً به کارت او واریز می‌گردد.
+                  با زدن تیک تایید، کارت بانکی هنرمند مستقیماً در سیستم تایید شده و در سبد خرید خریداران، برای کالاهای این هنرمند فاکتور مجزا صادر و مستقیماً به کارت او واریز می‌گردد.
                 </p>
               </div>
 
@@ -765,7 +910,7 @@ export default function HonarHubPayAdminPage() {
                               </div>
                             ) : (
                               <span className="text-slate-400 text-[11px]">
-                                در درگاه ثبت نشده
+                                در انتظار تایید
                               </span>
                             )}
                           </td>
@@ -783,7 +928,7 @@ export default function HonarHubPayAdminPage() {
                               }`}
                             >
                               <span>{isActionLoading ? '⏳' : isApproved ? '✓' : '○'}</span>
-                              <span>{isApproved ? 'هنرمند مستقل (واریز مستقیم)' : 'تایید و اتصال به درگاه'}</span>
+                              <span>{isApproved ? 'هنرمند مستقل (واریز مستقیم)' : 'تایید و فعال‌سازی'}</span>
                             </button>
                           </td>
 
@@ -1006,12 +1151,9 @@ export default function HonarHubPayAdminPage() {
                 required
                 value={settingsForm.apiKey}
                 onChange={(e) => setSettingsForm({ ...settingsForm, apiKey: e.target.value.trim() })}
-                placeholder="hp_5es13yul_mwc2x9qh یا hp_sandbox_test_key_2026"
+                placeholder="hp_5es13yul_mwc2x9qh"
                 className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
               />
-              <span className="text-[11px] text-slate-500 mt-1 block">
-                کلید پیش‌فرض تست سندباکس: <code className="text-emerald-700 font-bold">hp_sandbox_test_key_2026</code>
-              </span>
             </div>
 
             <div>
@@ -1025,21 +1167,6 @@ export default function HonarHubPayAdminPage() {
                 value={settingsForm.baseUrl}
                 onChange={(e) => setSettingsForm({ ...settingsForm, baseUrl: e.target.value.trim() })}
                 className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
-              />
-            </div>
-
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-bold text-slate-900">حالت آزمایشی (سندباکس)</div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  در حالت سندباکس، کلیه تراکنش‌ها شبیه‌سازی می‌شوند و پولی جابجا نمی‌شود.
-                </div>
-              </div>
-              <input
-                type="checkbox"
-                checked={settingsForm.isSandbox}
-                onChange={(e) => setSettingsForm({ ...settingsForm, isSandbox: e.target.checked })}
-                className="w-5 h-5 accent-emerald-600 rounded cursor-pointer"
               />
             </div>
 

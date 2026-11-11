@@ -13,19 +13,19 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { apiKey, isSandbox, baseUrl } = body;
+    const { apiKey, baseUrl } = body;
 
     const updated = await prisma.siteSettings.upsert({
       where: { id: 'default' },
       update: {
         honarhubPayApiKey: apiKey?.trim() || undefined,
-        honarhubPayIsSandbox: typeof isSandbox === 'boolean' ? isSandbox : true,
+        honarhubPayIsSandbox: false,
         honarhubPayBaseUrl: baseUrl?.trim() || 'https://pay.honarhub.com',
       },
       create: {
         id: 'default',
-        honarhubPayApiKey: apiKey?.trim() || 'hp_sandbox_test_key_2026',
-        honarhubPayIsSandbox: typeof isSandbox === 'boolean' ? isSandbox : true,
+        honarhubPayApiKey: apiKey?.trim() || '',
+        honarhubPayIsSandbox: false,
         honarhubPayBaseUrl: baseUrl?.trim() || 'https://pay.honarhub.com',
       },
     });
@@ -35,7 +35,6 @@ export async function POST(req: Request) {
       message: 'تنظیمات درگاه هنرهاب پی با موفقیت ذخیره شد.',
       config: {
         apiKey: updated.honarhubPayApiKey,
-        isSandbox: updated.honarhubPayIsSandbox,
         baseUrl: updated.honarhubPayBaseUrl,
       },
     });

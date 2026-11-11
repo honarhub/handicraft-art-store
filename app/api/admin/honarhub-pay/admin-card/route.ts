@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { upsertCardToHonarHubPay } from '@/lib/honarhubPay';
-import { isValidIranianCardNumber, getBankInfoByCardNumber } from '@/lib/sms';
+import { isValidIranianCardNumber, isValidIranianSheba, getBankInfoByCardNumber } from '@/lib/sms';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,18 +26,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'شماره ۱۶ رقمی کارت بانکی شتاب معتبر نیست.' }, { status: 400 });
     }
 
-    // Clean IBAN (optional)
+    // Clean and validate IBAN (optional)
     let cleanIban: string | null = null;
     if (iban && typeof iban === 'string' && iban.trim()) {
       const rawIban = iban.trim().replace(/\s+/g, '').toUpperCase();
       cleanIban = rawIban.startsWith('IR') ? rawIban : `IR${rawIban}`;
+      if (!isValidIranianSheba(cleanIban)) {
+        return NextResponse.json({ error: 'شماره شبا (IBAN) وارد شده نامعتبر است (الگوریتم رقم کنترلی تایید نشد).' }, { status: 400 });
+      }
     }
 
     const detectedBank = getBankInfoByCardNumber(cleanCard);
     const finalBankTitle = bankTitle?.trim() || detectedBank.title;
     const finalBankSlug = bankSlug?.trim() || detectedBank.slug;
 
-    // Send to HonarHub Pay gateway
+    // Attempt to register / sync card with HonarHub Pay gateway
     const resGateway = await upsertCardToHonarHubPay({
       ownerName: ownerName.trim(),
       cardNumber: cleanCard,
@@ -46,16 +49,11 @@ export async function POST(req: Request) {
       bankSlug: finalBankSlug,
     });
 
-    if (!resGateway.success) {
-      return NextResponse.json(
-        { error: 'خطا در ثبت کارت در درگاه هنرهاب پی: ' + (resGateway.error || 'خطای ناشناخته') },
-        { status: 400 }
-      );
-    }
+    const isSynced = Boolean(resGateway.success);
+    const cardId = isSynced ? (resGateway.cardId || resGateway.data?.id || null) : null;
+    const syncedAt = isSynced ? new Date() : null;
 
-    const cardId = resGateway.cardId || resGateway.data?.id;
-
-    // Update SiteSettings
+    // Update SiteSettings - Always persists the admin card in the database
     const updatedSettings = await prisma.siteSettings.upsert({
       where: { id: 'default' },
       update: {
@@ -65,7 +63,7 @@ export async function POST(req: Request) {
         adminCardBankTitle: finalBankTitle,
         adminCardBankSlug: finalBankSlug,
         adminHonarhubPayCardId: cardId,
-        adminHonarhubPaySyncedAt: new Date(),
+        adminHonarhubPaySyncedAt: syncedAt,
       },
       create: {
         id: 'default',
@@ -75,15 +73,21 @@ export async function POST(req: Request) {
         adminCardBankTitle: finalBankTitle,
         adminCardBankSlug: finalBankSlug,
         adminHonarhubPayCardId: cardId,
-        adminHonarhubPaySyncedAt: new Date(),
+        adminHonarhubPaySyncedAt: syncedAt,
       },
     });
+
+    let message = 'کارت حساب پیش‌فرض ادمین با موفقیت ذخیره شد و در درگاه هنرهاب پی همگام‌سازی گردید.';
+    if (!isSynced) {
+      message = `کارت حساب پیش‌فرض ادمین در سیستم ذخیره گردید. (${resGateway.error || 'نیازمند همگام‌سازی وب‌سرویس'})`;
+    }
 
     return NextResponse.json({
       success: true,
       cardId,
-      isSandbox: resGateway.isSandbox,
-      message: 'کارت حساب پیش‌فرض ادمین با موفقیت در درگاه هنرهاب پی ثبت و جایگزین گردید.',
+      isSynced,
+      gatewayError: !isSynced ? resGateway.error : undefined,
+      message,
       adminAccount: {
         cardNumber: updatedSettings.adminCardNumber,
         ownerName: updatedSettings.adminCardOwnerName,

@@ -4,7 +4,6 @@ import { getBankInfoByCardNumber, isValidIranianCardNumber } from '@/lib/sms';
 export interface HonarHubPayConfig {
   apiKey: string;
   baseUrl: string;
-  isSandbox: boolean;
   adminCardNumber?: string;
   adminCardOwnerName?: string;
   adminHonarhubPayCardId?: string;
@@ -15,14 +14,12 @@ export async function getHonarHubPayConfig(): Promise<HonarHubPayConfig> {
     where: { id: 'default' },
   });
 
-  const apiKey = (settings?.honarhubPayApiKey || process.env.HONARHUB_PAY_API_KEY || 'hp_sandbox_test_key_2026').trim();
+  const apiKey = (settings?.honarhubPayApiKey || process.env.HONARHUB_PAY_API_KEY || '').trim();
   const baseUrl = (settings?.honarhubPayBaseUrl || process.env.HONARHUB_PAY_BASE_URL || 'https://pay.honarhub.com').trim().replace(/\/$/, '');
-  const isSandbox = settings?.honarhubPayIsSandbox ?? true;
 
   return {
     apiKey,
     baseUrl,
-    isSandbox,
     adminCardNumber: settings?.adminCardNumber || undefined,
     adminCardOwnerName: settings?.adminCardOwnerName || undefined,
     adminHonarhubPayCardId: settings?.adminHonarhubPayCardId || undefined,
@@ -39,7 +36,6 @@ export interface UpsertCardParams {
 
 export interface UpsertCardResponse {
   success: boolean;
-  isSandbox?: boolean;
   message?: string;
   cardId?: string;
   data?: any;
@@ -85,14 +81,11 @@ export async function upsertCardToHonarHubPay(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'x-api-key': apiKey,
+    'x-admin-key': apiKey,
     'Authorization': `Bearer ${apiKey}`,
     'Accept': 'application/json',
     'User-Agent': 'HonarHub-Platform/2.0',
   };
-
-  if (config.isSandbox) {
-    headers['x-sandbox-mode'] = 'true';
-  }
 
   try {
     const res = await fetch(`${config.baseUrl}/api/v1/admin/cards`, {
@@ -106,7 +99,7 @@ export async function upsertCardToHonarHubPay(
     if (!res.ok || !data?.success) {
       let errorMsg = data?.error || data?.message;
       if (res.status === 401) {
-        errorMsg = 'عدم احراز هویت درگاه (Unauthorized - 401): کلید وب‌سرویس در درگاه معتبر نیست یا دسترسی ثبت کارت ندارد. لطفاً در صورت تست، حالت سندباکس را در تنظیمات فعال کنید یا کلید صحیح را وارد نمایید.';
+        errorMsg = 'عدم احراز هویت درگاه (Unauthorized - 401): کلید وارد شده در سرور درگاه هنرهاب پی دسترسی مدیریت کارت ندارد.';
       } else if (!errorMsg) {
         errorMsg = `خطای درگاه: کد وضعیت ${res.status}`;
       }
@@ -120,9 +113,8 @@ export async function upsertCardToHonarHubPay(
     const cardId = data?.data?.id;
     return {
       success: true,
-      isSandbox: data.isSandbox ?? config.isSandbox,
       cardId,
-      message: data.message,
+      message: data.message || 'کارت با موفقیت در درگاه ثبت گردید.',
       data: data.data,
     };
   } catch (err: any) {
@@ -192,9 +184,6 @@ export async function createHonarHubPaymentRequest(
       'Accept': 'application/json',
       'User-Agent': 'HonarHub-Platform/2.0',
     };
-    if (config.isSandbox) {
-      headers['x-sandbox-mode'] = 'true';
-    }
 
     const res = await fetch(`${config.baseUrl}/api/v1/payment/request`, {
       method: 'POST',
@@ -214,7 +203,7 @@ export async function createHonarHubPaymentRequest(
           amount: params.amount,
           status: 'FAILED',
           gateway: 'HONARHUB_PAY',
-          isSandbox: config.isSandbox,
+          isSandbox: false,
           cardId: params.cartId || null,
           cardNumber: params.cardNumber || null,
           artistId: params.artistId || null,
@@ -250,7 +239,7 @@ export async function createHonarHubPaymentRequest(
         offsetAmount: offsetToman,
         status: 'PENDING',
         gateway: 'HONARHUB_PAY',
-        isSandbox: data.isSandbox ?? config.isSandbox,
+        isSandbox: false,
         cardId: params.cartId || null,
         cardNumber: resData.card?.cardNumber || params.cardNumber || null,
         cardOwnerName: resData.card?.ownerName || null,
@@ -281,7 +270,7 @@ export async function createHonarHubPaymentRequest(
         amount: params.amount,
         status: 'FAILED',
         gateway: 'HONARHUB_PAY',
-        isSandbox: config.isSandbox,
+        isSandbox: false,
         errorMessage: errorMsg,
         requestPayload: payload,
       },
@@ -328,9 +317,6 @@ export async function verifyHonarHubPayment(params: {
       'Accept': 'application/json',
       'User-Agent': 'HonarHub-Platform/2.0',
     };
-    if (config.isSandbox) {
-      headers['x-sandbox-mode'] = 'true';
-    }
 
     const res = await fetch(`${config.baseUrl}/api/v1/payment/verify`, {
       method: 'POST',
@@ -396,12 +382,10 @@ export async function checkHonarHubPaymentStatus(identifier: string) {
 export async function testHonarHubPayConnection(overrideConfig?: {
   apiKey?: string;
   baseUrl?: string;
-  isSandbox?: boolean;
-}): Promise<{ success: boolean; message: string; isSandbox?: boolean; raw?: any }> {
+}): Promise<{ success: boolean; message: string; raw?: any }> {
   const currentConfig = await getHonarHubPayConfig();
   const apiKey = (overrideConfig?.apiKey || currentConfig.apiKey).trim();
   const baseUrl = (overrideConfig?.baseUrl || currentConfig.baseUrl).trim().replace(/\/$/, '');
-  const isSandbox = overrideConfig?.isSandbox ?? currentConfig.isSandbox;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -410,9 +394,6 @@ export async function testHonarHubPayConnection(overrideConfig?: {
     'Accept': 'application/json',
     'User-Agent': 'HonarHub-Platform/2.0',
   };
-  if (isSandbox) {
-    headers['x-sandbox-mode'] = 'true';
-  }
 
   try {
     const res = await fetch(`${baseUrl}/api/v1/payment/request`, {
@@ -446,7 +427,6 @@ export async function testHonarHubPayConnection(overrideConfig?: {
     return {
       success: true,
       message: 'ارتباط با درگاه هنرهاب پی با موفقیت برقرار شد و کلید API تایید گردید.',
-      isSandbox: data.isSandbox ?? isSandbox,
       raw: data,
     };
   } catch (err: any) {

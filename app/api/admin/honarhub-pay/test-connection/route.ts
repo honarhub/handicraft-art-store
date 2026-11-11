@@ -13,12 +13,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { apiKey, baseUrl, isSandbox } = body;
+    const { apiKey, baseUrl } = body;
 
     const result = await testHonarHubPayConnection({
       apiKey,
       baseUrl,
-      isSandbox,
     });
 
     return NextResponse.json(result);

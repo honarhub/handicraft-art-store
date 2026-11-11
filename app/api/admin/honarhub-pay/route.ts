@@ -82,7 +82,6 @@ export async function GET() {
       config: {
         apiKey: config.apiKey,
         baseUrl: config.baseUrl,
-        isSandbox: config.isSandbox,
       },
       adminAccount: {
         cardNumber: siteSettings?.adminCardNumber || null,
