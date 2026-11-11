@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma, { ensureDatabaseSchema } from '@/lib/prisma';
 import { normalizePhoneNumber, isValidIranianMobile } from '@/lib/sms';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { identifier, loginType } = body;
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'فرمت داده‌های ارسالی نامعتبر است.' }, { status: 400 });
+    }
+
+    const { identifier, loginType } = body || {};
 
     if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
       return NextResponse.json({ error: 'شماره موبایل یا ایمیل الزامی است.' }, { status: 400 });
     }
+
+    await ensureDatabaseSchema();
 
     const trimmed = identifier.trim();
     const isMobile = isValidIranianMobile(trimmed) || /^(0|\+98)9\d{9}$/.test(trimmed.replace(/\s+/g, ''));
@@ -74,6 +82,6 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error('Check user error:', error);
-    return NextResponse.json({ error: 'خطای سرور در بررسی اطلاعات' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'خطای سرور در بررسی اطلاعات' }, { status: 500 });
   }
 }

@@ -248,7 +248,7 @@ function ArtistLoginContent() {
       const res = await fetch('/api/auth/check-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: normalizedIdentifier })
+        body: JSON.stringify({ identifier: normalizedIdentifier, loginType: 'artist' })
       });
 
       const data = await res.json();

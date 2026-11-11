@@ -34,19 +34,15 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
-      idToken: false,
       checks: ["state"],
       authorization: {
-        url: "https://accounts.google.com/o/oauth2/v2/auth",
         params: {
-          scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
+          scope: "openid email profile",
           prompt: "select_account",
           access_type: "offline",
           response_type: "code"
         }
       },
-      token: "https://oauth2.googleapis.com/token",
-      userinfo: "https://www.googleapis.com/oauth2/v3/userinfo",
       profile(profile) {
         const isAdmin = isAdminEmail(profile.email);
         return {
@@ -54,7 +50,7 @@ export const authOptions: NextAuthOptions = {
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: isAdmin ? 'ADMIN' : 'ARTIST'
+          role: isAdmin ? 'ADMIN' : 'USER'
         }
       }
     }),
@@ -346,23 +342,25 @@ export const authOptions: NextAuthOptions = {
               dbUser.role = fallbackRole;
             }
 
-            if (dbUser.artistProfile?.isDeleted) {
-              return '/artist-panel/login?error=archived';
+            if (dbUser.role === 'ARTIST') {
+              if (dbUser.artistProfile?.isDeleted) {
+                return '/artist-panel/login?error=archived';
+              }
+              if (dbUser.artistProfile && !dbUser.artistProfile.isActive) {
+                return '/artist-panel/login?error=deactivated';
+              }
+              if (!dbUser.artistProfile) {
+                await prisma.artistProfile.create({
+                  data: {
+                    userId: dbUser.id,
+                    isApproved: false,
+                    isActive: true,
+                    verificationLevel: 0
+                  }
+                });
+              }
             }
-            if (dbUser.artistProfile && !dbUser.artistProfile.isActive) {
-              return '/artist-panel/login?error=deactivated';
-            }
-            if (!dbUser.artistProfile) {
-              await prisma.artistProfile.create({
-                data: {
-                  userId: dbUser.id,
-                  isApproved: false,
-                  isActive: true,
-                  verificationLevel: 0
-                }
-              });
-            }
-            user.role = dbUser.role || 'ARTIST';
+            user.role = dbUser.role || 'USER';
           }
         } else {
           if (!isAdmin) {
@@ -372,7 +370,8 @@ export const authOptions: NextAuthOptions = {
                 email: googleEmail,
                 name: googleName || 'کاربر هنرهاب',
                 image: (profile as any)?.picture || user.image,
-                role: 'USER'
+                role: 'USER',
+                emailVerified: new Date(),
               }
             });
             user.id = newUser.id;
@@ -385,6 +384,7 @@ export const authOptions: NextAuthOptions = {
                 email: googleEmail,
                 name: googleName || 'مدیر سیستم',
                 role: 'ADMIN',
+                emailVerified: new Date(),
               }
             });
             await prisma.artistProfile.create({
@@ -519,8 +519,8 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/admin/login',
-    error: '/admin/login',
+    signIn: '/login',
+    error: '/login',
   },
   debug: process.env.NODE_ENV === 'development',
   logger: {

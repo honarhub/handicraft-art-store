@@ -44,6 +44,33 @@ export default function CustomerAuthForm() {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  // Handle URL errors and portal routing based on callbackUrl
+  useEffect(() => {
+    const rawCallback = searchParams.get('callbackUrl');
+    const err = searchParams.get('error');
+
+    if (rawCallback && (rawCallback.startsWith('/admin') || rawCallback.includes('/admin/'))) {
+      const redirectUrl = `/admin/login${err ? `?error=${err}&callbackUrl=${encodeURIComponent(rawCallback)}` : ''}`;
+      router.replace(redirectUrl);
+      return;
+    }
+    if (rawCallback && (rawCallback.startsWith('/artist-panel') || rawCallback.includes('/artist-panel/'))) {
+      const redirectUrl = `/artist-panel/login${err ? `?error=${err}&callbackUrl=${encodeURIComponent(rawCallback)}` : ''}`;
+      router.replace(redirectUrl);
+      return;
+    }
+
+    if (err === 'OAuthCallback' || err === 'OAuthSignin') {
+      setError('خطا در ارتباط با سرویس گوگل (OAuthCallback). لطفاً وضعیت فیلترشکن/اینترنت خود را بررسی نمایید، یا از فرم زیر با شماره موبایل یا ایمیل وارد شوید.');
+    } else if (err === 'OAuthAccountNotLinked') {
+      setError('این حساب کاربری قبلاً با روش دیگری ثبت شده است. لطفاً از طریق فرم زیر وارد شوید.');
+    } else if (err === 'AccessDenied') {
+      setError('دسترسی به بخش درخواستی با این حساب کاربری امکان‌پذیر نیست.');
+    } else if (err) {
+      setError('خطا در ورود به حساب کاربری: ' + err);
+    }
+  }, [searchParams, router]);
+
   const cleanIdentifier = (input: string) => {
     const raw = input.trim();
     if (raw.includes('@')) {
