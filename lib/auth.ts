@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
       allowDangerousEmailAccountLinking: true,
-      checks: ["state"],
+      checks: ["none"],
       authorization: {
         params: {
           scope: "openid email profile",
