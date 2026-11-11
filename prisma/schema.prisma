@@ -130,6 +130,14 @@ model ArtistProfile {
   postalCode        String?  // کد پستی
   shebaNumber       String?  // شماره شبا بانکی (بدون IR)
   
+  // اطلاعات کارت بانکی و درگاه هنرهاب پی (سطح ۳)
+  cardNumber          String?   // شماره ۱۶ رقمی کارت بانکی شتاب
+  cardBankTitle       String?   // عنوان بانک صادرکننده
+  cardBankSlug        String?   // شناسه انگلیسی بانک
+  honarhubPayCardId   String?   // شناسه ثبت در وب‌سرویس هنرهاب پی
+  isHonarhubPayApproved Boolean @default(false) // تایید ادمین برای واریز مستقیم به کارت هنرمند
+  honarhubPaySyncedAt DateTime? // تاریخ آخرین همگام‌سازی با درگاه
+  
   isActive    Boolean  @default(true)
   isDeleted   Boolean  @default(false) // حذف نرم هنرمندان
   isApproved  Boolean  @default(false) // تایید ادمین برای ثبت‌نام جدید
@@ -308,16 +316,19 @@ model Order {
   postalTrackingCode String?        // کد رهگیری پستی مرسوله
 
   // اطلاعات پرداخت
-  paymentMethod      String?        @default("ONLINE")
-  paymentRefId       String?        // شماره مرجع تراکنش بانکی (RRN)
-  paymentCardMask    String?        // شماره کارت ماسک شده (مثلا ۶۰۳۷۹۹****۱۲۳۴)
-  paidAt             DateTime?
+  paymentMethod            String?        @default("ONLINE")
+  paymentRefId             String?        // شماره مرجع تراکنش بانکی (RRN)
+  paymentCardMask          String?        // شماره کارت ماسک شده (مثلا ۶۰۳۷۹۹****۱۲۳۴)
+  paidAt                   DateTime?
+  artistId                 String?        // در صورت تفکیک فاکتور برای هنرمند مستقل خاص
+  isDirectArtistSettlement Boolean        @default(false)
 
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   items              OrderItem[]
   transactions       Transaction[]
+  paymentLogs        PaymentLog[]
 
   @@index([userId])
   @@index([status])
@@ -496,7 +507,53 @@ model SiteSettings {
   emailFromAddress         String     @default("no-reply@honarhub.ir")
   emailFromName            String     @default("هنرهاب")
 
+  // تنظیمات درگاه هوشمند هنرهاب پی (HonarHub Pay)
+  honarhubPayApiKey        String?    @default("hp_sandbox_test_key_2026")
+  honarhubPayIsSandbox     Boolean    @default(true)
+  honarhubPayBaseUrl       String     @default("https://pay.honarhub.com")
+  adminCardNumber          String?
+  adminCardOwnerName       String?
+  adminCardAccountNumber   String?
+  adminCardBankTitle       String?
+  adminCardBankSlug        String?
+  adminHonarhubPayCardId   String?
+  adminHonarhubPaySyncedAt DateTime?
+
   updatedAt                DateTime   @updatedAt
+}
+
+model PaymentLog {
+  id              String       @id @default(cuid())
+  orderId         String?
+  order           Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  invoiceNumber   String?
+  authority       String?      @unique
+  trackingCode    String?
+  amount          Float
+  payableAmount   Float?
+  offsetAmount    Float?       @default(0)
+  status          String       // PENDING, PAID, FAILED, EXPIRED, CANCELLED
+  gateway         String       @default("HONARHUB_PAY") // HONARHUB_PAY | MOCK
+  isSandbox       Boolean      @default(true)
+  cardId          String?
+  cardNumber      String?      // شماره کارت مقصد
+  cardOwnerName   String?
+  bankTitle       String?
+  artistId        String?
+  isDirectArtist  Boolean      @default(false)
+  errorMessage    String?
+  requestPayload  Json?
+  verifyPayload   Json?
+  paidAt          DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([orderId])
+  @@index([authority])
+  @@index([trackingCode])
+  @@index([status])
+  @@index([artistId])
+  @@index([createdAt])
 }
 
 model PasswordResetToken {

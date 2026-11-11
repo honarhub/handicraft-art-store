@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
+import { isValidIranianNationalId, isValidIranianSheba, isValidIranianCardNumber, getBankInfoByCardNumber } from '@/lib/sms';
 import { formatPersianDateTime } from '@/lib/date';
 
 // Admin Level Medal Icon with specific colors: 0: Red, 1: Yellow, 2: Blue, 3: Green
@@ -217,11 +217,11 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
 
         setPreviouslyApproved(prevApproved);
 
-        // Setup decisions for all 6 fields:
+        // Setup decisions for all 7 fields:
         // If field was previously approved -> default 'approve' (and will be locked)
         // By default, all unapproved items start in 'reject' (عدم تایید) state
         const initialDecisions: Record<string, { status: 'approve' | 'reject', reason: string }> = {};
-        const keys = ['nationalId', 'nationalCardImage', 'birthDate', 'shebaNumber', 'address', 'postalCode'];
+        const keys = ['nationalId', 'nationalCardImage', 'birthDate', 'shebaNumber', 'cardNumber', 'address', 'postalCode'];
         keys.forEach(k => {
           if (prevApproved.includes(k)) {
             initialDecisions[k] = { status: 'approve', reason: '' };
@@ -359,6 +359,13 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
       key: 'shebaNumber',
       title: 'شماره شبا بانکی',
       value: artist.shebaNumber ? `IR ${artist.shebaNumber}` : 'ثبت نشده',
+      isImage: false,
+      isMono: true
+    },
+    {
+      key: 'cardNumber',
+      title: 'شماره کارت بانکی ۱۶ رقمی',
+      value: artist.cardNumber ? artist.cardNumber.replace(/(\d{4})(?=\d)/g, '$1 ') : 'ثبت نشده',
       isImage: false,
       isMono: true
     },
@@ -544,6 +551,19 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
                         <span className="text-[11px] font-bold text-red-800 bg-red-100 border border-red-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                           <span>⚠️</span>
                           <span>ساختار شبا نامعتبر</span>
+                        </span>
+                      )
+                    )}
+                    {field.key === 'cardNumber' && artist.cardNumber && (
+                      isValidIranianCardNumber(artist.cardNumber) ? (
+                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span>✓</span>
+                          <span>کارت معتبر ({getBankInfoByCardNumber(artist.cardNumber).title})</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-red-800 bg-red-100 border border-red-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <span>⚠️</span>
+                          <span>ساختار کارت نامعتبر</span>
                         </span>
                       )
                     )}

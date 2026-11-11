@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { IRAN_PROVINCES } from '@/lib/provinces';
-import { isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
+import { isValidIranianNationalId, isValidIranianSheba, isValidIranianCardNumber, getBankInfoByCardNumber } from '@/lib/sms';
 
 const toPersianDigits = (num: number | string) =>
   String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
@@ -43,6 +43,7 @@ export default function ArtistOnboardingPage() {
   const [address, setAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [shebaNumber, setShebaNumber] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
   const [submittingL3, setSubmittingL3] = useState(false);
 
   // Direction for horizontal slide animation (survey mode)
@@ -96,6 +97,7 @@ export default function ArtistOnboardingPage() {
         if (a.address) setAddress(a.address);
         if (a.postalCode) setPostalCode(a.postalCode);
         if (a.shebaNumber) setShebaNumber(a.shebaNumber);
+        if (a.cardNumber) setCardNumber(a.cardNumber);
       }
     } catch {
       // Quiet fail
@@ -193,6 +195,11 @@ export default function ArtistOnboardingPage() {
       setErrorMsg('شماره شبا نادرست است.');
       return;
     }
+    const cleanCard = cardNumber.replace(/\D/g, '');
+    if (!cleanCard || !isValidIranianCardNumber(cleanCard)) {
+      setErrorMsg('شماره کارت بانکی ۱۶ رقمی معتبر الزامی است (الگوریتم شتاب تایید نشد).');
+      return;
+    }
     if (!address.trim()) {
       setErrorMsg('آدرس محل سکونت یا کارگاه الزامی است.');
       return;
@@ -209,7 +216,8 @@ export default function ArtistOnboardingPage() {
           nationalCardImage: nationalCardImage.trim() || undefined,
           address: address.trim(),
           postalCode: postalCode.trim() || undefined,
-          shebaNumber: shebaNumber.trim()
+          shebaNumber: shebaNumber.trim(),
+          cardNumber: cleanCard
         })
       });
 
@@ -522,6 +530,32 @@ export default function ArtistOnboardingPage() {
                         placeholder="IR000000000000000000000000"
                         className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-center text-white focus:border-teal-500 outline-none"
                       />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-300">شماره کارت بانکی (۱۶ رقمی) *</label>
+                        {cardNumber.replace(/\D/g, '').length >= 6 && (
+                          <span className="text-[10px] text-teal-400 font-bold">
+                            {getBankInfoByCardNumber(cardNumber).title}
+                          </span>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        dir="ltr"
+                        maxLength={19}
+                        required
+                        value={cardNumber.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')}
+                        onChange={e => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                        placeholder="۶۰۳۷ ۹۹۱۹ ۸۷۶۵ ۴۳۲۱"
+                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-center text-white focus:border-teal-500 outline-none tracking-wider"
+                      />
+                      {cardNumber.replace(/\D/g, '').length === 16 && (
+                        <p className={`text-[11px] mt-1 font-bold ${isValidIranianCardNumber(cardNumber) ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {isValidIranianCardNumber(cardNumber) ? '✓ شماره کارت معتبر است' : '⚠️ شماره کارت نامعتبر است'}
+                        </p>
+                      )}
                     </div>
 
                     <div>

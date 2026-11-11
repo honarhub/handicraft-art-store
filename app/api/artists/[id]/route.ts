@@ -259,7 +259,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           return NextResponse.json({ error: 'هنرمند یافت نشد' }, { status: 404 });
         }
 
-        const all6Fields = ['nationalId', 'nationalCardImage', 'birthDate', 'shebaNumber', 'address', 'postalCode'];
+        const all7Fields = ['nationalId', 'nationalCardImage', 'birthDate', 'shebaNumber', 'cardNumber', 'address', 'postalCode'];
         
         // Extract already approved fields from pendingEdits
         let existingApproved: string[] = [];
@@ -276,7 +276,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         const totalApproved = Array.from(new Set([...existingApproved, ...approvedFields]))
           .filter(f => !Object.keys(rejectedFields).includes(f));
 
-        const isFullApproval = all6Fields.every(f => totalApproved.includes(f));
+        const isFullApproval = all7Fields.every(f => totalApproved.includes(f));
 
         if (isFullApproval) {
           const updatedArtist = await prisma.artistProfile.update({

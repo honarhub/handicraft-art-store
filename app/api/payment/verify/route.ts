@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyHonarHubPayment } from '@/lib/honarhubPay';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,14 +19,32 @@ function generateRRN(): string {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { orderId, cardNumber, refId } = body;
+    const { orderId, cardNumber, refId, authority, trackingCode } = body;
 
-    if (!orderId) {
+    let targetOrderId = orderId;
+
+    // If orderId is missing, attempt to look it up via authority or trackingCode in PaymentLog
+    if (!targetOrderId && (authority || trackingCode)) {
+      const log = await prisma.paymentLog.findFirst({
+        where: {
+          OR: [
+            authority ? { authority } : {},
+            trackingCode ? { trackingCode } : {},
+          ],
+        },
+        select: { orderId: true },
+      });
+      if (log?.orderId) {
+        targetOrderId = log.orderId;
+      }
+    }
+
+    if (!targetOrderId) {
       return NextResponse.json({ error: 'شناسه سفارش نامعتبر است.' }, { status: 400 });
     }
 
     const order = await prisma.order.findUnique({
-      where: { id: orderId },
+      where: { id: targetOrderId },
       include: {
         items: {
           include: {
@@ -43,6 +62,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'سفارش یافت نشد.' }, { status: 404 });
     }
 
+    const paidProductIds = order.items.map((i) => i.productId);
+
     // If order already paid, return existing details
     if (order.status === 'PAID') {
       return NextResponse.json({
@@ -51,38 +72,71 @@ export async function POST(req: Request) {
         orderNumber: order.orderNumber,
         invoiceNumber: order.invoiceNumber,
         paymentRefId: order.paymentRefId,
+        paidProductIds,
       });
     }
 
-    const paymentRefId = refId || generateRRN();
-    let invoiceNumber = order.invoiceNumber || generateInvoiceNumber();
-
-    // Mask card number
+    let finalRefId = refId;
     let cardMask = '۶۰۳۷-۹۹**-****-۱۲۳۴';
-    if (cardNumber && cardNumber.length >= 16) {
-      const clean = cardNumber.replace(/\D/g, '');
-      if (clean.length === 16) {
-        cardMask = `${clean.slice(0, 4)}-${clean.slice(4, 6)}**-****-${clean.slice(12)}`;
+
+    // If authority or trackingCode is provided, verify against HonarHub Pay
+    if (authority || trackingCode) {
+      const verifyRes = await verifyHonarHubPayment({
+        authority,
+        trackingCode,
+        amount: Math.round(order.total),
+      });
+
+      if (!verifyRes.success || verifyRes.status !== 'PAID') {
+        const errorMsg = verifyRes.error || 'پرداخت توسط درگاه هنرهاب پی تایید نشد یا منقضی گردیده است.';
+        // Log failure
+        await prisma.paymentLog.create({
+          data: {
+            orderId: order.id,
+            authority: authority || null,
+            trackingCode: trackingCode || null,
+            amount: order.total,
+            status: 'FAILED',
+            gateway: 'HONARHUB_PAY',
+            errorMessage: errorMsg,
+          },
+        }).catch((e) => console.error('Failed to log verification failure:', e));
+
+        return NextResponse.json({ error: errorMsg, status: 'FAILED' }, { status: 400 });
+      }
+
+      finalRefId = verifyRes.data?.trackingCode || trackingCode || authority || generateRRN();
+      if (verifyRes.data?.cardLast4) {
+        cardMask = `••••-••••-••••-${verifyRes.data.cardLast4}`;
+      }
+    } else {
+      finalRefId = refId || generateRRN();
+      if (cardNumber && cardNumber.length >= 16) {
+        const clean = cardNumber.replace(/\D/g, '');
+        if (clean.length === 16) {
+          cardMask = `${clean.slice(0, 4)}-${clean.slice(4, 6)}**-****-${clean.slice(12)}`;
+        }
       }
     }
+
+    let invoiceNumber = order.invoiceNumber || generateInvoiceNumber();
 
     // Perform atomic transaction: update order, decrement stock, credit artist wallet
     const updatedOrder = await prisma.$transaction(async (tx) => {
       // 1. Update Order status
       const ord = await tx.order.update({
-        where: { id: orderId },
+        where: { id: targetOrderId },
         data: {
           status: 'PAID',
           paidAt: new Date(),
-          paymentRefId,
+          paymentRefId: finalRefId,
           invoiceNumber,
           paymentCardMask: cardMask,
         },
       });
 
-      // 2. Process each item
+      // 2. Process each item: decrement stock and credit wallet
       for (const item of order.items) {
-        // Decrement stock if stockQuantity > 0
         if (item.productId) {
           await tx.product.update({
             where: { id: item.productId },
@@ -96,24 +150,26 @@ export async function POST(req: Request) {
           });
         }
 
-        // Credit artist wallet and record transaction
         const artistId = item.artistId || item.product?.artistId;
         const earnings = item.artistEarnings || 0;
 
         if (artistId && earnings > 0) {
-          // Increment artist balance
-          await tx.artistProfile.update({
-            where: { id: artistId },
-            data: {
-              balance: {
-                increment: earnings,
+          // If this was direct artist settlement, the money went directly to the artist's card!
+          // We still track the transaction in accounting.
+          if (!order.isDirectArtistSettlement) {
+            await tx.artistProfile.update({
+              where: { id: artistId },
+              data: {
+                balance: {
+                  increment: earnings,
+                },
               },
-            },
-          }).catch((err) => {
-            console.error('Failed to update artist balance:', err);
-          });
+            }).catch((err) => {
+              console.error('Failed to update artist balance:', err);
+            });
+          }
 
-          // Create CREDIT transaction record
+          // Create transaction record
           await tx.transaction.create({
             data: {
               artistId,
@@ -121,14 +177,35 @@ export async function POST(req: Request) {
               amount: earnings,
               type: 'CREDIT',
               status: 'COMPLETED',
-              referenceId: paymentRefId,
-              description: `سهم فروش اثر: ${item.product.title} (سفارش #${ord.orderNumber || ord.id.slice(-6)})`,
+              referenceId: finalRefId,
+              description: order.isDirectArtistSettlement
+                ? `واریز مستقیم به کارت هنرمند بابت فروش اثر: ${item.product.title} (سفارش #${ord.orderNumber || ord.id.slice(-6)})`
+                : `سهم فروش اثر: ${item.product.title} (سفارش #${ord.orderNumber || ord.id.slice(-6)})`,
             },
           }).catch((err) => {
             console.error('Failed to create credit transaction:', err);
           });
         }
       }
+
+      // 3. Update or create PaymentLog as PAID
+      await tx.paymentLog.create({
+        data: {
+          orderId: ord.id,
+          invoiceNumber,
+          authority: authority || null,
+          trackingCode: trackingCode || finalRefId,
+          amount: ord.total,
+          payableAmount: ord.total,
+          status: 'PAID',
+          gateway: authority ? 'HONARHUB_PAY' : 'MOCK',
+          isSandbox: false,
+          cardNumber: cardMask,
+          artistId: ord.artistId || null,
+          isDirectArtist: ord.isDirectArtistSettlement,
+          paidAt: new Date(),
+        },
+      }).catch((e) => console.error('Failed to create paid payment log:', e));
 
       return ord;
     });
@@ -139,6 +216,7 @@ export async function POST(req: Request) {
       orderNumber: updatedOrder.orderNumber,
       invoiceNumber: updatedOrder.invoiceNumber,
       paymentRefId: updatedOrder.paymentRefId,
+      paidProductIds,
     });
   } catch (error: any) {
     console.error('Payment verify error:', error);

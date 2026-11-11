@@ -4,11 +4,13 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toPersianDigits, formatPersianDateTime } from '@/lib/date';
+import { useCart } from '@/app/context/CartContext';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
+  const { items } = useCart();
   const orderId = searchParams.get('orderId');
 
   const [loading, setLoading] = useState(true);
@@ -81,6 +83,26 @@ function SuccessContent() {
           </div>
         )}
       </div>
+
+      {/* Remaining Items in Cart Notice */}
+      {items.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-right mb-5 animate-in fade-in">
+          <div className="flex items-center gap-2 text-amber-900 font-bold text-xs mb-1">
+            <span>🛍️</span>
+            <span>اقلام دیگری در سبد خرید شما باقی مانده است!</span>
+          </div>
+          <p className="text-[11px] text-amber-800 leading-relaxed mb-3">
+            به دلیل تفکیک فاکتورهای هنرمندان مستقل، فاکتور این بخش با موفقیت پرداخت گردید و سایر اقلام بدون حذف در سبد خرید شما حفظ شده‌اند.
+          </p>
+          <Link
+            href="/checkout"
+            className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2.5 rounded-xl transition text-xs flex items-center justify-center gap-2 shadow-sm"
+          >
+            <span>💳</span>
+            <span>ادامه فرآیند و پرداخت سایر اقلام ({toPersianDigits(items.length)} قلم)</span>
+          </Link>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex flex-col gap-2.5">

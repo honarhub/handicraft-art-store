@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { isValidIranianNationalId, isValidIranianSheba, hasProfilePendingEdits } from '@/lib/sms';
+import { isValidIranianNationalId, isValidIranianSheba, isValidIranianCardNumber, getBankInfoByCardNumber, hasProfilePendingEdits } from '@/lib/sms';
 import AvatarCropModal from '@/app/components/AvatarCropModal';
 import VerificationPageSkeleton from '@/app/components/skeletons/VerificationPageSkeleton';
 
@@ -111,6 +111,7 @@ export default function ArtistVerificationPage() {
   const [address, setAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [shebaNumber, setShebaNumber] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
   const [kycSubmitting, setKycSubmitting] = useState(false);
   const [kycSuccess, setKycSuccess] = useState('');
   const [kycError, setKycError] = useState('');
@@ -150,6 +151,7 @@ export default function ArtistVerificationPage() {
       if (data.address) setAddress(data.address);
       if (data.postalCode) setPostalCode(data.postalCode);
       if (data.shebaNumber) setShebaNumber(data.shebaNumber);
+      if (data.cardNumber) setCardNumber(data.cardNumber);
     } catch {
       // Ignore
     } finally {
@@ -269,6 +271,7 @@ export default function ArtistVerificationPage() {
   const isCardApproved = approvedFields.includes('nationalCardImage');
   const isBirthDateApproved = approvedFields.includes('birthDate');
   const isShebaApproved = approvedFields.includes('shebaNumber');
+  const isCardNumberApproved = approvedFields.includes('cardNumber');
   const isAddressApproved = approvedFields.includes('address');
   const isPostalCodeApproved = approvedFields.includes('postalCode');
 
@@ -276,6 +279,7 @@ export default function ArtistVerificationPage() {
   const isCardRejected = Boolean(rejectedFields.nationalCardImage);
   const isBirthDateRejected = Boolean(rejectedFields.birthDate);
   const isShebaRejected = Boolean(rejectedFields.shebaNumber);
+  const isCardNumberRejected = Boolean(rejectedFields.cardNumber);
   const isAddressRejected = Boolean(rejectedFields.address);
   const isPostalCodeRejected = Boolean(rejectedFields.postalCode);
 
@@ -315,6 +319,17 @@ export default function ArtistVerificationPage() {
         return;
       }
     }
+    if (!isCardNumberApproved) {
+      const cleanCard = cardNumber.replace(/\D/g, '');
+      if (!cleanCard) {
+        showKycError('شماره کارت بانکی ۱۶ رقمی الزامی است.');
+        return;
+      }
+      if (!isValidIranianCardNumber(cleanCard)) {
+        showKycError('شماره کارت بانکی ۱۶ رقمی نامعتبر است (الگوریتم شتاب تایید نشد).');
+        return;
+      }
+    }
     if (!isAddressApproved && !address.trim()) {
       showKycError('آدرس محل سکونت یا کارگاه الزامی است.');
       return;
@@ -340,6 +355,7 @@ export default function ArtistVerificationPage() {
           nationalCardImage,
           birthDate: formattedBirthDate,
           shebaNumber: shebaNumber.replace(/^IR/i, '').trim(),
+          cardNumber: cardNumber.replace(/\D/g, '').trim(),
           address: address.trim(),
           postalCode: postalCode.trim()
         })
@@ -917,6 +933,66 @@ export default function ArtistVerificationPage() {
                   <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
                     <span>⚠️</span>
                     <span>علت عدم تایید: {rejectedFields.shebaNumber}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 3b. Bank Debit Card Number (16 Digits) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    شماره کارت بانکی (۱۶ رقم جهت تسویه و درگاه پرداخت) <span className="text-red-500">*</span>
+                  </label>
+                  {isCardNumberApproved && (
+                    <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span>✓</span>
+                      <span>تایید شده</span>
+                    </span>
+                  )}
+                  {isCardNumberRejected && (
+                    <span className="text-[10px] font-black text-red-800 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span>✕</span>
+                      <span>نیاز به اصلاح</span>
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    maxLength={19}
+                    disabled={isCardNumberApproved}
+                    value={cardNumber.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ')}
+                    onChange={e => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
+                    placeholder="۶۰۳۷ ۹۹۱۹ ۸۷۶۵ ۴۳۲۱"
+                    className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-mono pl-10 outline-none text-left tracking-widest transition-all ${
+                      isCardNumberApproved
+                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                        : isCardNumberRejected
+                        ? 'border-red-400 ring-2 ring-red-100 bg-white'
+                        : 'border-slate-200 focus:border-teal-500 bg-white'
+                    }`}
+                    dir="ltr"
+                  />
+                  <span className="absolute left-3 top-2.5 text-base">
+                    💳
+                  </span>
+                </div>
+                {!isCardNumberApproved && cardNumber.replace(/\D/g, '').length === 16 && !isValidIranianCardNumber(cardNumber) && (
+                  <p className="text-[11px] text-red-500 font-bold mt-1 flex items-center gap-1">
+                    <span>⚠️</span>
+                    <span>شماره کارت بانکی نادرست است (الگوریتم شتاب تایید نشد).</span>
+                  </p>
+                )}
+                {!isCardNumberApproved && cardNumber.replace(/\D/g, '').length === 16 && isValidIranianCardNumber(cardNumber) && (
+                  <p className="text-[11px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                    <span>✓</span>
+                    <span>شماره کارت صحیح است ({getBankInfoByCardNumber(cardNumber).title})</span>
+                  </p>
+                )}
+                {isCardNumberRejected && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-1.5 flex items-start gap-1.5">
+                    <span>⚠️</span>
+                    <span>علت عدم تایید: {rejectedFields.cardNumber}</span>
                   </div>
                 )}
               </div>

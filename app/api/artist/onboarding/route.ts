@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { normalizePhoneNumber, isValidIranianNationalId, isValidIranianSheba } from '@/lib/sms';
+import { normalizePhoneNumber, isValidIranianNationalId, isValidIranianSheba, isValidIranianCardNumber, getBankInfoByCardNumber } from '@/lib/sms';
 import { saveUploadImageSync } from '@/lib/fileUpload';
 
 export const dynamic = 'force-dynamic';
@@ -164,9 +164,9 @@ export async function POST(req: Request) {
       });
     }
 
-    // --- STEP 3: KYC & Legal Identity (National ID, Card Image, Address, Sheba, Birth Date) ---
+    // --- STEP 3: KYC & Legal Identity (National ID, Card Image, Address, Sheba, Card Number, Birth Date) ---
     if (step === 3) {
-      const { nationalId, nationalCardImage, address, postalCode, shebaNumber, birthDate } = body;
+      const { nationalId, nationalCardImage, address, postalCode, shebaNumber, cardNumber, birthDate } = body;
 
       // Check existing approved fields
       let existingApproved: string[] = [];
@@ -199,6 +199,12 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'شماره شبا نادرست است.' }, { status: 400 });
         }
       }
+      const cleanCard = (cardNumber || '').replace(/\D/g, '');
+      if (!existingApproved.includes('cardNumber')) {
+        if (!cleanCard || !isValidIranianCardNumber(cleanCard)) {
+          return NextResponse.json({ error: 'شماره کارت بانکی ۱۶ رقمی معتبر الزامی است (الگوریتم شتاب تایید نشد).' }, { status: 400 });
+        }
+      }
 
       let finalCardImage = artist.nationalCardImage;
       if (!existingApproved.includes('nationalCardImage')) {
@@ -212,6 +218,8 @@ export async function POST(req: Request) {
         }
       }
 
+      const bankInfo = getBankInfoByCardNumber(cleanCard);
+
       const updatedArtist = await prisma.artistProfile.update({
         where: { id: artist.id },
         data: {
@@ -221,6 +229,9 @@ export async function POST(req: Request) {
           address: existingApproved.includes('address') ? artist.address : (address?.trim() || artist.address),
           postalCode: existingApproved.includes('postalCode') ? artist.postalCode : (postalCode?.trim() || artist.postalCode),
           shebaNumber: existingApproved.includes('shebaNumber') ? artist.shebaNumber : (shebaNumber?.replace(/^IR/i, '').trim() || artist.shebaNumber),
+          cardNumber: existingApproved.includes('cardNumber') ? artist.cardNumber : (cleanCard || artist.cardNumber),
+          cardBankTitle: existingApproved.includes('cardNumber') ? artist.cardBankTitle : (bankInfo.title || artist.cardBankTitle),
+          cardBankSlug: existingApproved.includes('cardNumber') ? artist.cardBankSlug : (bankInfo.slug || artist.cardBankSlug),
           verificationLevel: currentLevel, // Stays at Level 2 until admin approves Level 3
           adminFeedback: null,
           pendingEdits: {

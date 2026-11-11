@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { createHonarHubPaymentRequest } from '@/lib/honarhubPay';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export async function POST(req: Request) {
     let userId = session?.user?.id;
 
     const body = await req.json();
-    const { items, total, shippingAddress } = body;
+    const { items, total, shippingAddress, targetArtistId, isDirectArtistSettlement } = body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'سبد خرید خالی است.' }, { status: 400 });
@@ -122,6 +123,8 @@ export async function POST(req: Request) {
         shippingCost: 0,
         status: 'PENDING',
         isTest: true,
+        artistId: targetArtistId || null,
+        isDirectArtistSettlement: Boolean(isDirectArtistSettlement),
         recipientName: shippingAddress?.recipientName || null,
         phoneNumber: cleanPhone || shippingAddress?.phone || null,
         province: shippingAddress?.province || null,
@@ -134,11 +137,49 @@ export async function POST(req: Request) {
       },
     });
 
+    // Attempt HonarHub Pay Gateway request
+    const origin = req.headers.get('origin') || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const callbackUrl = `${origin}/checkout/callback?orderId=${createdOrder.id}`;
+
+    let targetCardId: string | undefined = undefined;
+    let targetCardNumber: string | undefined = undefined;
+    let artistName = '';
+
+    if (isDirectArtistSettlement && targetArtistId) {
+      const directArtist = await prisma.artistProfile.findUnique({
+        where: { id: targetArtistId },
+        include: { user: { select: { name: true } } },
+      });
+      targetCardId = directArtist?.honarhubPayCardId || undefined;
+      targetCardNumber = directArtist?.cardNumber || undefined;
+      artistName = directArtist?.brandName || directArtist?.user?.name || 'هنرمند مستقل';
+    } else {
+      const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+      targetCardId = siteSettings?.adminHonarhubPayCardId || undefined;
+      targetCardNumber = siteSettings?.adminCardNumber || undefined;
+      artistName = siteSettings?.adminCardOwnerName || 'مدیریت هنرهاب';
+    }
+
+    const payResult = await createHonarHubPaymentRequest({
+      amount: Number(total) || 0,
+      callbackUrl,
+      cartId: targetCardId,
+      cardNumber: targetCardNumber,
+      description: `سفارش #${createdOrder.orderNumber} - ${artistName}`,
+      orderId: createdOrder.id,
+      artistId: targetArtistId || undefined,
+      isDirectArtist: Boolean(isDirectArtistSettlement),
+    });
+
+    const redirectUrl = payResult.success && payResult.paymentUrl
+      ? payResult.paymentUrl
+      : `/checkout/payment-gateway?orderId=${createdOrder.id}`;
+
     return NextResponse.json({
       success: true,
       orderId: createdOrder.id,
       orderNumber: createdOrder.orderNumber,
-      redirectUrl: `/checkout/payment-gateway?orderId=${createdOrder.id}`,
+      redirectUrl,
     });
   } catch (error: any) {
     console.error('Checkout API error:', error);

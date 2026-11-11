@@ -672,6 +672,90 @@ export function isValidIranianSheba(rawSheba: string | null | undefined): boolea
   }
 }
 
+export const IRANIAN_BANKS_BIN: Record<string, { title: string; slug: string }> = {
+  '603799': { title: 'بانک ملی ایران', slug: 'melli' },
+  '589210': { title: 'بانک سپه', slug: 'sepah' },
+  '627648': { title: 'بانک توسعه صادرات', slug: 'edbi' },
+  '627961': { title: 'بانک صنعت و معدن', slug: 'bim' },
+  '603770': { title: 'بانک کشاورزی', slug: 'bki' },
+  '639217': { title: 'بانک کشاورزی', slug: 'bki' },
+  '628023': { title: 'بانک مسکن', slug: 'maskan' },
+  '627760': { title: 'پست بانک ایران', slug: 'post' },
+  '621986': { title: 'بانک سامان', slug: 'saman' },
+  '639346': { title: 'بانک سینا', slug: 'sina' },
+  '639607': { title: 'بانک سرمایه', slug: 'sarmayeh' },
+  '636214': { title: 'بانک آینده', slug: 'ayandeh' },
+  '502806': { title: 'بانک شهر', slug: 'shahr' },
+  '504706': { title: 'بانک شهر', slug: 'shahr' },
+  '502908': { title: 'بانک توسعه تعاون', slug: 'ttbank' },
+  '502938': { title: 'بانک دی', slug: 'day' },
+  '627381': { title: 'بانک انصار', slug: 'ansar' },
+  '505785': { title: 'بانک ایران زمین', slug: 'izbank' },
+  '639599': { title: 'بانک قوامین', slug: 'ghavamin' },
+  '606373': { title: 'بانک قرض‌الحسنه مهر ایران', slug: 'mehr_iran' },
+  '505801': { title: 'بانک کوثر', slug: 'kosar' },
+  '504172': { title: 'بانک قرض‌الحسنه رسالت', slug: 'resalat' },
+  '622106': { title: 'بانک پارسیان', slug: 'parsian' },
+  '502229': { title: 'بانک پاسارگاد', slug: 'pasargad' },
+  '610433': { title: 'بانک ملت', slug: 'mellat' },
+  '627412': { title: 'بانک اقتصاد نوین', slug: 'en' },
+  '627488': { title: 'بانک کارآفرین', slug: 'karafarin' },
+  '589463': { title: 'بانک رفاه کارگران', slug: 'refah' },
+  '627353': { title: 'بانک تجارت', slug: 'tejarat' },
+  '585983': { title: 'بانک تجارت', slug: 'tejarat' },
+  '603769': { title: 'بانک صادرات ایران', slug: 'saderat' },
+  '636949': { title: 'بانک حکمت ایرانیان', slug: 'hekmat' },
+  '505416': { title: 'بانک گردشگری', slug: 'gardeshgari' },
+  '606256': { title: 'موسسه اعتباری ملل', slug: 'melal' },
+};
+
+/**
+ * Returns bank display title and slug from 16-digit card number (BIN)
+ */
+export function getBankInfoByCardNumber(rawCard: string | null | undefined): { title: string; slug: string } {
+  if (!rawCard) return { title: 'بانک نامشخص', slug: 'unknown' };
+  const clean = rawCard.replace(/\D/g, '');
+  if (clean.length >= 6) {
+    const bin = clean.substring(0, 6);
+    if (IRANIAN_BANKS_BIN[bin]) {
+      return IRANIAN_BANKS_BIN[bin];
+    }
+  }
+  return { title: 'کارت عضو شبکه شتاب', slug: 'shetab' };
+}
+
+/**
+ * Standard Iranian Debit Card Number Validation using Luhn / ISO 7812 Algorithm
+ * - 16 numeric digits
+ * - Even indices (0, 2, 4...) * 2 (if > 9, minus 9)
+ * - Odd indices * 1
+ * - Sum % 10 === 0
+ */
+export function isValidIranianCardNumber(rawCard: string | null | undefined): boolean {
+  if (!rawCard) return false;
+  const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+  let cleaned = rawCard.trim();
+  for (let i = 0; i < 10; i++) {
+    cleaned = cleaned.replace(new RegExp(persianDigits[i], 'g'), i.toString());
+    cleaned = cleaned.replace(new RegExp(arabicDigits[i], 'g'), i.toString());
+  }
+  cleaned = cleaned.replace(/\D/g, '');
+  if (cleaned.length !== 16) return false;
+
+  let sum = 0;
+  for (let i = 0; i < 16; i++) {
+    let digit = parseInt(cleaned.charAt(i), 10);
+    if (i % 2 === 0) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+  }
+  return sum % 10 === 0;
+}
+
 /**
  * Helper to distinguish Level 2 Profile edits from Level 3 KYC submissions
  */

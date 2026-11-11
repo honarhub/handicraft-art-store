@@ -80,6 +80,31 @@ export default function CheckoutPage() {
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState<'bank'>('bank');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [splits, setSplits] = useState<any[]>([]);
+  const [loadingSplits, setLoadingSplits] = useState(false);
+  const [payingSplitKey, setPayingSplitKey] = useState<string | null>(null);
+
+  // Fetch split batches
+  useEffect(() => {
+    if (items.length === 0) {
+      setSplits([]);
+      return;
+    }
+    setLoadingSplits(true);
+    fetch('/api/checkout/split-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.splits) {
+          setSplits(data.splits);
+        }
+      })
+      .catch((e) => console.error('Error fetching split preview:', e))
+      .finally(() => setLoadingSplits(false));
+  }, [items]);
 
   const toEnglishDigits = (str: string) => {
     return str
@@ -511,17 +536,28 @@ export default function CheckoutPage() {
     }
   };
 
-  // Step 3 Payment Handler
-  const handlePayment = async () => {
+  // Step 3 Payment Handler (supports whole cart or single split batch)
+  const handlePayment = async (targetSplit?: any) => {
     setIsProcessing(true);
+    if (targetSplit) {
+      setPayingSplitKey(targetSplit.key);
+    }
+
+    const payItems = targetSplit ? targetSplit.items : items;
+    const payTotal = targetSplit ? targetSplit.totalAmount : totalPrice;
+    const targetArtistId = targetSplit?.artistId;
+    const isDirect = targetSplit?.isDirectSettlement;
+
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items,
-          total: totalPrice,
+          items: payItems,
+          total: payTotal,
           shippingAddress: formData,
+          targetArtistId,
+          isDirectArtistSettlement: isDirect,
         }),
       });
       const data = await res.json();
@@ -530,7 +566,6 @@ export default function CheckoutPage() {
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
-        clearCart();
         const orderId = data.orderId || 'ORD-' + Math.floor(100000 + Math.random() * 900000);
         window.location.href = `/checkout/success?orderId=${orderId}`;
       }
@@ -538,6 +573,7 @@ export default function CheckoutPage() {
       console.error('Payment error:', err);
       alert(err.message || 'خطا در اتصال به درگاه پرداخت');
       setIsProcessing(false);
+      setPayingSplitKey(null);
     }
   };
 
@@ -1182,30 +1218,131 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    {/* Action Buttons for Step 3 - Payment forward action only, back button moved to top right */}
-                    <div className="pt-3">
-                      <button
-                        type="button"
-                        onClick={handlePayment}
-                        disabled={isProcessing}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-98"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            <span>در حال انتقال به درگاه پرداخت...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>پرداخت امن مبلغ {toPersianDigits(totalPrice.toLocaleString())} تومان</span>
-                            <span>←</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    {/* Split Invoices Display if multiple independent artists exist in cart */}
+                    {splits.length > 1 ? (
+                      <div className="space-y-4 pt-2">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4.5">
+                          <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs mb-1">
+                            <span>⚡</span>
+                            <span>تفکیک هوشمند فاکتورها بر اساس هنرمندان مستقل</span>
+                          </div>
+                          <p className="text-[11px] text-emerald-800 leading-relaxed">
+                            سبد خرید شما شامل آثاری از هنرمندان مستقل با واریز مستقیم به کارت شخصی هنرمند است. فاکتور هر هنرمند به صورت تفکیک‌شده محاسبه شده است و شما می‌توانید هر فاکتور را مستقلاً پرداخت فرمایید؛ اقلام سایر فاکتورها تا زمان پرداخت در سبد خرید شما محفوظ خواهند ماند.
+                          </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          {splits.map((split, sIdx) => {
+                            const isThisSplitProcessing = isProcessing && payingSplitKey === split.key;
+
+                            return (
+                              <div
+                                key={split.key}
+                                className="bg-white border-2 border-slate-200 hover:border-emerald-300 rounded-3xl p-5 sm:p-6 transition shadow-sm space-y-4"
+                              >
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-100">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-800 font-black text-xs flex items-center justify-center shrink-0">
+                                      {toPersianDigits(sIdx + 1)}
+                                    </span>
+                                    <div>
+                                      <h4 className="font-black text-sm text-slate-900">
+                                        فاکتور {toPersianDigits(sIdx + 1)}: {split.displayName}
+                                      </h4>
+                                      <span className="text-[11px] text-slate-500">
+                                        {split.isDirectSettlement ? (
+                                          <span className="text-teal-700 font-bold">
+                                            واریز مستقیم به کارت هنرمند ({split.bankTitle} - {split.cardNumberMasked})
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-600">
+                                            واریز به حساب مرکزی هنرهاب ({split.bankTitle})
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                                    split.isDirectSettlement
+                                      ? 'bg-teal-50 text-teal-800 border-teal-200'
+                                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}>
+                                    {split.isDirectSettlement ? 'هنرمند مستقل (واریز مستقیم)' : 'حساب مرکزی پلتفرم'}
+                                  </span>
+                                </div>
+
+                                {/* Items mini-list */}
+                                <div className="space-y-2">
+                                  {split.items.map((it: any, iIdx: number) => (
+                                    <div key={iIdx} className="flex items-center justify-between text-xs py-1.5 px-3 bg-slate-50 rounded-xl">
+                                      <div className="flex items-center gap-2.5 truncate max-w-[70%]">
+                                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-200 shrink-0">
+                                          {it.imageUrl && <img src={it.imageUrl} alt="" className="w-full h-full object-cover" />}
+                                        </div>
+                                        <span className="font-bold text-slate-800 truncate">{it.title}</span>
+                                        <span className="text-slate-400 font-mono text-[11px]">× {toPersianDigits(it.quantity)}</span>
+                                      </div>
+                                      <div className="font-mono font-bold text-slate-900">
+                                        {toPersianDigits(((Number(it.price) || 0) * (Number(it.quantity) || 1)).toLocaleString())} تومان
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Split Footer & Pay Button */}
+                                <div className="pt-2 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-slate-100">
+                                  <div className="text-xs text-slate-600">
+                                    مبلغ این فاکتور: <strong className="text-sm font-black text-slate-900 font-mono">{toPersianDigits(split.totalAmount.toLocaleString())}</strong> تومان
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={isProcessing}
+                                    onClick={() => handlePayment(split)}
+                                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs px-6 py-3 rounded-xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                  >
+                                    {isThisSplitProcessing ? (
+                                      <span>در حال اتصال به درگاه هنرهاب پی...</span>
+                                    ) : (
+                                      <>
+                                        <span>پرداخت این فاکتور ({toPersianDigits(split.totalAmount.toLocaleString())} تومان)</span>
+                                        <span>←</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Single Total Payment Button */
+                      <div className="pt-3">
+                        <button
+                          type="button"
+                          onClick={() => handlePayment()}
+                          disabled={isProcessing}
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer active:scale-98"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              <span>در حال انتقال به درگاه هنرهاب پی...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>پرداخت امن با هنرهاب پی: {toPersianDigits(totalPrice.toLocaleString())} تومان</span>
+                              <span>←</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

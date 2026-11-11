@@ -29,6 +29,7 @@ interface CartContextType {
   items: CartItem[];
   addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }, requestedQuantity?: number) => void;
   removeFromCart: (identifier: string) => void;
+  removeItemsFromCart: (identifiers: string[]) => void;
   updateQuantity: (identifier: string, quantity: number) => void;
   clearCart: () => void;
   totalItems: number;
@@ -100,6 +101,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const removeItemsFromCart = (identifiers: string[]) => {
+    setItems(prevItems => {
+      const idSet = new Set(identifiers);
+      return prevItems.filter(item => {
+        const key = getCartItemId(item);
+        return !idSet.has(key) && !idSet.has(item.id || '') && !idSet.has(item.productId);
+      });
+    });
+  };
+
   const updateQuantity = (identifier: string, quantity: number) => {
     setItems(prevItems => {
       const exactMatch = prevItems.some(item => getCartItemId(item) === identifier || item.id === identifier);
@@ -128,6 +139,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       addToCart,
       removeFromCart,
+      removeItemsFromCart,
       updateQuantity,
       clearCart,
       totalItems,

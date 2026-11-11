@@ -115,6 +115,18 @@ export default function AdminSidebarNav({ initialCounts }: AdminSidebarNavProps)
       label: '💰 تسویه‌حساب و امور مالی' 
     },
     { 
+      href: '/admin/honarhub-pay', 
+      label: (
+        <span className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-emerald-400">
+            <rect width="20" height="14" x="2" y="5" rx="2" />
+            <line x1="2" x2="22" y1="10" y2="10" />
+          </svg>
+          <span>درگاه هنرهاب پی و تسویه</span>
+        </span>
+      )
+    },
+    { 
       href: '/admin/specialties', 
       label: '🏷️ مدیریت تخصص‌ها', 
       count: counts.pendingSpecialtiesCount,
