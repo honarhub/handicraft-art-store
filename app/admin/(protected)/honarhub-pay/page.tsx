@@ -71,6 +71,8 @@ interface GatewayExecutionResult {
   gatewayResponse?: any;
   sentPayload?: any;
   sentHeaders?: any;
+  requestUrl?: string;
+  requestMethod?: string;
 }
 
 export default function HonarHubPayAdminPage() {
@@ -261,6 +263,22 @@ export default function HonarHubPayAdminPage() {
     setLastGatewayExecution(null);
 
     const targetApiKey = (adminForm.apiKey || settingsForm.apiKey || config.apiKey).trim();
+    const endpointUrl = `${settingsForm.baseUrl || 'https://pay.honarhub.com'}/api/v1/admin/cards`;
+
+    const requestPayload = {
+      cardNumber: cleanCardDigits,
+      ownerName: adminForm.ownerName.trim(),
+      iban: cleanShebaBody ? `IR${cleanShebaBody}` : undefined,
+      bankTitle: adminForm.bankTitle || detectedBank.title,
+      bankSlug: adminForm.bankSlug || detectedBank.slug,
+      apiKey: targetApiKey,
+    };
+
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+      'x-api-key': targetApiKey,
+      'Accept': 'application/json',
+    };
 
     try {
       // Send explicit x-api-key header from browser
@@ -270,14 +288,7 @@ export default function HonarHubPayAdminPage() {
           'Content-Type': 'application/json',
           'x-api-key': targetApiKey,
         },
-        body: JSON.stringify({
-          cardNumber: cleanCardDigits,
-          ownerName: adminForm.ownerName.trim(),
-          iban: cleanShebaBody ? `IR${cleanShebaBody}` : undefined,
-          bankTitle: adminForm.bankTitle || detectedBank.title,
-          bankSlug: adminForm.bankSlug || detectedBank.slug,
-          apiKey: targetApiKey,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       const data = await res.json();
@@ -286,22 +297,24 @@ export default function HonarHubPayAdminPage() {
         executedAt: new Date().toLocaleTimeString('fa-IR'),
         isSuccess: Boolean(data.success && data.isSynced),
         statusCode: data.statusCode || res.status,
-        message: data.message || '',
+        message: data.message || (data.success ? 'کارت با موفقیت در درگاه ثبت گردید.' : (data.error || 'خطا در ثبت کارت')),
         cardId: data.cardId,
         error: data.gatewayError || data.error,
-        gatewayResponse: data.gatewayResponse,
-        sentPayload: data.sentPayload,
-        sentHeaders: {
-          'Content-Type': 'application/json',
-          'x-api-key': targetApiKey,
+        gatewayResponse: data.gatewayResponse || data,
+        sentPayload: data.sentPayload || {
+          ownerName: adminForm.ownerName.trim(),
+          cardNumber: cleanCardDigits,
+          ...(cleanShebaBody ? { iban: `IR${cleanShebaBody}` } : {}),
+          bankTitle: adminForm.bankTitle || detectedBank.title,
+          bankSlug: adminForm.bankSlug || detectedBank.slug,
         },
+        sentHeaders: data.sentHeaders || requestHeaders,
+        requestUrl: data.requestUrl || endpointUrl,
+        requestMethod: data.requestMethod || 'POST',
       });
 
       if (data.adminAccount) {
         setAdminAccount(data.adminAccount);
-      }
-      if (data.success && data.isSynced) {
-        setIsEditingAdminCard(false);
       }
     } catch (err: any) {
       setLastGatewayExecution({
@@ -310,7 +323,10 @@ export default function HonarHubPayAdminPage() {
         statusCode: 0,
         message: 'خطای شبکه در ارسال درخواست به سرور',
         error: err.message || 'Network error',
-        sentHeaders: { 'x-api-key': targetApiKey },
+        sentHeaders: requestHeaders,
+        sentPayload: requestPayload,
+        requestUrl: endpointUrl,
+        requestMethod: 'POST',
       });
     } finally {
       setSavingAdminCard(false);
@@ -473,10 +489,10 @@ export default function HonarHubPayAdminPage() {
                 onClick={() => handleTestConnection()}
                 disabled={testingConnection}
                 className="text-xs bg-white hover:bg-slate-100 text-slate-700 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 border border-slate-300 font-bold shadow-sm cursor-pointer disabled:opacity-50"
-                title="تست زنده اتصال با کلید وب‌سرویس"
+                title="بررسی زنده اعتبار کلید وب‌سرویس در درگاه (بدون ایجاد هیچ‌گونه تراکنش یا درگاه تستی)"
               >
-                <span>{testingConnection ? '⏳' : '⚡'}</span>
-                <span>{testingConnection ? 'در حال تست...' : 'تست اتصال API'}</span>
+                <span>{testingConnection ? '⏳' : '🔑'}</span>
+                <span>{testingConnection ? 'در حال بررسی...' : 'بررسی کلید وب‌سرویس'}</span>
               </button>
 
               <a
@@ -817,80 +833,6 @@ export default function HonarHubPayAdminPage() {
                     </button>
                   </div>
                 </div>
-
-                {/* Real-time Response Display Panel (Positive or Negative) */}
-                {lastGatewayExecution && (
-                  <div className={`mt-4 p-5 rounded-2xl border transition-all ${
-                    lastGatewayExecution.isSuccess
-                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
-                      : 'bg-rose-50/80 border-rose-300 text-rose-950'
-                  }`}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${
-                            lastGatewayExecution.isSuccess ? 'bg-emerald-600' : 'bg-rose-600'
-                          }`}>
-                            {lastGatewayExecution.isSuccess ? '✓' : '✕'}
-                          </span>
-                          <h4 className="text-sm font-black">
-                            {lastGatewayExecution.isSuccess
-                              ? `پاسخ تایید از درگاه هنرهاب پی (HTTP ${lastGatewayExecution.statusCode} OK)`
-                              : `پاسخ درگاه هنرهاب پی (HTTP ${lastGatewayExecution.statusCode || 'خطا'})`}
-                          </h4>
-                          <span className="text-[10px] text-slate-500 font-mono" dir="ltr">
-                            [{lastGatewayExecution.executedAt}]
-                          </span>
-                        </div>
-
-                        <p className="text-xs mt-1.5 font-bold leading-relaxed">
-                          {lastGatewayExecution.message || lastGatewayExecution.error}
-                        </p>
-
-                        {lastGatewayExecution.cardId && (
-                          <div className="text-xs mt-1 font-mono text-emerald-800">
-                            شناسه کارت اختصاص‌یافته در درگاه (cardId): <strong>{lastGatewayExecution.cardId}</strong>
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setLastGatewayExecution(null)}
-                        className="text-slate-400 hover:text-slate-700 text-xs cursor-pointer"
-                      >
-                        ✕ بستن
-                      </button>
-                    </div>
-
-                    {/* Detailed Raw Inspection Box */}
-                    <div className="mt-4 pt-3 border-t border-slate-200/80 grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono">
-                      <div>
-                        <span className="font-bold text-slate-700 font-sans block mb-1">
-                          درخواست ارسالی (Request):
-                        </span>
-                        <div className="bg-slate-900 text-slate-200 p-3 rounded-xl overflow-x-auto text-[10px] leading-relaxed" dir="ltr">
-                          <div><span className="text-teal-400">POST</span> /api/v1/admin/cards</div>
-                          <div><span className="text-amber-400">Header x-api-key:</span> {lastGatewayExecution.sentHeaders?.['x-api-key']}</div>
-                          <div className="mt-1 text-slate-400">Payload:</div>
-                          <pre>{JSON.stringify(lastGatewayExecution.sentPayload, null, 2)}</pre>
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="font-bold text-slate-700 font-sans block mb-1">
-                          پاسخ سرور درگاه (Gateway Response):
-                        </span>
-                        <div className={`p-3 rounded-xl overflow-x-auto text-[10px] leading-relaxed ${
-                          lastGatewayExecution.isSuccess ? 'bg-slate-900 text-emerald-300' : 'bg-slate-900 text-rose-300'
-                        }`} dir="ltr">
-                          <div>Status: {lastGatewayExecution.statusCode}</div>
-                          <pre>{JSON.stringify(lastGatewayExecution.gatewayResponse || { error: lastGatewayExecution.error }, null, 2)}</pre>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </form>
             ) : (
               <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -942,6 +884,139 @@ export default function HonarHubPayAdminPage() {
                   ) : (
                     <span className="text-xs text-amber-700 font-bold">نیازمند ثبت کارت</span>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Real-time Gateway Request & Response Inspector (Always Visible when executed) */}
+            {lastGatewayExecution && (
+              <div className={`mt-6 p-6 rounded-2xl border transition-all shadow-sm ${
+                lastGatewayExecution.isSuccess
+                  ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                  : 'bg-rose-50/80 border-rose-300 text-rose-950'
+              }`}>
+                {/* Header of Inspector */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base font-black text-white shrink-0 shadow-sm ${
+                      lastGatewayExecution.isSuccess ? 'bg-emerald-600' : 'bg-rose-600'
+                    }`}>
+                      {lastGatewayExecution.isSuccess ? '✓' : '✕'}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-sm sm:text-base font-black">
+                          {lastGatewayExecution.isSuccess
+                            ? `تاییدیه ثبت کارت در درگاه هنرهاب پی (HTTP ${lastGatewayExecution.statusCode} OK)`
+                            : `پاسخ سرور درگاه هنرهاب پی (HTTP ${lastGatewayExecution.statusCode || 'خطا'})`}
+                        </h4>
+                        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold" dir="ltr">
+                          زمان ثبت: {lastGatewayExecution.executedAt}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold mt-1 leading-relaxed">
+                        {lastGatewayExecution.message || lastGatewayExecution.error}
+                      </p>
+                      {lastGatewayExecution.cardId && (
+                        <div className="text-xs mt-1 font-mono text-emerald-800">
+                          شناسه کارت اختصاص‌یافته در درگاه (cardId): <strong>{lastGatewayExecution.cardId}</strong>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fullReport = JSON.stringify({
+                          status: lastGatewayExecution.statusCode,
+                          isSuccess: lastGatewayExecution.isSuccess,
+                          executedAt: lastGatewayExecution.executedAt,
+                          request: {
+                            url: lastGatewayExecution.requestUrl,
+                            method: lastGatewayExecution.requestMethod,
+                            headers: lastGatewayExecution.sentHeaders,
+                            payload: lastGatewayExecution.sentPayload,
+                          },
+                          response: lastGatewayExecution.gatewayResponse,
+                        }, null, 2);
+                        navigator.clipboard.writeText(fullReport);
+                        alert('گزارش کامل ورودی و خروجی درگاه در کلیپ‌بورد کپی شد.');
+                      }}
+                      className="text-xs bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 px-3.5 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <span>📋</span>
+                      <span>کپی گزارش کامل</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setLastGatewayExecution(null)}
+                      className="text-slate-500 hover:text-slate-800 text-xs px-3 py-2 rounded-xl bg-white/60 hover:bg-white border border-slate-200 transition cursor-pointer"
+                      title="بستن گزارش"
+                    >
+                      ✕ بستن
+                    </button>
+                  </div>
+                </div>
+
+                {/* Two Panels: Sent Request (Left) & Gateway Response (Right) */}
+                <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs font-mono">
+                  
+                  {/* Panel 1: Sent Request */}
+                  <div className="bg-slate-900 text-slate-100 rounded-2xl p-4 shadow-sm flex flex-col justify-between" dir="ltr">
+                    <div>
+                      <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
+                        <span className="font-bold text-teal-400 text-xs font-sans">
+                          ۱. ورودی ارسالی به درگاه (Request)
+                        </span>
+                        <span className="text-[11px] text-teal-300 font-mono font-bold bg-slate-800 px-2 py-0.5 rounded">
+                          {lastGatewayExecution.requestMethod || 'POST'} {lastGatewayExecution.requestUrl || 'https://pay.honarhub.com/api/v1/admin/cards'}
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-slate-300 mb-1 font-sans font-bold">هدرهای ارسالی (Headers):</div>
+                      <pre className="bg-slate-950 p-3 rounded-xl text-[11px] text-amber-300 overflow-x-auto mb-3 border border-slate-800/80 leading-relaxed">
+                        {JSON.stringify(lastGatewayExecution.sentHeaders, null, 2)}
+                      </pre>
+
+                      <div className="text-[11px] text-slate-300 mb-1 font-sans font-bold">بدنه داده ارسالی (Payload Body):</div>
+                      <pre className="bg-slate-950 p-3 rounded-xl text-[11px] text-emerald-300 overflow-x-auto border border-slate-800/80 leading-relaxed">
+                        {JSON.stringify(lastGatewayExecution.sentPayload, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Panel 2: Received Gateway Response */}
+                  <div className={`rounded-2xl p-4 shadow-sm flex flex-col justify-between ${
+                    lastGatewayExecution.isSuccess
+                      ? 'bg-slate-900 text-slate-100'
+                      : 'bg-slate-950 text-slate-100'
+                  }`} dir="ltr">
+                    <div>
+                      <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
+                        <span className={`font-bold text-xs font-sans ${
+                          lastGatewayExecution.isSuccess ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          ۲. خروجی دریافتی از درگاه (Gateway Response)
+                        </span>
+                        <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded font-bold ${
+                          lastGatewayExecution.isSuccess ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
+                        }`}>
+                          HTTP {lastGatewayExecution.statusCode}
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-slate-300 mb-1 font-sans font-bold">پاسخ سرور درگاه (Response Body):</div>
+                      <pre className={`bg-slate-950 p-3 rounded-xl text-[11px] overflow-x-auto max-h-96 border border-slate-800/80 leading-relaxed ${
+                        lastGatewayExecution.isSuccess ? 'text-emerald-200' : 'text-rose-200'
+                      }`}>
+                        {JSON.stringify(lastGatewayExecution.gatewayResponse || { error: lastGatewayExecution.error }, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             )}
@@ -1349,9 +1424,10 @@ export default function HonarHubPayAdminPage() {
                 onClick={() => handleTestConnection(settingsForm.apiKey)}
                 disabled={testingConnection}
                 className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-50"
+                title="بررسی اعتبار کلید وب‌سرویس بدون ایجاد هرگونه تراکنش تستی"
               >
-                <span>{testingConnection ? '⏳' : '⚡'}</span>
-                <span>{testingConnection ? 'در حال تست...' : 'تست اتصال با این کلید'}</span>
+                <span>{testingConnection ? '⏳' : '🔑'}</span>
+                <span>{testingConnection ? 'در حال بررسی...' : 'بررسی اعتبار کلید وب‌سرویس'}</span>
               </button>
             </div>
           </form>

@@ -43,6 +43,8 @@ export interface UpsertCardResponse {
   error?: string;
   requestPayload?: any;
   requestHeaders?: Record<string, string>;
+  requestUrl?: string;
+  requestMethod?: string;
 }
 
 /**
@@ -89,14 +91,22 @@ export async function upsertCardToHonarHubPay(
     'Accept': 'application/json',
   };
 
+  const endpointUrl = `${config.baseUrl}/api/v1/admin/cards`;
+
   try {
-    const res = await fetch(`${config.baseUrl}/api/v1/admin/cards`, {
+    const res = await fetch(endpointUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json().catch(() => null);
+    const rawText = await res.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = { rawText };
+    }
 
     if (!res.ok || !data?.success) {
       let errorMsg = data?.error || data?.message;
@@ -112,6 +122,8 @@ export async function upsertCardToHonarHubPay(
         data,
         requestPayload: payload,
         requestHeaders: headers,
+        requestUrl: endpointUrl,
+        requestMethod: 'POST',
       };
     }
 
@@ -124,6 +136,8 @@ export async function upsertCardToHonarHubPay(
       data: data.data,
       requestPayload: payload,
       requestHeaders: headers,
+      requestUrl: endpointUrl,
+      requestMethod: 'POST',
     };
   } catch (err: any) {
     return {
@@ -132,6 +146,8 @@ export async function upsertCardToHonarHubPay(
       error: `عدم دسترسی به سرور درگاه پرداخت هنرهاب پی: ${err.message}`,
       requestPayload: payload,
       requestHeaders: headers,
+      requestUrl: endpointUrl,
+      requestMethod: 'POST',
     };
   }
 }
@@ -388,7 +404,7 @@ export async function checkHonarHubPaymentStatus(identifier: string) {
 }
 
 /**
- * Tests connection and authentication with HonarHub Pay
+ * Tests connection and authentication with HonarHub Pay without creating any test payment transaction
  */
 export async function testHonarHubPayConnection(overrideConfig?: {
   apiKey?: string;
@@ -401,20 +417,14 @@ export async function testHonarHubPayConnection(overrideConfig?: {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'x-api-key': apiKey,
-    'Authorization': `Bearer ${apiKey}`,
     'Accept': 'application/json',
-    'User-Agent': 'HonarHub-Platform/2.0',
   };
 
   try {
-    const res = await fetch(`${baseUrl}/api/v1/payment/request`, {
-      method: 'POST',
+    // Pure auth check via GET /api/v1/admin/cards - Never creates any fake payment request / transaction
+    const res = await fetch(`${baseUrl}/api/v1/admin/cards`, {
+      method: 'GET',
       headers,
-      body: JSON.stringify({
-        amount: 10000,
-        callbackUrl: 'https://honarhub.ir/api/admin/honarhub-pay/test-callback',
-        description: 'تست بررسی اتصال و اعتبارسنجی کلید وب‌سرویس هنرهاب پی',
-      }),
     });
 
     const data = await res.json().catch(() => null);
@@ -427,17 +437,17 @@ export async function testHonarHubPayConnection(overrideConfig?: {
       };
     }
 
-    if (!res.ok || !data?.success) {
+    if (!res.ok) {
       return {
         success: false,
-        message: data?.error || data?.message || `پاسخ ناموفق از درگاه: کد ${res.status}`,
+        message: data?.error || data?.message || `پاسخ ناموفق از درگاه: کد وضعیت ${res.status}`,
         raw: data,
       };
     }
 
     return {
       success: true,
-      message: 'ارتباط با درگاه هنرهاب پی با موفقیت برقرار شد و کلید API تایید گردید.',
+      message: 'ارتباط با درگاه هنرهاب پی برقرار شد و کلید وب‌سرویس تایید گردید (بدون ایجاد درگاه یا تراکنش تستی).',
       raw: data,
     };
   } catch (err: any) {

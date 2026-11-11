@@ -97,6 +97,8 @@ export async function POST(req: Request) {
       gatewayResponse: resGateway.data || null,
       sentPayload: resGateway.requestPayload,
       sentHeaders: resGateway.requestHeaders,
+      requestUrl: resGateway.requestUrl,
+      requestMethod: resGateway.requestMethod,
       message,
       adminAccount: {
         cardNumber: updatedSettings.adminCardNumber,
