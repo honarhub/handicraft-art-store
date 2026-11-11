@@ -36,10 +36,13 @@ export interface UpsertCardParams {
 
 export interface UpsertCardResponse {
   success: boolean;
+  status: number;
   message?: string;
   cardId?: string;
   data?: any;
   error?: string;
+  requestPayload?: any;
+  requestHeaders?: Record<string, string>;
 }
 
 /**
@@ -57,6 +60,7 @@ export async function upsertCardToHonarHubPay(
   if (!isValidIranianCardNumber(cleanCardNumber)) {
     return {
       success: false,
+      status: 400,
       error: 'شماره کارت بانکی ۱۶ رقمی نامعتبر است (الگوریتم شتاب تایید نشد).',
     };
   }
@@ -75,16 +79,14 @@ export async function upsertCardToHonarHubPay(
     cardNumber: cleanCardNumber,
   };
   if (cleanIban) payload.iban = cleanIban;
-  if (params.bankSlug || bankInfo.slug) payload.bankSlug = params.bankSlug || bankInfo.slug;
   if (params.bankTitle || bankInfo.title) payload.bankTitle = params.bankTitle || bankInfo.title;
+  if (params.bankSlug || bankInfo.slug) payload.bankSlug = params.bankSlug || bankInfo.slug;
 
+  // Exact headers as specified in https://pay.honarhub.com/docs
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'x-api-key': apiKey,
-    'x-admin-key': apiKey,
-    'Authorization': `Bearer ${apiKey}`,
     'Accept': 'application/json',
-    'User-Agent': 'HonarHub-Platform/2.0',
   };
 
   try {
@@ -99,28 +101,37 @@ export async function upsertCardToHonarHubPay(
     if (!res.ok || !data?.success) {
       let errorMsg = data?.error || data?.message;
       if (res.status === 401) {
-        errorMsg = 'عدم احراز هویت درگاه (Unauthorized - 401): کلید وارد شده در سرور درگاه هنرهاب پی دسترسی مدیریت کارت ندارد.';
+        errorMsg = 'عدم احراز هویت درگاه (Unauthorized - 401): کلید وب‌سرویس وارد شده در سرور درگاه معتبر نیست یا مجوز ثبت کارت ندارد.';
       } else if (!errorMsg) {
-        errorMsg = `خطای درگاه: کد وضعیت ${res.status}`;
+        errorMsg = `خطای سرور درگاه: کد وضعیت ${res.status}`;
       }
       return {
         success: false,
+        status: res.status,
         error: errorMsg,
         data,
+        requestPayload: payload,
+        requestHeaders: headers,
       };
     }
 
     const cardId = data?.data?.id;
     return {
       success: true,
+      status: res.status,
       cardId,
       message: data.message || 'کارت با موفقیت در درگاه ثبت گردید.',
       data: data.data,
+      requestPayload: payload,
+      requestHeaders: headers,
     };
   } catch (err: any) {
     return {
       success: false,
+      status: 0,
       error: `عدم دسترسی به سرور درگاه پرداخت هنرهاب پی: ${err.message}`,
+      requestPayload: payload,
+      requestHeaders: headers,
     };
   }
 }

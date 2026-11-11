@@ -61,6 +61,18 @@ interface PaymentLogItem {
   } | null;
 }
 
+interface GatewayExecutionResult {
+  executedAt: string;
+  isSuccess: boolean;
+  statusCode: number;
+  message: string;
+  cardId?: string;
+  error?: string;
+  gatewayResponse?: any;
+  sentPayload?: any;
+  sentHeaders?: any;
+}
+
 export default function HonarHubPayAdminPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ACCOUNTS' | 'LOGS' | 'SETTINGS'>('ACCOUNTS');
@@ -87,9 +99,10 @@ export default function HonarHubPayAdminPage() {
     iban: '',
     bankTitle: '',
     bankSlug: '',
+    apiKey: '',
   });
   const [savingAdminCard, setSavingAdminCard] = useState(false);
-  const [adminCardMsg, setAdminCardMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [lastGatewayExecution, setLastGatewayExecution] = useState<GatewayExecutionResult | null>(null);
 
   // Settings Form State
   const [settingsForm, setSettingsForm] = useState({
@@ -152,8 +165,15 @@ export default function HonarHubPayAdminPage() {
           iban: data.adminAccount.iban || '',
           bankTitle: data.adminAccount.bankTitle || '',
           bankSlug: data.adminAccount.bankSlug || '',
+          apiKey: data.config?.apiKey || '',
         });
+      } else {
+        setAdminForm((prev) => ({
+          ...prev,
+          apiKey: data.config?.apiKey || '',
+        }));
       }
+
       setSettingsForm({
         apiKey: data.config?.apiKey || '',
         baseUrl: data.config?.baseUrl || 'https://pay.honarhub.com',
@@ -174,12 +194,17 @@ export default function HonarHubPayAdminPage() {
     setTestingConnection(true);
     setConnectionTestResult(null);
 
+    const keyToTest = overrideApiKey || adminForm.apiKey || settingsForm.apiKey;
+
     try {
       const res = await fetch('/api/admin/honarhub-pay/test-connection', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': keyToTest.trim(),
+        },
         body: JSON.stringify({
-          apiKey: overrideApiKey || settingsForm.apiKey,
+          apiKey: keyToTest.trim(),
           baseUrl: settingsForm.baseUrl,
         }),
       });
@@ -188,7 +213,7 @@ export default function HonarHubPayAdminPage() {
       setConnectionTestResult({
         tested: true,
         success: Boolean(data.success),
-        message: data.message || (data.success ? 'اتصال موفق' : 'خطای اتصال به درگاه'),
+        message: data.message || (data.success ? 'اتصال به درگاه موفقیت‌آمیز است.' : 'خطای اتصال به درگاه'),
       });
     } catch (err: any) {
       setConnectionTestResult({
@@ -211,7 +236,6 @@ export default function HonarHubPayAdminPage() {
       bankTitle: bank.title,
       bankSlug: bank.slug,
     }));
-    setAdminCardMsg(null);
   };
 
   // IBAN Change Handler with Real-time Formatting
@@ -226,38 +250,68 @@ export default function HonarHubPayAdminPage() {
       ...prev,
       iban: formatted,
     }));
-    setAdminCardMsg(null);
   };
 
-  // Save Admin Card & Sync with HonarHub Pay
-  const handleSaveAdminCard = async (e: React.FormEvent) => {
+  // Submit Request: Send Card to HonarHub Pay (POST /api/v1/admin/cards)
+  const handleSendToHonarHubPay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmitAdminCard) return;
 
     setSavingAdminCard(true);
-    setAdminCardMsg(null);
+    setLastGatewayExecution(null);
+
+    const targetApiKey = (adminForm.apiKey || settingsForm.apiKey || config.apiKey).trim();
 
     try {
+      // Send explicit x-api-key header from browser
       const res = await fetch('/api/admin/honarhub-pay/admin-card', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': targetApiKey,
+        },
         body: JSON.stringify({
           cardNumber: cleanCardDigits,
           ownerName: adminForm.ownerName.trim(),
           iban: cleanShebaBody ? `IR${cleanShebaBody}` : undefined,
           bankTitle: adminForm.bankTitle || detectedBank.title,
           bankSlug: adminForm.bankSlug || detectedBank.slug,
+          apiKey: targetApiKey,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'خطا در ثبت کارت ادمین');
 
-      setAdminAccount(data.adminAccount);
-      setAdminCardMsg({ text: data.message || 'کارت ادمین با موفقیت ذخیره شد.', isError: false });
-      setIsEditingAdminCard(false);
+      setLastGatewayExecution({
+        executedAt: new Date().toLocaleTimeString('fa-IR'),
+        isSuccess: Boolean(data.success && data.isSynced),
+        statusCode: data.statusCode || res.status,
+        message: data.message || '',
+        cardId: data.cardId,
+        error: data.gatewayError || data.error,
+        gatewayResponse: data.gatewayResponse,
+        sentPayload: data.sentPayload,
+        sentHeaders: {
+          'Content-Type': 'application/json',
+          'x-api-key': targetApiKey,
+        },
+      });
+
+      if (data.adminAccount) {
+        setAdminAccount(data.adminAccount);
+      }
+      if (data.success && data.isSynced) {
+        setIsEditingAdminCard(false);
+      }
     } catch (err: any) {
-      setAdminCardMsg({ text: err.message || 'خطا در ذخیره کارت', isError: true });
+      setLastGatewayExecution({
+        executedAt: new Date().toLocaleTimeString('fa-IR'),
+        isSuccess: false,
+        statusCode: 0,
+        message: 'خطای شبکه در ارسال درخواست به سرور',
+        error: err.message || 'Network error',
+        sentHeaders: { 'x-api-key': targetApiKey },
+      });
     } finally {
       setSavingAdminCard(false);
     }
@@ -271,7 +325,10 @@ export default function HonarHubPayAdminPage() {
     try {
       const res = await fetch('/api/admin/honarhub-pay/toggle-artist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': (settingsForm.apiKey || config.apiKey).trim(),
+        },
         body: JSON.stringify({
           artistId: artist.id,
           approve: newStatus,
@@ -310,7 +367,10 @@ export default function HonarHubPayAdminPage() {
     try {
       const res = await fetch('/api/admin/honarhub-pay/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': settingsForm.apiKey.trim(),
+        },
         body: JSON.stringify({
           apiKey: settingsForm.apiKey.trim(),
           baseUrl: settingsForm.baseUrl.trim(),
@@ -321,6 +381,7 @@ export default function HonarHubPayAdminPage() {
       if (!res.ok) throw new Error(data.error || 'خطا در ذخیره تنظیمات');
 
       setConfig(data.config);
+      setAdminForm((prev) => ({ ...prev, apiKey: data.config.apiKey }));
       setSettingsMsg({ text: data.message || 'تنظیمات درگاه عملیاتی با موفقیت ذخیره شد.', isError: false });
     } catch (err: any) {
       setSettingsMsg({ text: err.message || 'خطا در ذخیره تنظیمات', isError: true });
@@ -389,7 +450,7 @@ export default function HonarHubPayAdminPage() {
               <span>مدیریت درگاه پرداخت هنرهاب پی (HonarHub Pay)</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
-              اتصال وب‌سرویس مستقیم به مستندات فنی{' '}
+              ارسال مستقیم متد ثبت کارت بانکی به وب‌سرویس{' '}
               <a href="https://pay.honarhub.com/docs" target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-bold hover:underline font-mono">
                 pay.honarhub.com/docs
               </a>
@@ -523,7 +584,7 @@ export default function HonarHubPayAdminPage() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 mt-1.5 leading-relaxed max-w-2xl">
-                    تمامی فاکتورهای سبد خرید کاربر که متعلق به هنرمندان مستقل تایید‌شده نباشند، به صورت خودکار به این کارت متصل و واریز می‌شوند. ادمین می‌تواند هر زمان این کارت را تغییر دهد تا بلافاصله در وب‌سرویس هنرهاب پی جایگزین شود.
+                    تمامی فاکتورهای سبد خرید کاربر که متعلق به هنرمندان مستقل تایید‌شده نباشند، به این کارت واریز می‌شوند. برای تغییر، اطلاعات کارت را وارد و دکمه <strong>«ارسال به هنرهاب پی»</strong> را بزنید تا مستقیماً به آدرس <code className="text-emerald-700 font-mono">POST /api/v1/admin/cards</code> در درگاه ارسال گردد.
                   </p>
                 </div>
               </div>
@@ -540,15 +601,15 @@ export default function HonarHubPayAdminPage() {
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
-                  <span>{isEditingAdminCard ? 'بستن فرم ویرایش' : 'ویرایش کارت ادمین'}</span>
+                  <span>{isEditingAdminCard ? 'بستن فرم ویرایش' : 'ویرایش و ارسال کارت'}</span>
                 </button>
               </div>
             </div>
 
             {/* Admin Card Details or Edit Form */}
             {isEditingAdminCard ? (
-              <form onSubmit={handleSaveAdminCard} className="mt-6 pt-6 border-t border-slate-200 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <form onSubmit={handleSendToHonarHubPay} className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   
                   {/* 1. Card Number with LIVE Luhn Algorithm Check */}
                   <div>
@@ -597,7 +658,7 @@ export default function HonarHubPayAdminPage() {
                     {/* Instant Feedback Badge */}
                     {isCardComplete ? (
                       isCardValid ? (
-                        <div className="flex items-center justify-between text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                        <div className="flex items-center justify-between text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl mt-2">
                           <div className="flex items-center gap-1.5">
                             <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
                             <span>شماره کارت معتبر است (تایید شتاب)</span>
@@ -607,7 +668,7 @@ export default function HonarHubPayAdminPage() {
                           </span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-300 px-3 py-1.5 rounded-xl mt-2">
                           <span className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px]">✕</span>
                           <span>شماره کارت نامعتبر است (رقم کنترلی شتاب تایید نشد)</span>
                         </div>
@@ -687,12 +748,12 @@ export default function HonarHubPayAdminPage() {
                     {hasShebaInput ? (
                       isShebaComplete ? (
                         isShebaValid ? (
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-xl mt-2">
                             <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
                             <span>شماره شبا معتبر است (تایید پایا / پل)</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-300 px-3 py-1.5 rounded-xl mt-2 animate-fadeIn">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-300 px-3 py-1.5 rounded-xl mt-2">
                             <span className="w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px]">✕</span>
                             <span>شماره شبا نامعتبر است (رقم کنترلی تایید نشد)</span>
                           </div>
@@ -709,15 +770,33 @@ export default function HonarHubPayAdminPage() {
                     )}
                   </div>
 
+                  {/* 4. API Key Header for this request */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                      کلید وب‌سرویس (Header: x-api-key) *
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      required
+                      value={adminForm.apiKey}
+                      onChange={(e) => setAdminForm({ ...adminForm, apiKey: e.target.value.trim() })}
+                      placeholder="hp_5es13yul_mwc2x9qh"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none"
+                    />
+                    <div className="text-[10px] text-slate-500 mt-1">
+                      این کلید دقیقاً در هدر <code className="text-emerald-700 font-mono font-bold">x-api-key</code> درخواست ارسالی قرار می‌گیرد.
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* Form Actions */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  {adminCardMsg && (
-                    <div className={`text-xs font-bold ${adminCardMsg.isError ? 'text-rose-600' : 'text-emerald-700'}`}>
-                      {adminCardMsg.text}
-                    </div>
-                  )}
+                  <div className="text-xs text-slate-500">
+                    با کلیک بر روی دکمه زیر، درخواست ثبت کارت به متد <code className="text-slate-800 font-mono font-bold">POST /api/v1/admin/cards</code> در درگاه ارسال می‌گردد.
+                  </div>
+
                   <div className="flex items-center gap-2 mr-auto">
                     <button
                       type="button"
@@ -726,16 +805,92 @@ export default function HonarHubPayAdminPage() {
                     >
                       انصراف
                     </button>
+
+                    {/* Exact Requested Button: ارسال به هنرهاب پی */}
                     <button
                       type="submit"
                       disabled={savingAdminCard || !canSubmitAdminCard}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm px-6 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md shadow-emerald-600/20"
                     >
-                      <span>{savingAdminCard ? '⏳' : '💾'}</span>
-                      <span>{savingAdminCard ? 'در حال ثبت...' : 'ذخیره کارت ادمین'}</span>
+                      <span>{savingAdminCard ? '⏳' : '🚀'}</span>
+                      <span>{savingAdminCard ? 'در حال ارسال به درگاه...' : 'ارسال به هنرهاب پی'}</span>
                     </button>
                   </div>
                 </div>
+
+                {/* Real-time Response Display Panel (Positive or Negative) */}
+                {lastGatewayExecution && (
+                  <div className={`mt-4 p-5 rounded-2xl border transition-all ${
+                    lastGatewayExecution.isSuccess
+                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
+                      : 'bg-rose-50/80 border-rose-300 text-rose-950'
+                  }`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${
+                            lastGatewayExecution.isSuccess ? 'bg-emerald-600' : 'bg-rose-600'
+                          }`}>
+                            {lastGatewayExecution.isSuccess ? '✓' : '✕'}
+                          </span>
+                          <h4 className="text-sm font-black">
+                            {lastGatewayExecution.isSuccess
+                              ? `پاسخ تایید از درگاه هنرهاب پی (HTTP ${lastGatewayExecution.statusCode} OK)`
+                              : `پاسخ درگاه هنرهاب پی (HTTP ${lastGatewayExecution.statusCode || 'خطا'})`}
+                          </h4>
+                          <span className="text-[10px] text-slate-500 font-mono" dir="ltr">
+                            [{lastGatewayExecution.executedAt}]
+                          </span>
+                        </div>
+
+                        <p className="text-xs mt-1.5 font-bold leading-relaxed">
+                          {lastGatewayExecution.message || lastGatewayExecution.error}
+                        </p>
+
+                        {lastGatewayExecution.cardId && (
+                          <div className="text-xs mt-1 font-mono text-emerald-800">
+                            شناسه کارت اختصاص‌یافته در درگاه (cardId): <strong>{lastGatewayExecution.cardId}</strong>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setLastGatewayExecution(null)}
+                        className="text-slate-400 hover:text-slate-700 text-xs cursor-pointer"
+                      >
+                        ✕ بستن
+                      </button>
+                    </div>
+
+                    {/* Detailed Raw Inspection Box */}
+                    <div className="mt-4 pt-3 border-t border-slate-200/80 grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] font-mono">
+                      <div>
+                        <span className="font-bold text-slate-700 font-sans block mb-1">
+                          درخواست ارسالی (Request):
+                        </span>
+                        <div className="bg-slate-900 text-slate-200 p-3 rounded-xl overflow-x-auto text-[10px] leading-relaxed" dir="ltr">
+                          <div><span className="text-teal-400">POST</span> /api/v1/admin/cards</div>
+                          <div><span className="text-amber-400">Header x-api-key:</span> {lastGatewayExecution.sentHeaders?.['x-api-key']}</div>
+                          <div className="mt-1 text-slate-400">Payload:</div>
+                          <pre>{JSON.stringify(lastGatewayExecution.sentPayload, null, 2)}</pre>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="font-bold text-slate-700 font-sans block mb-1">
+                          پاسخ سرور درگاه (Gateway Response):
+                        </span>
+                        <div className={`p-3 rounded-xl overflow-x-auto text-[10px] leading-relaxed ${
+                          lastGatewayExecution.isSuccess ? 'bg-slate-900 text-emerald-300' : 'bg-slate-900 text-rose-300'
+                        }`} dir="ltr">
+                          <div>Status: {lastGatewayExecution.statusCode}</div>
+                          <pre>{JSON.stringify(lastGatewayExecution.gatewayResponse || { error: lastGatewayExecution.error }, null, 2)}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </form>
             ) : (
               <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4">

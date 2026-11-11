@@ -15,7 +15,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { ownerName, cardNumber, iban, bankTitle, bankSlug } = body;
+    const { ownerName, cardNumber, iban, bankTitle, bankSlug, apiKey } = body;
+    const clientApiKey = (req.headers.get('x-api-key') || apiKey || '').trim();
 
     if (!ownerName || !ownerName.trim()) {
       return NextResponse.json({ error: 'نام و نام خانوادگی صاحب حساب الزامی است.' }, { status: 400 });
@@ -40,14 +41,17 @@ export async function POST(req: Request) {
     const finalBankTitle = bankTitle?.trim() || detectedBank.title;
     const finalBankSlug = bankSlug?.trim() || detectedBank.slug;
 
-    // Attempt to register / sync card with HonarHub Pay gateway
-    const resGateway = await upsertCardToHonarHubPay({
-      ownerName: ownerName.trim(),
-      cardNumber: cleanCard,
-      iban: cleanIban || undefined,
-      bankTitle: finalBankTitle,
-      bankSlug: finalBankSlug,
-    });
+    // Attempt to register / sync card with HonarHub Pay gateway using clientApiKey
+    const resGateway = await upsertCardToHonarHubPay(
+      {
+        ownerName: ownerName.trim(),
+        cardNumber: cleanCard,
+        iban: cleanIban || undefined,
+        bankTitle: finalBankTitle,
+        bankSlug: finalBankSlug,
+      },
+      clientApiKey || undefined
+    );
 
     const isSynced = Boolean(resGateway.success);
     const cardId = isSynced ? (resGateway.cardId || resGateway.data?.id || null) : null;
@@ -64,6 +68,7 @@ export async function POST(req: Request) {
         adminCardBankSlug: finalBankSlug,
         adminHonarhubPayCardId: cardId,
         adminHonarhubPaySyncedAt: syncedAt,
+        ...(clientApiKey ? { honarhubPayApiKey: clientApiKey } : {}),
       },
       create: {
         id: 'default',
@@ -74,19 +79,24 @@ export async function POST(req: Request) {
         adminCardBankSlug: finalBankSlug,
         adminHonarhubPayCardId: cardId,
         adminHonarhubPaySyncedAt: syncedAt,
+        ...(clientApiKey ? { honarhubPayApiKey: clientApiKey } : {}),
       },
     });
 
-    let message = 'کارت حساب پیش‌فرض ادمین با موفقیت ذخیره شد و در درگاه هنرهاب پی همگام‌سازی گردید.';
+    let message = 'کارت حساب پیش‌فرض ادمین با موفقیت در درگاه هنرهاب پی ثبت و همگام‌سازی گردید.';
     if (!isSynced) {
-      message = `کارت حساب پیش‌فرض ادمین در سیستم ذخیره گردید. (${resGateway.error || 'نیازمند همگام‌سازی وب‌سرویس'})`;
+      message = `کارت ادمین در سیستم ثبت شد؛ پاسخ درگاه هنرهاب پی: ${resGateway.error || `کد وضعیت ${resGateway.status}`}`;
     }
 
     return NextResponse.json({
-      success: true,
+      success: isSynced,
+      statusCode: resGateway.status,
       cardId,
       isSynced,
       gatewayError: !isSynced ? resGateway.error : undefined,
+      gatewayResponse: resGateway.data || null,
+      sentPayload: resGateway.requestPayload,
+      sentHeaders: resGateway.requestHeaders,
       message,
       adminAccount: {
         cardNumber: updatedSettings.adminCardNumber,
