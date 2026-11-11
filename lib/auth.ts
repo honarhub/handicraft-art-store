@@ -280,6 +280,10 @@ export const authOptions: NextAuthOptions = {
       await ensureDatabaseSchema();
       if (account?.provider === 'google') {
         const googleEmail = (profile?.email || user.email)?.trim().toLowerCase();
+        if (!googleEmail) {
+          console.error('[Google SignIn Error] No email received from Google profile.');
+          return false;
+        }
         const googleName = (profile as any)?.name || user.name;
         const isAdmin = isAdminEmail(googleEmail);
         

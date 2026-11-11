@@ -170,6 +170,8 @@ function ArtistLoginContent() {
       setErrorMsg('حساب کاربری هنرمندی شما توسط ادمین غیرفعال شده است. لطفاً جهت پیگیری با پشتیبانی در تماس باشید.');
     } else if (err === 'not_artist') {
       setErrorMsg('حساب کاربری شما دسترسی هنرمند ندارد. لطفاً ابتدا ثبت‌نام کنید.');
+    } else if (err === 'OAuthCallback' || err === 'OAuthSignin') {
+      setErrorMsg('خطا در ارتباط با سرویس گوگل (OAuthCallback). لطفاً وضعیت فیلترشکن/اینترنت خود را بررسی نمایید، یا از فرم زیر با شماره موبایل یا ایمیل وارد شوید.');
     }
   }, [searchParams]);
 
