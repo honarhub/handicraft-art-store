@@ -87,6 +87,7 @@ export async function GET() {
       adminAccount: {
         cardNumber: siteSettings?.adminCardNumber || null,
         ownerName: siteSettings?.adminCardOwnerName || null,
+        iban: siteSettings?.adminCardIban || null,
         accountNumber: siteSettings?.adminCardAccountNumber || null,
         bankTitle: siteSettings?.adminCardBankTitle || null,
         bankSlug: siteSettings?.adminCardBankSlug || null,

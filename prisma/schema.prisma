@@ -514,6 +514,7 @@ model SiteSettings {
   adminCardNumber          String?
   adminCardOwnerName       String?
   adminCardAccountNumber   String?
+  adminCardIban            String?
   adminCardBankTitle       String?
   adminCardBankSlug        String?
   adminHonarhubPayCardId   String?

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { ownerName, cardNumber, accountNumber, bankTitle, bankSlug } = body;
+    const { ownerName, cardNumber, iban, bankTitle, bankSlug } = body;
 
     if (!ownerName || !ownerName.trim()) {
       return NextResponse.json({ error: 'نام و نام خانوادگی صاحب حساب الزامی است.' }, { status: 400 });
@@ -26,6 +26,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'شماره ۱۶ رقمی کارت بانکی شتاب معتبر نیست.' }, { status: 400 });
     }
 
+    // Clean IBAN (optional)
+    let cleanIban: string | null = null;
+    if (iban && typeof iban === 'string' && iban.trim()) {
+      const rawIban = iban.trim().replace(/\s+/g, '').toUpperCase();
+      cleanIban = rawIban.startsWith('IR') ? rawIban : `IR${rawIban}`;
+    }
+
     const detectedBank = getBankInfoByCardNumber(cleanCard);
     const finalBankTitle = bankTitle?.trim() || detectedBank.title;
     const finalBankSlug = bankSlug?.trim() || detectedBank.slug;
@@ -34,7 +41,7 @@ export async function POST(req: Request) {
     const resGateway = await upsertCardToHonarHubPay({
       ownerName: ownerName.trim(),
       cardNumber: cleanCard,
-      accountNumber: accountNumber?.trim() || undefined,
+      iban: cleanIban || undefined,
       bankTitle: finalBankTitle,
       bankSlug: finalBankSlug,
     });
@@ -54,7 +61,7 @@ export async function POST(req: Request) {
       update: {
         adminCardNumber: cleanCard,
         adminCardOwnerName: ownerName.trim(),
-        adminCardAccountNumber: accountNumber?.trim() || null,
+        adminCardIban: cleanIban,
         adminCardBankTitle: finalBankTitle,
         adminCardBankSlug: finalBankSlug,
         adminHonarhubPayCardId: cardId,
@@ -64,7 +71,7 @@ export async function POST(req: Request) {
         id: 'default',
         adminCardNumber: cleanCard,
         adminCardOwnerName: ownerName.trim(),
-        adminCardAccountNumber: accountNumber?.trim() || null,
+        adminCardIban: cleanIban,
         adminCardBankTitle: finalBankTitle,
         adminCardBankSlug: finalBankSlug,
         adminHonarhubPayCardId: cardId,
@@ -80,7 +87,7 @@ export async function POST(req: Request) {
       adminAccount: {
         cardNumber: updatedSettings.adminCardNumber,
         ownerName: updatedSettings.adminCardOwnerName,
-        accountNumber: updatedSettings.adminCardAccountNumber,
+        iban: updatedSettings.adminCardIban,
         bankTitle: updatedSettings.adminCardBankTitle,
         bankSlug: updatedSettings.adminCardBankSlug,
         cardId: updatedSettings.adminHonarhubPayCardId,

@@ -32,7 +32,7 @@ export async function getHonarHubPayConfig(): Promise<HonarHubPayConfig> {
 export interface UpsertCardParams {
   ownerName: string;
   cardNumber: string;
-  accountNumber?: string;
+  iban?: string;
   bankSlug?: string;
   bankTitle?: string;
 }
@@ -55,7 +55,7 @@ export async function upsertCardToHonarHubPay(
   overrideApiKey?: string
 ): Promise<UpsertCardResponse> {
   const config = await getHonarHubPayConfig();
-  const apiKey = overrideApiKey || config.apiKey;
+  const apiKey = (overrideApiKey || config.apiKey).trim();
 
   const cleanCardNumber = params.cardNumber.replace(/\D/g, '');
   if (!isValidIranianCardNumber(cleanCardNumber)) {
@@ -66,31 +66,53 @@ export async function upsertCardToHonarHubPay(
   }
 
   const bankInfo = getBankInfoByCardNumber(cleanCardNumber);
-  const payload = {
+
+  // Clean IBAN (optional: 24 digits or IR + 24 digits)
+  let cleanIban: string | undefined = undefined;
+  if (params.iban && params.iban.trim()) {
+    const rawIban = params.iban.trim().replace(/\s+/g, '').toUpperCase();
+    cleanIban = rawIban.startsWith('IR') ? rawIban : `IR${rawIban}`;
+  }
+
+  const payload: any = {
     ownerName: params.ownerName.trim(),
     cardNumber: cleanCardNumber,
-    accountNumber: params.accountNumber?.trim() || undefined,
-    bankSlug: params.bankSlug || bankInfo.slug,
-    bankTitle: params.bankTitle || bankInfo.title,
   };
+  if (cleanIban) payload.iban = cleanIban;
+  if (params.bankSlug || bankInfo.slug) payload.bankSlug = params.bankSlug || bankInfo.slug;
+  if (params.bankTitle || bankInfo.title) payload.bankTitle = params.bankTitle || bankInfo.title;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'Authorization': `Bearer ${apiKey}`,
+    'Accept': 'application/json',
+    'User-Agent': 'HonarHub-Platform/2.0',
+  };
+
+  if (config.isSandbox) {
+    headers['x-sandbox-mode'] = 'true';
+  }
 
   try {
     const res = await fetch(`${config.baseUrl}/api/v1/admin/cards`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'User-Agent': 'HonarHub-Platform/2.0',
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
     const data = await res.json().catch(() => null);
 
     if (!res.ok || !data?.success) {
+      let errorMsg = data?.error || data?.message;
+      if (res.status === 401) {
+        errorMsg = 'عدم احراز هویت درگاه (Unauthorized - 401): کلید وب‌سرویس در درگاه معتبر نیست یا دسترسی ثبت کارت ندارد. لطفاً در صورت تست، حالت سندباکس را در تنظیمات فعال کنید یا کلید صحیح را وارد نمایید.';
+      } else if (!errorMsg) {
+        errorMsg = `خطای درگاه: کد وضعیت ${res.status}`;
+      }
       return {
         success: false,
-        error: data?.error || data?.message || `خطای درگاه: کد وضعیت ${res.status}`,
+        error: errorMsg,
         data,
       };
     }
@@ -163,14 +185,20 @@ export async function createHonarHubPaymentRequest(
   }
 
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey,
+      'Authorization': `Bearer ${config.apiKey}`,
+      'Accept': 'application/json',
+      'User-Agent': 'HonarHub-Platform/2.0',
+    };
+    if (config.isSandbox) {
+      headers['x-sandbox-mode'] = 'true';
+    }
+
     const res = await fetch(`${config.baseUrl}/api/v1/payment/request`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.apiKey,
-        'Accept': 'application/json',
-        'User-Agent': 'HonarHub-Platform/2.0',
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -293,14 +321,20 @@ export async function verifyHonarHubPayment(params: {
   const config = await getHonarHubPayConfig();
 
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-api-key': config.apiKey,
+      'Authorization': `Bearer ${config.apiKey}`,
+      'Accept': 'application/json',
+      'User-Agent': 'HonarHub-Platform/2.0',
+    };
+    if (config.isSandbox) {
+      headers['x-sandbox-mode'] = 'true';
+    }
+
     const res = await fetch(`${config.baseUrl}/api/v1/payment/verify`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.apiKey,
-        'Accept': 'application/json',
-        'User-Agent': 'HonarHub-Platform/2.0',
-      },
+      headers,
       body: JSON.stringify(params),
     });
 
@@ -352,6 +386,73 @@ export async function checkHonarHubPaymentStatus(identifier: string) {
     return {
       success: false,
       error: err.message,
+    };
+  }
+}
+
+/**
+ * Tests connection and authentication with HonarHub Pay
+ */
+export async function testHonarHubPayConnection(overrideConfig?: {
+  apiKey?: string;
+  baseUrl?: string;
+  isSandbox?: boolean;
+}): Promise<{ success: boolean; message: string; isSandbox?: boolean; raw?: any }> {
+  const currentConfig = await getHonarHubPayConfig();
+  const apiKey = (overrideConfig?.apiKey || currentConfig.apiKey).trim();
+  const baseUrl = (overrideConfig?.baseUrl || currentConfig.baseUrl).trim().replace(/\/$/, '');
+  const isSandbox = overrideConfig?.isSandbox ?? currentConfig.isSandbox;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'Authorization': `Bearer ${apiKey}`,
+    'Accept': 'application/json',
+    'User-Agent': 'HonarHub-Platform/2.0',
+  };
+  if (isSandbox) {
+    headers['x-sandbox-mode'] = 'true';
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}/api/v1/payment/request`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        amount: 10000,
+        callbackUrl: 'https://honarhub.ir/api/admin/honarhub-pay/test-callback',
+        description: 'تست بررسی اتصال و اعتبارسنجی کلید وب‌سرویس هنرهاب پی',
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (res.status === 401 || (!res.ok && data?.error === 'Unauthorized')) {
+      return {
+        success: false,
+        message: 'عدم احراز هویت (401 Unauthorized): کلید وارد شده در سرور درگاه هنرهاب پی معتبر نیست.',
+        raw: data,
+      };
+    }
+
+    if (!res.ok || !data?.success) {
+      return {
+        success: false,
+        message: data?.error || data?.message || `پاسخ ناموفق از درگاه: کد ${res.status}`,
+        raw: data,
+      };
+    }
+
+    return {
+      success: true,
+      message: 'ارتباط با درگاه هنرهاب پی با موفقیت برقرار شد و کلید API تایید گردید.',
+      isSandbox: data.isSandbox ?? isSandbox,
+      raw: data,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `خطای شبکه در برقراری ارتباط با سرور درگاه: ${err.message}`,
     };
   }
 }

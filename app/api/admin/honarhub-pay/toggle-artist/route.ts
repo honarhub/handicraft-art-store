@@ -69,6 +69,7 @@ export async function POST(req: Request) {
     const resGateway = await upsertCardToHonarHubPay({
       ownerName,
       cardNumber: cleanCard,
+      iban: artist.shebaNumber ? (artist.shebaNumber.startsWith('IR') ? artist.shebaNumber : `IR${artist.shebaNumber}`) : undefined,
       bankTitle: artist.cardBankTitle || bankInfo.title,
       bankSlug: artist.cardBankSlug || bankInfo.slug,
     });
