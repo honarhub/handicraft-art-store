@@ -43,7 +43,8 @@ export async function GET() {
         },
       },
       orderBy: [
-        { isHonarhubPayApproved: 'desc' },
+        { honarhubPayCardId: { sort: 'asc', nulls: 'first' } },
+        { honarhubPaySyncedAt: { sort: 'asc', nulls: 'first' } },
         { updatedAt: 'desc' },
       ],
     });
@@ -108,6 +109,7 @@ export async function GET() {
         cardBankTitle: a.cardBankTitle || null,
         cardBankSlug: a.cardBankSlug || null,
         cardId: a.honarhubPayCardId || null,
+        honarhubPayCardNumber: a.honarhubPayCardNumber || null,
         isHonarhubPayApproved: a.isHonarhubPayApproved,
         syncedAt: a.honarhubPaySyncedAt || null,
       })),

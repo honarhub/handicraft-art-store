@@ -111,6 +111,10 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
   };
   const activeStepIdx = statusStepMap[order.status] ?? 1;
   const isCancelled = order.status === 'CANCELLED';
+  const isPending = order.status === 'PENDING';
+  const elapsedMs = Date.now() - new Date(order.createdAt).getTime();
+  const isExpired = isPending && elapsedMs >= 15 * 60 * 1000;
+  const remainingMinutes = Math.max(0, Math.ceil((15 * 60 * 1000 - elapsedMs) / 60000));
 
   return (
     <div className="space-y-6 font-sans text-slate-800" dir="rtl">
@@ -130,14 +134,16 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/checkout/invoice/${order.id}`}
-            target="_blank"
-            className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
-          >
-            <span>📄</span>
-            <span>مشاهده فاکتور رسمی</span>
-          </Link>
+          {!isCancelled && (
+            <Link
+              href={`/checkout/invoice/${order.id}`}
+              target="_blank"
+              className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-4 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            >
+              <span>📄</span>
+              <span>مشاهده فاکتور رسمی</span>
+            </Link>
+          )}
           <Link
             href="/panel/orders"
             className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-colors"
@@ -147,9 +153,9 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* Visual Stepper Timeline */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
-        <h2 className="text-sm font-black text-slate-900 mb-6 flex items-center gap-2">
+      {/* Visual Stepper Timeline & Status Message */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+        <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
           <span>📍</span>
           <span>وضعیت لحظه‌ای و مراحل پردازش سفارش</span>
         </h2>
@@ -159,8 +165,26 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
             <span>❌</span>
             <span>این سفارش لغو گردیده است.</span>
           </div>
+        ) : isExpired ? (
+          <div className="bg-slate-100 border border-rose-200 rounded-2xl p-4 text-rose-800 text-xs font-bold flex items-center gap-2">
+            <span>⚠️</span>
+            <span>مهلت پرداخت این سفارش به پایان رسیده و منقضی شده است.</span>
+          </div>
+        ) : isPending ? (
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-amber-900 text-xs font-bold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span>⏳</span>
+              <span>این سفارش در انتظار پرداخت شماست ({toPersianDigits(remainingMinutes)} دقیقه زمان باقی‌مانده).</span>
+            </div>
+            <a
+              href={`/api/orders/${order.id}/pay`}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-4 py-2 rounded-xl text-xs transition shadow-sm"
+            >
+              💳 ورود به درگاه و تکمیل پرداخت
+            </a>
+          </div>
         ) : (
-          <div className="relative">
+          <div className="relative pt-2">
             {/* Desktop / Tablet Stepper */}
             <div className="grid grid-cols-5 gap-2 relative z-10 text-center">
               {ORDER_STEPS.map((step, idx) => {
@@ -255,22 +279,32 @@ export default function CustomerOrderDetailPage({ params }: { params: Promise<{ 
             return (
               <div key={item.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden relative shrink-0 border border-slate-200">
+                  <Link
+                    href={`/product/${item.product?.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden relative shrink-0 border border-slate-200 group block cursor-pointer"
+                    title="مشاهده اثر در تب جداگانه"
+                  >
                     {item.product?.imageUrl && (
                       <Image
                         src={item.product.imageUrl}
                         alt={item.product.title}
                         fill
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform"
                       />
                     )}
-                  </div>
+                  </Link>
                   <div>
                     <Link
                       href={`/product/${item.product?.id}`}
-                      className="font-bold text-sm text-slate-800 hover:text-teal-700 transition-colors line-clamp-1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-sm text-slate-800 hover:text-teal-700 transition-colors line-clamp-1 inline-flex items-center gap-1"
+                      title="مشاهده اثر در تب جداگانه"
                     >
-                      {item.product?.title || 'اثر هنری'}
+                      <span>{item.product?.title || 'اثر هنری'}</span>
+                      <span className="text-[10px] text-slate-400">↗</span>
                     </Link>
                     <div className="text-xs text-slate-500 mt-1">
                       آفریننده: <span className="font-bold text-teal-800">{artistName}</span>

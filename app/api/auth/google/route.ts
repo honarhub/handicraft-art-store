@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
   const portal = url.searchParams.get("portal") || "user";
 
   // Build the Google OAuth redirect URI (must match Google Cloud Console)
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  // Allow explicit override via env var for environments where auto-detection fails
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${origin}/api/auth/google/callback`;
 
   // Encode state to pass callbackUrl and portal through the OAuth flow
   const state = Buffer.from(JSON.stringify({ callbackUrl, portal })).toString("base64url");

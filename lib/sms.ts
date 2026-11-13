@@ -551,6 +551,35 @@ export async function sendSmsNotification(phone: string, text: string): Promise<
   try {
     const { default: prisma } = await import('@/lib/prisma');
     const settings = await prisma.siteSettings.findUnique({ where: { id: 'default' } });
+    const provider = settings?.smsProvider || 'sms.ir';
+
+    // 1. FarazSMS Provider
+    if (provider === 'farazsms') {
+      const farazApiKey = settings?.farazSmsApiKey || process.env.FARAZSMS_API_KEY;
+      const farazLineNumber = settings?.farazSmsLineNumber || process.env.FARAZSMS_LINE_NUMBER;
+      if (farazApiKey && farazLineNumber) {
+        const farazUrl = 'https://edge.ippanel.com/api/v1/sms/send/webservice/single';
+        const res = await fetch(farazUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': farazApiKey.trim()
+          },
+          body: JSON.stringify({
+            recipient: [normalized],
+            sender: farazLineNumber.trim(),
+            message: text
+          })
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.status === 'OK') {
+          return { success: true };
+        }
+        console.error('[FarazSMS Single Notification Error]', data);
+      }
+    }
+
+    // 2. SMS.ir Provider (or fallback)
     const apiKey = settings?.smsApiKey || process.env.SMSIR_API_KEY;
     const lineNumber = settings?.smsLineNumber || process.env.SMSIR_LINE_NUMBER;
 
@@ -574,7 +603,7 @@ export async function sendSmsNotification(phone: string, text: string): Promise<
       console.error('[SMS.ir Bulk Notification Error]', data);
     }
   } catch (err) {
-    console.error('[SMS] Error calling SMS.ir bulk provider:', err);
+    console.error('[SMS] Error calling SMS notification provider:', err);
   }
 
   // Fallback log
@@ -627,6 +656,22 @@ export function isValidIranianNationalId(rawId: string | null | undefined): bool
   } else {
     return checkDigit === 11 - remainder;
   }
+}
+
+/**
+ * Mask the middle 4 digits of a 10-digit National ID: 123****890
+ */
+export function maskNationalId(nationalId: string | null | undefined): string {
+  if (!nationalId) return '—';
+  const clean = nationalId.trim();
+  if (clean.length === 10) {
+    return `${clean.slice(0, 3)}****${clean.slice(7)}`;
+  }
+  if (clean.length > 4) {
+    const start = Math.floor((clean.length - 4) / 2);
+    return `${clean.slice(0, start)}****${clean.slice(start + 4)}`;
+  }
+  return clean;
 }
 
 /**

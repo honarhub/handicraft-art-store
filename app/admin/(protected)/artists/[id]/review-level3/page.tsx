@@ -526,7 +526,9 @@ export default function ReviewArtistLevel3Page({ params }: { params: Promise<{ i
                 ) : (
                   <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                     <p className={`text-xs text-slate-800 leading-relaxed font-bold ${field.isMono ? 'font-mono text-left dir-ltr' : ''}`}>
-                      {field.value}
+                      {field.key === 'nationalId' && isPreviouslyLocked && artist.nationalId && artist.nationalId.length === 10
+                        ? `${artist.nationalId.slice(0, 3)}****${artist.nationalId.slice(7)}`
+                        : field.value}
                     </p>
                     {field.key === 'nationalId' && artist.nationalId && (
                       isValidIranianNationalId(artist.nationalId) ? (

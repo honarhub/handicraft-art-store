@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Admin turns on direct settlement -> must have valid cardNumber
+    // Admin turns on direct settlement -> verify card exists
     const cleanCard = (artist.cardNumber || '').replace(/\D/g, '');
     if (!cleanCard || !isValidIranianCardNumber(cleanCard)) {
       return NextResponse.json(
@@ -62,44 +62,54 @@ export async function POST(req: Request) {
       );
     }
 
-    const ownerName = artist.user?.name || artist.brandName || 'هنرمند مستقل';
+    const artistPersonName = artist.user?.name || 'هنرمند';
+    const ownerName = artist.brandName
+      ? `مدیریت (${artist.brandName}) - (${artistPersonName})`
+      : artistPersonName;
+
     const bankInfo = getBankInfoByCardNumber(cleanCard);
 
-    // Send request to HonarHub Pay gateway
-    const resGateway = await upsertCardToHonarHubPay({
-      ownerName,
-      cardNumber: cleanCard,
-      iban: artist.shebaNumber ? (artist.shebaNumber.startsWith('IR') ? artist.shebaNumber : `IR${artist.shebaNumber}`) : undefined,
-      bankTitle: artist.cardBankTitle || bankInfo.title,
-      bankSlug: artist.cardBankSlug || bankInfo.slug,
-    });
+    let cardId = artist.honarhubPayCardId;
+    let registeredCardNumber = artist.honarhubPayCardNumber;
+    let syncedAt = artist.honarhubPaySyncedAt;
 
-    const isSynced = Boolean(resGateway.success);
-    const cardId = isSynced ? (resGateway.cardId || resGateway.data?.id || null) : `artist_${cleanCard.slice(-4)}`;
-    const syncedAt = isSynced ? new Date() : null;
+    // If card not registered in gateway yet, try to register it now
+    if (!cardId) {
+      const resGateway = await upsertCardToHonarHubPay({
+        ownerName,
+        cardNumber: cleanCard,
+        iban: artist.shebaNumber ? (artist.shebaNumber.startsWith('IR') ? artist.shebaNumber : `IR${artist.shebaNumber}`) : undefined,
+        bankTitle: artist.cardBankTitle || bankInfo.title,
+        bankSlug: artist.cardBankSlug || bankInfo.slug,
+      });
+
+      if (resGateway.success) {
+        cardId = resGateway.cardId || resGateway.data?.id || null;
+        registeredCardNumber = cleanCard;
+        syncedAt = new Date();
+      }
+    }
 
     const updated = await prisma.artistProfile.update({
       where: { id: artistId },
       data: {
         isHonarhubPayApproved: true,
-        honarhubPayCardId: cardId,
+        ...(cardId ? { honarhubPayCardId: cardId } : {}),
+        ...(registeredCardNumber ? { honarhubPayCardNumber: registeredCardNumber } : {}),
+        ...(syncedAt ? { honarhubPaySyncedAt: syncedAt } : {}),
         cardBankTitle: artist.cardBankTitle || bankInfo.title,
         cardBankSlug: artist.cardBankSlug || bankInfo.slug,
-        honarhubPaySyncedAt: syncedAt,
       },
     });
 
-    let message = `کارت ${ownerName} با موفقیت در درگاه هنرهاب پی ثبت شد و واریز مستقیم فاکتورهای این هنرمند فعال گردید.`;
-    if (!isSynced) {
-      message = `واریز مستقیم برای ${ownerName} فعال شد. (${resGateway.error || 'نیازمند همگام‌سازی وب‌سرویس'})`;
-    }
+    const message = `واریز مستقیم برای ${ownerName} فعال شد. از این پس مبالغ به کارت ${cleanCard.replace(/(\d{4})(?=\d)/g, '$1 ')} واریز می‌گردد.`;
 
     return NextResponse.json({
       success: true,
       isHonarhubPayApproved: true,
-      cardId,
+      cardId: updated.honarhubPayCardId,
+      honarhubPayCardNumber: updated.honarhubPayCardNumber,
       syncedAt: updated.honarhubPaySyncedAt,
-      isSynced,
       message,
     });
   } catch (error: any) {

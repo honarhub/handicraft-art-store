@@ -54,6 +54,48 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         imageUrl = null;
       }
 
+      // National Card Image Upload if changed
+      let newNationalCardImageUrl: string | null | undefined = undefined;
+      if (body.nationalCardImage && typeof body.nationalCardImage === 'string' && body.nationalCardImage.startsWith('data:image')) {
+        newNationalCardImageUrl = saveUploadImageSync(body.nationalCardImage, 'artists', 'kyc-card');
+      } else if (body.nationalCardImage === '') {
+        newNationalCardImageUrl = null;
+      }
+
+      // Clean card number & bank info
+      let cleanCardNumber: string | null | undefined = undefined;
+      let cardBankTitle: string | null | undefined = undefined;
+      let cardBankSlug: string | null | undefined = undefined;
+      if (body.cardNumber !== undefined) {
+        if (body.cardNumber) {
+          cleanCardNumber = String(body.cardNumber).replace(/\D/g, '').slice(0, 16);
+          if (cleanCardNumber.length === 16) {
+            const { getBankInfoByCardNumber } = await import('@/lib/sms');
+            const bankInfo = getBankInfoByCardNumber(cleanCardNumber);
+            cardBankTitle = bankInfo.title;
+            cardBankSlug = bankInfo.slug;
+          }
+        } else {
+          cleanCardNumber = null;
+          cardBankTitle = null;
+          cardBankSlug = null;
+        }
+      }
+
+      // User email / phone update
+      const userUpdate: any = {
+        name,
+        ...(imageUrl !== undefined ? { image: imageUrl } : {})
+      };
+
+      if (body.email !== undefined) {
+        userUpdate.email = body.email ? String(body.email).trim().toLowerCase() : null;
+      }
+      if (body.phoneNumber !== undefined) {
+        const { normalizePhoneNumber } = await import('@/lib/sms');
+        userUpdate.phoneNumber = body.phoneNumber ? normalizePhoneNumber(String(body.phoneNumber)) : null;
+      }
+
       const updatedArtist = await prisma.artistProfile.update({
         where: { id: artistId },
         data: {
@@ -61,15 +103,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             set: specialties.map((id: string) => ({ id }))
           } : { set: [] },
           bio,
+          brandName: body.brandName !== undefined ? (body.brandName || null) : undefined,
+          province: body.province !== undefined ? (body.province || null) : undefined,
+          city: body.city !== undefined ? (body.city || null) : undefined,
           portfolioUrl: body.portfolioUrl || null,
           socialLinks: body.socialLinks || {},
+          // Financial & KYC fields
+          ...(body.nationalId !== undefined ? { nationalId: body.nationalId ? String(body.nationalId).replace(/\D/g, '') : null } : {}),
+          ...(newNationalCardImageUrl !== undefined ? { nationalCardImage: newNationalCardImageUrl } : {}),
+          ...(body.birthDate !== undefined ? { birthDate: body.birthDate || null } : {}),
+          ...(body.shebaNumber !== undefined ? { shebaNumber: body.shebaNumber ? String(body.shebaNumber).replace(/\D/g, '') : null } : {}),
+          ...(cleanCardNumber !== undefined ? { cardNumber: cleanCardNumber, cardBankTitle, cardBankSlug } : {}),
+          ...(body.address !== undefined ? { address: body.address || null } : {}),
+          ...(body.postalCode !== undefined ? { postalCode: body.postalCode ? String(body.postalCode).replace(/\D/g, '') : null } : {}),
+          ...(body.verificationLevel !== undefined ? { verificationLevel: Number(body.verificationLevel) } : {}),
           user: {
-            update: {
-              name,
-              ...(imageUrl !== undefined ? { image: imageUrl } : {})
-            }
+            update: userUpdate
           }
-        }
+        },
+        include: { user: true, specialties: true }
       });
       return NextResponse.json(updatedArtist);
     }

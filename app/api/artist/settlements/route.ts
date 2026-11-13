@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { calculateArtistTier, getCommissionSettings } from '@/lib/commission';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,10 +38,18 @@ export async function GET() {
       .filter((s) => s.status === 'PAID')
       .reduce((sum, s) => sum + s.amount, 0);
 
+    const [tierInfo, commissionSettings] = await Promise.all([
+      calculateArtistTier(artist.id),
+      getCommissionSettings(),
+    ]);
+
     return NextResponse.json({
       success: true,
       balance: artist.balance,
-      commissionRate: artist.commissionRate,
+      commissionRate: tierInfo.commissionRate,
+      commissionTier: tierInfo.tier,
+      tierInfo,
+      commissionSettings,
       shebaNumber: artist.shebaNumber,
       totalEarnings,
       totalPaidOut,

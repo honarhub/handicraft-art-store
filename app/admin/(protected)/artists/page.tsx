@@ -844,7 +844,7 @@ export default function AdminArtistsPage() {
                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
                     <div className="flex items-center justify-between font-mono font-bold text-slate-800">
                       <span className="font-sans font-normal text-slate-500">کد ملی:</span>
-                      <span>{artist.nationalId || '—'}</span>
+                      <span>{artist.nationalId ? (artist.verificationLevel >= 3 || (artist as any).isNationalIdApproved ? `${artist.nationalId.slice(0, 3)}****${artist.nationalId.slice(7)}` : artist.nationalId) : '—'}</span>
                     </div>
                     <div className="flex items-center justify-between font-mono text-xs text-teal-800" dir="ltr">
                       <span className="font-sans font-normal text-slate-500" dir="rtl">شماره شبا:</span>
@@ -894,7 +894,7 @@ export default function AdminArtistsPage() {
                         {artist.brandName && <div className="text-xs text-slate-500">{artist.brandName}</div>}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-mono font-bold text-slate-800 text-xs">کد ملی: {artist.nationalId || '—'}</div>
+                        <div className="font-mono font-bold text-slate-800 text-xs">کد ملی: {artist.nationalId ? (artist.verificationLevel >= 3 ? `${artist.nationalId.slice(0, 3)}****${artist.nationalId.slice(7)}` : artist.nationalId) : '—'}</div>
                         <div className="font-mono text-xs text-teal-800 mt-1 dir-ltr inline-block">
                           IR{artist.shebaNumber || '—'}
                         </div>

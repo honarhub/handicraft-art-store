@@ -746,12 +746,12 @@ export default function ArtistVerificationPage() {
                     type="text"
                     maxLength={10}
                     disabled={isNationalIdApproved}
-                    value={nationalId}
+                    value={isNationalIdApproved && nationalId.length === 10 ? `${nationalId.slice(0, 3)}****${nationalId.slice(7)}` : nationalId}
                     onChange={e => setNationalId(e.target.value.replace(/\D/g, ''))}
                     placeholder="۰۰۱۲۳۴۵۶۷۸"
                     className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-mono outline-none transition-all ${
                       isNationalIdApproved
-                        ? 'bg-slate-100 text-slate-500 cursor-not-allowed border-emerald-300'
+                        ? 'bg-slate-100 text-slate-700 font-bold tracking-widest cursor-not-allowed border-emerald-300'
                         : isNationalIdRejected
                         ? 'border-red-400 ring-2 ring-red-100 bg-white'
                         : nationalId.length === 10 && !isValidIranianNationalId(nationalId)

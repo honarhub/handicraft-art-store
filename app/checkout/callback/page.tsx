@@ -24,6 +24,16 @@ function CallbackContent() {
     async function verify() {
       // If user cancelled
       if (statusParam === 'CANCELLED' || statusParam === 'FAILED') {
+        if (orderId || authority) {
+          fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: orderId || undefined,
+              authority: authority || undefined,
+            }),
+          }).catch((e) => console.error('Failed to notify order cancellation:', e));
+        }
         setError('پرداخت توسط شما لغو گردید یا با خطا مواجه شد.');
         setLoading(false);
         return;

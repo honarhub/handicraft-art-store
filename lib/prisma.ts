@@ -104,6 +104,7 @@ const MIGRATION_STATEMENTS = [
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "cardBankTitle" TEXT',
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "cardBankSlug" TEXT',
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "honarhubPayCardId" TEXT',
+  'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "honarhubPayCardNumber" TEXT',
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "isHonarhubPayApproved" BOOLEAN NOT NULL DEFAULT false',
   'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "honarhubPaySyncedAt" TIMESTAMP(3)',
 
@@ -118,6 +119,23 @@ const MIGRATION_STATEMENTS = [
   'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "adminCardBankSlug" TEXT',
   'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "adminHonarhubPayCardId" TEXT',
   'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "adminHonarhubPaySyncedAt" TIMESTAMP(3)',
+
+  // --- Artist Commission Tiers & Special Offer ---
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionBronzeRate" DOUBLE PRECISION NOT NULL DEFAULT 5.0',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionSilverRate" DOUBLE PRECISION NOT NULL DEFAULT 3.0',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionSilverMonthlySales" INTEGER NOT NULL DEFAULT 10',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionSilverYearlySales" INTEGER NOT NULL DEFAULT 50',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionGoldenRate" DOUBLE PRECISION NOT NULL DEFAULT 1.0',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionGoldenMonthlySales" INTEGER NOT NULL DEFAULT 30',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionGoldenYearlySales" INTEGER NOT NULL DEFAULT 200',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionIranZaminRate" DOUBLE PRECISION NOT NULL DEFAULT 0.0',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "commissionIranZaminMonthlySales" INTEGER NOT NULL DEFAULT 100',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "specialOfferLaunchActive" BOOLEAN NOT NULL DEFAULT true',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "specialOfferLaunchDeadline" TEXT NOT NULL DEFAULT \'1406/01/01\'',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "specialOfferLaunchTier" TEXT NOT NULL DEFAULT \'GOLDEN\'',
+  'ALTER TABLE "SiteSettings" ADD COLUMN IF NOT EXISTS "specialOfferLaunchRate" DOUBLE PRECISION NOT NULL DEFAULT 1.0',
+
+  'ALTER TABLE "ArtistProfile" ADD COLUMN IF NOT EXISTS "commissionTier" TEXT NOT NULL DEFAULT \'BRONZE\'',
 
   'ALTER TABLE "Transaction" ADD COLUMN IF NOT EXISTS "orderId" TEXT',
   'ALTER TABLE "Transaction" ADD COLUMN IF NOT EXISTS "referenceId" TEXT',

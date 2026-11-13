@@ -116,15 +116,37 @@ export default function CartPage() {
                 if (item) {
                   return (
                     <div key={itemKey} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col sm:flex-row gap-6 items-center">
-                      <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
-                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                      </div>
+                      <a
+                        href={`/product/${item.productId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 group relative cursor-pointer"
+                        title="مشاهده جزئیات اثر در برگه جدید"
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-slate-800 p-1.5 rounded-lg shadow-sm text-xs">
+                            ↗
+                          </span>
+                        </div>
+                      </a>
                       
                       <div className="flex-1 w-full">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <a href={`/product/${item.productId}`} className="text-lg font-bold text-slate-800 hover:text-emerald-600 transition-colors line-clamp-1">
-                              {item.title}
+                            <a
+                              href={`/product/${item.productId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-lg font-bold text-slate-800 hover:text-emerald-600 transition-colors line-clamp-1 inline-flex items-center gap-1.5"
+                              title="مشاهده اثر در تب جداگانه"
+                            >
+                              <span>{item.title}</span>
+                              <span className="text-xs text-slate-400 font-normal">↗</span>
                             </a>
                             <div className="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-2">
                               <span>اثر: {item.artistName}</span>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getCommissionSettings } from '@/lib/commission';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +64,8 @@ export async function GET() {
     const pendingSettlementsAmount = pendingRequests._sum.amount || 0;
     const completedSettlementsAmount = paidRequests._sum.amount || 0;
 
+    const commissionSettings = await getCommissionSettings();
+
     return NextResponse.json({
       success: true,
       metrics: {
@@ -72,6 +75,7 @@ export async function GET() {
         pendingSettlementsAmount,
         completedSettlementsAmount,
       },
+      commissionSettings,
       settlementRequests,
     });
   } catch (error: any) {

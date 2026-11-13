@@ -32,8 +32,19 @@ export async function POST(req: Request) {
     const data = gatewayRes.data;
     const status = data.status || 'PENDING';
 
+    // Find the log first to get orderId
+    const targetLog = await prisma.paymentLog.findFirst({
+      where: {
+        OR: [
+          { authority: identifier },
+          { trackingCode: identifier },
+        ],
+      },
+      select: { id: true, orderId: true },
+    });
+
     // Update payment log if exists
-    const updatedLog = await prisma.paymentLog.updateMany({
+    await prisma.paymentLog.updateMany({
       where: {
         OR: [
           { authority: identifier },
@@ -47,6 +58,25 @@ export async function POST(req: Request) {
         paidAt: data.paidAt ? new Date(data.paidAt) : undefined,
       },
     });
+
+    // If order is linked, update order status accordingly
+    if (targetLog?.orderId) {
+      if (status === 'PAID') {
+        await prisma.order.update({
+          where: { id: targetLog.orderId },
+          data: {
+            status: 'PAID',
+            paidAt: data.paidAt ? new Date(data.paidAt) : new Date(),
+            paymentRefId: data.trackingCode || identifier,
+          },
+        }).catch((e) => console.error('Failed to sync order to PAID:', e));
+      } else if (status === 'CANCELLED') {
+        await prisma.order.updateMany({
+          where: { id: targetLog.orderId, status: 'PENDING' },
+          data: { status: 'CANCELLED' },
+        }).catch((e) => console.error('Failed to sync order to CANCELLED:', e));
+      }
+    }
 
     return NextResponse.json({
       success: true,

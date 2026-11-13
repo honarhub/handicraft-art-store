@@ -31,6 +31,7 @@ interface ArtistItem {
   cardBankTitle: string | null;
   cardBankSlug: string | null;
   cardId: string | null;
+  honarhubPayCardNumber: string | null;
   isHonarhubPayApproved: boolean;
   syncedAt: string | null;
 }
@@ -126,6 +127,9 @@ export default function HonarHubPayAdminPage() {
   const [searchArtist, setSearchArtist] = useState('');
   const [logFilter, setLogFilter] = useState<'ALL' | 'PAID' | 'FAILED' | 'PENDING'>('ALL');
   const [actionLoadingArtistId, setActionLoadingArtistId] = useState<string | null>(null);
+  const [sendingCardArtistId, setSendingCardArtistId] = useState<string | null>(null);
+  const [deletingCardArtistId, setDeletingCardArtistId] = useState<string | null>(null);
+  const [artistGatewayError, setArtistGatewayError] = useState<Record<string, string>>({});
   const [inquiringId, setInquiringId] = useState<string | null>(null);
 
   // Derived real-time card validation
@@ -333,6 +337,107 @@ export default function HonarHubPayAdminPage() {
     }
   };
 
+  // Send / Register Artist Card to HonarHub Pay
+  const handleRegisterArtistCard = async (artist: ArtistItem) => {
+    setSendingCardArtistId(artist.id);
+    // Clear previous error
+    setArtistGatewayError((prev) => {
+      const next = { ...prev };
+      delete next[artist.id];
+      return next;
+    });
+
+    try {
+      const res = await fetch('/api/admin/honarhub-pay/register-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': (settingsForm.apiKey || config.apiKey).trim(),
+        },
+        body: JSON.stringify({ artistId: artist.id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const errorText = data.error || 'خطا در ارسال کارت به درگاه هنرهاب پی';
+        setArtistGatewayError((prev) => ({ ...prev, [artist.id]: errorText }));
+        return;
+      }
+
+      // Update in state with new cardId and syncedAt
+      setArtists((prev) =>
+        prev.map((a) =>
+          a.id === artist.id
+            ? {
+                ...a,
+                cardId: data.cardId,
+                honarhubPayCardNumber: data.cardNumber || a.cardNumber,
+                syncedAt: data.syncedAt,
+              }
+            : a
+        )
+      );
+    } catch (err: any) {
+      setArtistGatewayError((prev) => ({
+        ...prev,
+        [artist.id]: `خطای شبکه: ${err.message}`,
+      }));
+    } finally {
+      setSendingCardArtistId(null);
+    }
+  };
+
+  // Soft Delete / Archive Artist Card from HonarHub Pay
+  const handleDeleteArtistCard = async (artist: ArtistItem) => {
+    if (!confirm(`آیا از حذف کارت ${artist.userName} از درگاه پرداخت هنرهاب پی اطمینان دارید؟\nاین عملیات کارت را در درگاه آرشیو کرده و وضعیت درگاه این هنرمند به «در انتظار ارسال» تغییر می‌یابد.`)) {
+      return;
+    }
+
+    setDeletingCardArtistId(artist.id);
+
+    try {
+      const res = await fetch('/api/admin/honarhub-pay/delete-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': (settingsForm.apiKey || config.apiKey).trim(),
+        },
+        body: JSON.stringify({ artistId: artist.id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'خطا در حذف کارت از درگاه هنرهاب پی. اطلاعات در وضعیت قبلی باقی ماند.');
+        return;
+      }
+
+      // Clear error on success and update artist state to unregistered (white)
+      setArtistGatewayError((prev) => {
+        const next = { ...prev };
+        delete next[artist.id];
+        return next;
+      });
+
+      setArtists((prev) =>
+        prev.map((a) =>
+          a.id === artist.id
+            ? {
+                ...a,
+                cardId: null,
+                honarhubPayCardNumber: null,
+                syncedAt: null,
+                isHonarhubPayApproved: false,
+              }
+            : a
+        )
+      );
+    } catch (err: any) {
+      alert(`خطای شبکه در حذف کارت: ${err.message}`);
+    } finally {
+      setDeletingCardArtistId(null);
+    }
+  };
+
   // Toggle Artist Direct Settlement
   const handleToggleArtist = async (artist: ArtistItem, currentApproved: boolean) => {
     const newStatus = !currentApproved;
@@ -362,6 +467,7 @@ export default function HonarHubPayAdminPage() {
                 ...a,
                 isHonarhubPayApproved: data.isHonarhubPayApproved,
                 cardId: data.cardId || a.cardId,
+                honarhubPayCardNumber: data.honarhubPayCardNumber || a.honarhubPayCardNumber,
                 syncedAt: data.syncedAt || a.syncedAt,
               }
             : a
@@ -1060,14 +1166,29 @@ export default function HonarHubPayAdminPage() {
                       <th className="py-3.5 px-3">کد ملی و شبا</th>
                       <th className="py-3.5 px-3">شماره کارت بانکی (۱۶ رقم)</th>
                       <th className="py-3.5 px-3">وضعیت درگاه هنرهاب پی</th>
-                      <th className="py-3.5 px-3 text-center">واریز مستقیم (هنرمند مستقل)</th>
+                      <th className="py-3.5 px-3 text-center">واریز مستقیم به حساب هنرمند</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-800">
                     {filteredArtists.map((artist) => {
                       const isApproved = artist.isHonarhubPayApproved;
                       const isActionLoading = actionLoadingArtistId === artist.id;
+                      const isSending = sendingCardArtistId === artist.id;
+                      const isDeleting = deletingCardArtistId === artist.id;
                       const bankInfo = artist.cardNumber ? getBankInfoByCardNumber(artist.cardNumber) : null;
+
+                      // Card consistency check
+                      const currentCardClean = (artist.cardNumber || '').replace(/\D/g, '');
+                      const registeredCardClean = (artist.honarhubPayCardNumber || '').replace(/\D/g, '');
+                      const hasRegisteredCard = Boolean(artist.cardId);
+                      const isCardMismatched = Boolean(
+                        hasRegisteredCard &&
+                        registeredCardClean &&
+                        currentCardClean &&
+                        currentCardClean !== registeredCardClean
+                      );
+
+                      const gatewayError = artistGatewayError[artist.id];
 
                       return (
                         <tr key={artist.id} className="hover:bg-slate-50/70 transition">
@@ -1125,41 +1246,129 @@ export default function HonarHubPayAdminPage() {
                             )}
                           </td>
 
-                          {/* Gateway Sync Status */}
+                          {/* Gateway Status Badge & Actions (Green / Yellow / Red / White) */}
                           <td className="py-4 px-3">
-                            {artist.cardId ? (
-                              <div>
-                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-mono font-bold inline-block">
-                                  کارت ثبت‌شده: {artist.cardId.slice(0, 14)}...
-                                </span>
-                                {artist.syncedAt && (
-                                  <div className="text-[10px] text-slate-500 mt-1">
-                                    همگام‌سازی: {formatPersianDateTime(artist.syncedAt)}
+                            <div className="space-y-2">
+                              {/* 1. Status Badge */}
+                              {gatewayError ? (
+                                /* RED STATE: Error occurred during send/operation */
+                                <div className="p-2.5 rounded-xl border border-rose-300 bg-rose-50 text-rose-800 text-[11px] space-y-1">
+                                  <div className="flex items-center gap-1.5 font-bold">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                                    <span>خطای ثبت در درگاه هنرهاب پی</span>
                                   </div>
+                                  <p className="text-[10px] text-rose-700 leading-relaxed font-mono">
+                                    {gatewayError}
+                                  </p>
+                                </div>
+                              ) : isCardMismatched ? (
+                                /* YELLOW STATE: New card introduced, different from registered card */
+                                <div className="p-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-[11px] space-y-1">
+                                  <div className="flex items-center gap-1.5 font-bold">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                                    <span>کارت تغییر یافته (مغایرت با درگاه)</span>
+                                  </div>
+                                  <div className="text-[10px] text-amber-800 font-mono">
+                                    کارت درگاه: {registeredCardClean ? registeredCardClean.replace(/(\d{4})(?=\d)/g, '$1 ') : 'نامشخص'}
+                                  </div>
+                                  <div className="text-[10px] text-slate-600">
+                                    جهت به‌روزرسانی درگاه، دکمه «ارسال به هنرهاب پی» را بزنید.
+                                  </div>
+                                </div>
+                              ) : hasRegisteredCard ? (
+                                /* GREEN STATE: Successfully registered & synced */
+                                <div className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 text-[11px] space-y-1">
+                                  <div className="flex items-center gap-1.5 font-bold">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                    <span>درگاه هنرهاب پی فعال و ثبت‌شده</span>
+                                  </div>
+                                  <div className="font-mono text-[10px] text-emerald-800 flex items-center gap-1" dir="ltr">
+                                    <span className="font-sans text-[10px] text-emerald-700" dir="rtl">شناسه کارت:</span>
+                                    <span className="font-bold">{artist.cardId}</span>
+                                  </div>
+                                  {artist.syncedAt && (
+                                    <div className="text-[10px] text-emerald-700/80">
+                                      همگام‌سازی: {formatPersianDateTime(artist.syncedAt)}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                /* WHITE STATE: Waiting to be sent to gateway */
+                                <div className="p-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-[11px] space-y-1 shadow-2xs">
+                                  <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                                    <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0"></span>
+                                    <span>در انتظار ارسال به درگاه</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500">
+                                    هنوز در وب‌سرویس هنرهاب پی ثبت نشده است.
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* 2. Action Buttons: Send to HonarHub Pay + Soft Delete Trash Can */}
+                              <div className="flex items-center gap-2 pt-0.5">
+                                {/* Send to HonarHub Pay Button */}
+                                <button
+                                  type="button"
+                                  disabled={isSending || isDeleting || !artist.cardNumber}
+                                  onClick={() => handleRegisterArtistCard(artist)}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer disabled:opacity-40 ${
+                                    isCardMismatched
+                                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                      : hasRegisteredCard
+                                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                  }`}
+                                  title="ارسال و ثبت کارت بانکی در وب‌سرویس درگاه هنرهاب پی"
+                                >
+                                  <span>{isSending ? '⏳' : '📤'}</span>
+                                  <span>{isSending ? 'در حال ارسال...' : isCardMismatched ? 'به‌روزرسانی در درگاه' : hasRegisteredCard ? 'ارسال مجدد به درگاه' : 'ارسال به هنرهاب پی'}</span>
+                                </button>
+
+                                {/* Trash Can Button (Soft Delete / Archive from HonarHub Pay) */}
+                                {hasRegisteredCard && (
+                                  <button
+                                    type="button"
+                                    disabled={isDeleting || isSending}
+                                    onClick={() => handleDeleteArtistCard(artist)}
+                                    className="p-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition cursor-pointer disabled:opacity-40"
+                                    title="حذف نرم و آرشیو کارت از درگاه هنرهاب پی (بازگشت به حالت در انتظار ارسال)"
+                                  >
+                                    {isDeleting ? (
+                                      <span className="text-xs">⏳</span>
+                                    ) : (
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    )}
+                                  </button>
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-slate-400 text-[11px]">
-                                در انتظار تایید
-                              </span>
-                            )}
+                            </div>
                           </td>
 
-                          {/* Approval Switch / Action */}
+                          {/* Approval Two-State Toggle Switch: Direct Artist Settlement vs Central Admin Account */}
                           <td className="py-4 px-3 text-center">
-                            <button
-                              type="button"
-                              disabled={isActionLoading || !artist.cardNumber}
-                              onClick={() => handleToggleArtist(artist, isApproved)}
-                              className={`relative inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-40 ${
-                                isApproved
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                                  : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300'
-                              }`}
-                            >
-                              <span>{isActionLoading ? '⏳' : isApproved ? '✓' : '○'}</span>
-                              <span>{isApproved ? 'هنرمند مستقل (واریز مستقیم)' : 'تایید و فعال‌سازی'}</span>
-                            </button>
+                            <div className="inline-flex flex-col items-center gap-1.5">
+                              <button
+                                type="button"
+                                disabled={isActionLoading || !artist.cardNumber}
+                                onClick={() => handleToggleArtist(artist, isApproved)}
+                                className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-sm cursor-pointer disabled:opacity-40 ${
+                                  isApproved
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
+                                }`}
+                                title={isApproved ? 'واریز مستقیم به حساب هنرمند فعال است' : 'مبالغ به حساب مرکزی ادمین واریز می‌شود'}
+                              >
+                                <span>{isActionLoading ? '⏳' : isApproved ? '✓' : '✕'}</span>
+                                <span>{isApproved ? 'تایید شده (واریز مستقیم)' : 'عدم تایید (واریز به ادمین)'}</span>
+                              </button>
+
+                              <span className="text-[10px] text-slate-500">
+                                {isApproved ? 'واریز مستقیم به کارت هنرمند' : 'واریز به حساب مدیر سایت'}
+                              </span>
+                            </div>
                           </td>
 
                         </tr>

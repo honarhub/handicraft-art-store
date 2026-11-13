@@ -25,7 +25,7 @@ interface SavedAddress {
 
 export default function CheckoutPage() {
   const { data: session } = useSession();
-  const { items, totalPrice, clearCart, removeFromCart } = useCart();
+  const { items, totalPrice, clearCart, removeFromCart, updateQuantity } = useCart();
   const [mounted, setMounted] = useState(false);
 
   // 3-Step Checkout: 1: Shipping, 2: Review, 3: Payment
@@ -1169,7 +1169,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="space-y-3">
-                      {/* Bank Gateway */}
+                      {/* Bank Gateway (HonarHub Pay) */}
                       <label
                         className={`block cursor-pointer border-2 rounded-2xl p-4.5 transition-all ${
                           paymentMethod === 'bank'
@@ -1187,14 +1187,20 @@ export default function CheckoutPage() {
                             className="w-5 h-5 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                           />
                           <div className="flex-1">
-                            <div className="font-black text-sm text-slate-900">
-                              درگاه پرداخت اینترنتی شاپرک (تمامی کارت‌های شتاب)
+                            <div className="font-black text-sm text-slate-900 flex items-center gap-2">
+                              <span>درگاه پرداخت آسان هنرهاب پی</span>
+                              <span className="bg-[#FF9900] text-black text-[10px] font-black px-2 py-0.5 rounded-md shadow-2xs">
+                                HONARHUB PAY
+                              </span>
                             </div>
                             <div className="text-xs text-slate-500 mt-1">
-                              اتصال ایمن به شبکه پرداخت الکترونیک کشور با ضمانت بازگشت وجه هنرهاب
+                              اتصال ایمن به هنرهاب پی با ضمانت بازگشت وجه هنرهاب
                             </div>
                           </div>
-                          <div className="text-3xl opacity-80 shrink-0">💳</div>
+                          <div className="shrink-0 flex items-center gap-1.5 bg-slate-900 text-white px-2.5 py-1.5 rounded-xl shadow-xs" dir="ltr">
+                            <span className="text-xs font-black tracking-tight text-white">Honar</span>
+                            <span className="bg-[#FF9900] text-black text-[10px] font-black px-1.5 py-0.5 rounded">PAY</span>
+                          </div>
                         </div>
                       </label>
 
@@ -1275,12 +1281,27 @@ export default function CheckoutPage() {
                                 {/* Items mini-list */}
                                 <div className="space-y-2">
                                   {split.items.map((it: any, iIdx: number) => (
-                                    <div key={iIdx} className="flex items-center justify-between text-xs py-1.5 px-3 bg-slate-50 rounded-xl">
+                                    <div key={iIdx} className="flex items-center justify-between text-xs py-1.5 px-3 bg-slate-50 rounded-xl hover:bg-slate-100/80 transition-colors">
                                       <div className="flex items-center gap-2.5 truncate max-w-[70%]">
-                                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-200 shrink-0">
-                                          {it.imageUrl && <img src={it.imageUrl} alt="" className="w-full h-full object-cover" />}
-                                        </div>
-                                        <span className="font-bold text-slate-800 truncate">{it.title}</span>
+                                        <a
+                                          href={`/product/${it.productId}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="w-8 h-8 rounded-lg overflow-hidden bg-slate-200 shrink-0 group relative cursor-pointer"
+                                          title="مشاهده اثر در تب جداگانه"
+                                        >
+                                          {it.imageUrl && <img src={it.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />}
+                                        </a>
+                                        <a
+                                          href={`/product/${it.productId}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="font-bold text-slate-800 truncate hover:text-teal-700 transition-colors inline-flex items-center gap-1"
+                                          title="مشاهده اثر در تب جداگانه"
+                                        >
+                                          <span>{it.title}</span>
+                                          <span className="text-[10px] text-slate-400">↗</span>
+                                        </a>
                                         <span className="text-slate-400 font-mono text-[11px]">× {toPersianDigits(it.quantity)}</span>
                                       </div>
                                       <div className="font-mono font-bold text-slate-900">
@@ -1360,30 +1381,79 @@ export default function CheckoutPage() {
                 <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
                   {items.map((item) => (
                     <div key={item.id || item.productId} className="flex items-center gap-3">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"
-                      />
+                      <a
+                        href={`/product/${item.productId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 shrink-0 group relative cursor-pointer"
+                        title="مشاهده اثر در تب جداگانه"
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                        />
+                      </a>
                       <div className="flex-1 overflow-hidden">
-                        <div className="text-xs font-bold text-slate-900 truncate">{item.title}</div>
+                        <a
+                          href={`/product/${item.productId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold text-slate-900 truncate hover:text-teal-700 transition-colors block"
+                          title="مشاهده اثر در تب جداگانه"
+                        >
+                          {item.title} ↗
+                        </a>
                         <div className="text-[11px] text-slate-500 mt-0.5">
                           {toPersianDigits(item.quantity)} عدد • {toPersianDigits(item.price.toLocaleString())} ت
                         </div>
                       </div>
 
-                      {/* Allow deletion only in step 1 (اطلاعات ارسال) */}
+                      {/* Quantity controls & deletion in step 1 (اطلاعات ارسال) */}
                       {step === 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeFromCart(getCartItemId(item))}
-                          title="حذف از سبد خرید"
-                          className="w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* Plus / Minus quantity controls */}
+                          <div className="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (item.quantity > 1) {
+                                  updateQuantity(getCartItemId(item), item.quantity - 1);
+                                } else {
+                                  removeFromCart(getCartItemId(item));
+                                }
+                              }}
+                              title={item.quantity === 1 ? 'حذف از سبد' : 'کاهش تعداد'}
+                              className="w-5 h-5 flex items-center justify-center rounded hover:bg-white text-slate-600 hover:text-red-600 transition-colors cursor-pointer text-xs font-bold"
+                            >
+                              -
+                            </button>
+                            <span className="w-5 text-center font-bold text-[11px] text-slate-800">
+                              {toPersianDigits(item.quantity)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(getCartItemId(item), item.quantity + 1)}
+                              disabled={item.quantity >= item.maxStock}
+                              title="افزایش تعداد"
+                              className="w-5 h-5 flex items-center justify-center rounded hover:bg-white text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer text-xs font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Delete trash button */}
+                          <button
+                            type="button"
+                            onClick={() => removeFromCart(getCartItemId(item))}
+                            title="حذف از سبد خرید"
+                            className="w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}

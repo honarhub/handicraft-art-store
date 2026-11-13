@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${errorRedirect}?error=${encodeURIComponent("پیکربندی سرور ناقص است")}`);
   }
 
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${origin}/api/auth/google/callback`;
 
   try {
     // ── Step 1: Exchange code for tokens ─────────────────────────────────────

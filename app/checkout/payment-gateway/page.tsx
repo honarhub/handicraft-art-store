@@ -161,8 +161,19 @@ function GatewayContent() {
   };
 
   // Handle Cancel
-  const handleCancelPayment = () => {
+  const handleCancelPayment = async () => {
     if (window.confirm('آیا از انصراف از پرداخت اطمینان دارید؟ سبد خرید شما محفوظ خواهد ماند.')) {
+      if (orderId) {
+        try {
+          await fetch('/api/orders/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId }),
+          });
+        } catch (e) {
+          console.error('Failed to cancel order on gateway abort:', e);
+        }
+      }
       router.push('/cart');
     }
   };

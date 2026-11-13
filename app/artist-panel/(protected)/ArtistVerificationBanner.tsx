@@ -35,17 +35,26 @@ export default function ArtistVerificationBanner({
 
   useEffect(() => {
     try {
-      const isDismissed = localStorage.getItem(`level2_celebration_dismissed_${artistId || 'default'}`);
-      setCelebrationDismissed(isDismissed === 'true');
+      const isDismissedL2 = localStorage.getItem(`level2_celebration_dismissed_${artistId || 'default'}`);
+      const isDismissedL3 = localStorage.getItem(`level3_celebration_dismissed_${artistId || 'default'}`);
+      if (level >= 3) {
+        setCelebrationDismissed(isDismissedL3 === 'true');
+      } else {
+        setCelebrationDismissed(isDismissedL2 === 'true');
+      }
     } catch {
       setCelebrationDismissed(false);
     }
-  }, [artistId]);
+  }, [artistId, level]);
 
   const handleDismissCelebration = () => {
     setCelebrationDismissed(true);
     try {
-      localStorage.setItem(`level2_celebration_dismissed_${artistId || 'default'}`, 'true');
+      if (level >= 3) {
+        localStorage.setItem(`level3_celebration_dismissed_${artistId || 'default'}`, 'true');
+      } else {
+        localStorage.setItem(`level2_celebration_dismissed_${artistId || 'default'}`, 'true');
+      }
     } catch {}
   };
 
@@ -133,8 +142,72 @@ export default function ArtistVerificationBanner({
     };
   }, []);
 
-  // --- CASE C: Level 2+ Approved Celebration & Notification Banner ---
-  if (approved && level >= 2 && !pending) {
+  // --- CASE C: Level 3 Approved Celebration & Notification Banner ---
+  if (approved && level >= 3 && !pending) {
+    if (celebrationDismissed) {
+      return null;
+    }
+
+    return (
+      <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-emerald-950 text-white rounded-3xl p-5 sm:p-6 mb-8 border-2 border-emerald-500/50 shadow-2xl relative overflow-hidden transition-all animate-in fade-in" dir="rtl">
+        <div className="absolute top-0 left-0 w-80 h-80 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-xl">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 text-xs font-black bg-emerald-500 text-slate-950 px-3.5 py-1 rounded-full shadow-sm">
+                <span>⭐</span>
+                <span>احراز هویت: سطح ۳ از ۳ (طلایی - تایید نهایی)</span>
+              </span>
+
+              <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>تسویه حساب مستقیم و درگاه پرداخت فعال</span>
+              </span>
+            </div>
+
+            <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+              <span>🎉 تبریک! مدارک هویتی و مالی شما تایید شد</span>
+            </h3>
+
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+              تمام مدارک هویتی و مالی (کارت ملی، شماره کارت و شبا) توسط مدیریت تایید گردید. حساب شما به بالاترین سطح احراز هویت (سطح ۳) ارتقا یافت و امکان واریز و تسویه حساب کامل درآمدها برای شما فعال است.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 justify-start md:justify-end flex-shrink-0">
+            <Link
+              href="/artist-panel/finances"
+              className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-3 rounded-2xl transition-all shadow-md shadow-emerald-600/30 text-xs sm:text-sm whitespace-nowrap"
+            >
+              <span>مشاهده بخش مالی و تسویه</span>
+            </Link>
+
+            <Link
+              href="/artist-panel/verification"
+              className="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-4 py-3 rounded-2xl transition-all border border-slate-700 text-xs sm:text-sm whitespace-nowrap"
+            >
+              <span>مشاهده مدارک</span>
+              <span>←</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleDismissCelebration}
+              className="px-3.5 py-2.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors text-xs font-bold flex items-center gap-1 border border-slate-700/60"
+              title="بستن این پیام"
+            >
+              <span>✕</span>
+              <span>متوجه شدم</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- CASE C2: Level 2 Approved Celebration & Notification Banner ---
+  if (approved && level === 2 && !pending) {
     if (celebrationDismissed) {
       return null;
     }

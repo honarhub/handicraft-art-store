@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { calculateArtistTier } from '@/lib/commission';
 import prisma from '@/lib/prisma';
 import { createHonarHubPaymentRequest } from '@/lib/honarhubPay';
 
@@ -87,7 +88,15 @@ export async function POST(req: Request) {
         const price = Number(item.price) || 0;
         const qty = Number(item.quantity) || 1;
         const lineTotal = price * qty;
-        const commissionRate = product?.artist?.commissionRate ?? 10.0;
+        let commissionRate = product?.artist?.commissionRate ?? 5.0;
+        if (product?.artist?.id) {
+          try {
+            const tierCalc = await calculateArtistTier(product.artist.id);
+            commissionRate = tierCalc.commissionRate;
+          } catch (e) {
+            console.error('Error calculating artist tier at checkout:', e);
+          }
+        }
         const platformFee = Math.round(lineTotal * (commissionRate / 100));
         const artistEarnings = lineTotal - platformFee;
 

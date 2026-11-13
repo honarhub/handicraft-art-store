@@ -531,7 +531,7 @@ export default function ArtistAddProductPage() {
               {price ? (
                 <div className="text-xs text-teal-900 font-bold mt-2 bg-teal-50 px-3 py-1.5 rounded-lg border border-teal-200/70 inline-flex items-center gap-1.5">
                   <span>💰 معادل:</span>
-                  <span className="font-black text-teal-700">{Number(price).toLocaleString('fa-IR')} تومان</span>
+                  <span className="font-black text-teal-700">{(Number(price) * 10).toLocaleString('fa-IR')} ریال</span>
                 </div>
               ) : null}
             </div>

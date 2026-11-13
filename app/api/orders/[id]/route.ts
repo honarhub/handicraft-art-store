@@ -48,11 +48,40 @@ export async function GET(
             },
           },
         },
+        paymentLogs: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            authority: true,
+            trackingCode: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
     if (!order) {
       return NextResponse.json({ error: 'سفارش یافت نشد.' }, { status: 404 });
+    }
+
+    // Auto-heal status if inconsistent
+    const latestLog = order.paymentLogs?.[0];
+    if (order.status === 'PENDING') {
+      if (order.paidAt || latestLog?.status === 'PAID') {
+        order.status = 'PAID';
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: 'PAID' },
+        }).catch((e) => console.error('Auto-heal to PAID error:', e));
+      } else if (latestLog?.status === 'CANCELLED') {
+        order.status = 'CANCELLED';
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { status: 'CANCELLED' },
+        }).catch((e) => console.error('Auto-heal to CANCELLED error:', e));
+      }
     }
 
     return NextResponse.json({ success: true, order });

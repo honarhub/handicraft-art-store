@@ -135,6 +135,7 @@ model ArtistProfile {
   cardBankTitle       String?   // عنوان بانک صادرکننده
   cardBankSlug        String?   // شناسه انگلیسی بانک
   honarhubPayCardId   String?   // شناسه ثبت در وب‌سرویس هنرهاب پی
+  honarhubPayCardNumber String? // شماره کارتی که با آن در وب‌سرویس ثبت شده است
   isHonarhubPayApproved Boolean @default(false) // تایید ادمین برای واریز مستقیم به کارت هنرمند
   honarhubPaySyncedAt DateTime? // تاریخ آخرین همگام‌سازی با درگاه
   
@@ -147,9 +148,10 @@ model ArtistProfile {
   deletionReason      String?
   deletionRequestedAt DateTime?
   
-  // فیلدهای مالی
+  // فیلدهای مالی و سطح کارمزد
   balance         Float    @default(0)
-  commissionRate  Float    @default(10.0) // 10% پیش‌فرض برای پلتفرم
+  commissionTier  String   @default("BRONZE") // BRONZE, SILVER, GOLDEN, IRAN_ZAMIN
+  commissionRate  Float    @default(5.0) // پیش‌فرض سطح برنزی ۵٪
   
   // فیلدهای مربوط به چرخه تایید تغییرات
   pendingEdits   Json?     // نگهداری تغییرات پیشنهادی هنرمند
@@ -519,6 +521,23 @@ model SiteSettings {
   adminCardBankSlug        String?
   adminHonarhubPayCardId   String?
   adminHonarhubPaySyncedAt DateTime?
+
+  // تنظیمات سطوح کارمزد پلتفرم و هنرمندان (برنزی، نقره‌ای، طلایی، ایران زمین)
+  commissionBronzeRate            Float    @default(5.0)   // کارمزد سطح برنزی ۵٪
+  commissionSilverRate            Float    @default(3.0)   // کارمزد سطح نقره‌ای ۳٪
+  commissionSilverMonthlySales    Int      @default(10)    // حداقل ۱۰ فروش موفق ماهانه برای نقره‌ای
+  commissionSilverYearlySales     Int      @default(50)    // حداقل ۵۰ فروش موفق سالانه برای نقره‌ای
+  commissionGoldenRate            Float    @default(1.0)   // کارمزد سطح طلایی ۱٪
+  commissionGoldenMonthlySales    Int      @default(30)    // حداقل ۳۰ فروش موفق ماهانه برای طلایی
+  commissionGoldenYearlySales     Int      @default(200)   // حداقل ۲۰۰ فروش موفق سالانه برای طلایی
+  commissionIranZaminRate         Float    @default(0.0)   // کارمزد هنرمند ایران زمین ۰٪
+  commissionIranZaminMonthlySales Int      @default(100)   // حداقل ۱۰۰ فروش موفق ماهانه برای هنرمند ایران زمین (۱ ماهه)
+
+  // آفر ویژه عضویت تا ۱ فروردین ۱۴۰۶
+  specialOfferLaunchActive        Boolean  @default(true)  // فعال بودن آفر ویژه
+  specialOfferLaunchDeadline      String   @default("1406/01/01") // مهلت تا اول فروردین ۱۴۰۶
+  specialOfferLaunchTier          String   @default("GOLDEN") // سطح اعطایی: GOLDEN
+  specialOfferLaunchRate          Float    @default(1.0)   // کارمزد ۱٪ برای اعضای آفر ویژه
 
   updatedAt                DateTime   @updatedAt
 }

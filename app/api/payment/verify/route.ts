@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyHonarHubPayment } from '@/lib/honarhubPay';
+import { calculateArtistTier } from '@/lib/commission';
 
 export const dynamic = 'force-dynamic';
 
@@ -209,6 +210,20 @@ export async function POST(req: Request) {
 
       return ord;
     });
+
+    // Auto-evaluate and upgrade artist tiers in background
+    try {
+      const distinctArtistIds = Array.from(
+        new Set(order.items.map((i) => i.artistId || i.product?.artistId).filter(Boolean) as string[])
+      );
+      for (const aId of distinctArtistIds) {
+        calculateArtistTier(aId).catch((err) =>
+          console.error('Failed to auto-upgrade artist tier after payment:', err)
+        );
+      }
+    } catch (e) {
+      console.error('Error triggering tier calculation:', e);
+    }
 
     return NextResponse.json({
       success: true,

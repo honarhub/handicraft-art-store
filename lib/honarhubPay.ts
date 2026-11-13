@@ -152,6 +152,94 @@ export async function upsertCardToHonarHubPay(
   }
 }
 
+export interface DeleteCardParams {
+  cardId?: string;
+  cardNumber?: string;
+}
+
+export interface DeleteCardResponse {
+  success: boolean;
+  status: number;
+  message?: string;
+  error?: string;
+  data?: any;
+}
+
+/**
+ * Soft deletes / archives a card on HonarHub Pay
+ * Calls DELETE /api/v1/card/delete
+ */
+export async function deleteCardFromHonarHubPay(
+  params: DeleteCardParams,
+  overrideApiKey?: string
+): Promise<DeleteCardResponse> {
+  const config = await getHonarHubPayConfig();
+  const apiKey = (overrideApiKey || config.apiKey).trim();
+
+  const payload: any = {};
+  if (params.cardId) payload.cardId = params.cardId;
+  if (params.cardNumber) payload.cardNumber = params.cardNumber.replace(/\D/g, '');
+
+  if (!payload.cardId && !payload.cardNumber) {
+    return {
+      success: false,
+      status: 400,
+      error: 'حداقل یکی از مقادیر شناسه کارت یا شماره کارت الزامی است.',
+    };
+  }
+
+  const endpointUrl = `${config.baseUrl}/api/v1/card/delete`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-api-key': apiKey,
+    'Accept': 'application/json',
+  };
+
+  try {
+    const res = await fetch(endpointUrl, {
+      method: 'DELETE',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const rawText = await res.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = { rawText };
+    }
+
+    if (!res.ok || !data?.success) {
+      let errorMsg = data?.error || data?.message;
+      if (res.status === 401) {
+        errorMsg = 'عدم احراز هویت درگاه (Unauthorized - 401): کلید وب‌سرویس نامعتبر است.';
+      } else if (!errorMsg) {
+        errorMsg = `خطای سرور درگاه در حذف کارت: کد وضعیت ${res.status}`;
+      }
+      return {
+        success: false,
+        status: res.status,
+        error: errorMsg,
+        data,
+      };
+    }
+
+    return {
+      success: true,
+      status: res.status,
+      message: data?.message || 'کارت بانکی با موفقیت از درگاه هنرهاب پی حذف نرم شد.',
+      data: data?.data,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      status: 0,
+      error: `عدم دسترسی به سرور درگاه پرداخت هنرهاب پی: ${err.message}`,
+    };
+  }
+}
+
 export interface PaymentRequestParams {
   amount: number; // in Tomans
   callbackUrl: string;

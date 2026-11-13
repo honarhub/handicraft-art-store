@@ -7,6 +7,7 @@ import Link from 'next/link';
 import LogoutButton from '@/app/components/LogoutButton';
 import ArtistSidebar from './ArtistSidebar';
 import ArtistVerificationBanner from './ArtistVerificationBanner';
+import PasswordChangeWarningBanner from './PasswordChangeWarningBanner';
 import { hasProfilePendingEdits } from '@/lib/sms';
 
 export default async function ArtistPanelLayout({ children }: { children: React.ReactNode }) {
@@ -109,15 +110,7 @@ export default async function ArtistPanelLayout({ children }: { children: React.
           adminFeedback={artist.adminFeedback}
         />
         {artist.user.mustChangePassword && (
-          <div className="bg-red-500 text-white p-4 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">⚠️</span>
-              <p className="font-bold text-sm">رمز عبور شما توسط ادمین تغییر یافته است. برای امنیت حساب، لطفاً هرچه سریع‌تر رمز عبور جدیدی تنظیم کنید.</p>
-            </div>
-            <a href="/artist-panel/security" className="bg-white text-red-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors whitespace-nowrap mr-4">
-              تغییر رمز عبور
-            </a>
-          </div>
+          <PasswordChangeWarningBanner userId={artist.userId} />
         )}
         {children}
       </main>
