@@ -10,7 +10,13 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 ENV NODE_ENV=development
-RUN npm ci --include=dev
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set fetch-timeout 600000 \
+    && for i in 1 2 3 4 5; do \
+         npm ci --include=dev --no-audit --no-fund && break || (echo "npm ci retry $i failed, retrying in 5s..." && sleep 5); \
+       done
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -27,7 +33,11 @@ FROM base AS runner
 WORKDIR /app
 
 RUN for i in 1 2 3 4 5; do apk add --no-cache libc6-compat openssl && break || (echo "apk add retry $i..." && sleep 2); done
-RUN npm install -g prisma@6.19.3
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-timeout 600000 \
+    && for i in 1 2 3 4 5; do \
+         npm install -g prisma@6.19.3 --no-audit --no-fund && break || (echo "prisma install retry $i..." && sleep 3); \
+       done
 
 ENV NODE_ENV production
 # Uncomment the following line in case you want to disable telemetry during runtime.
