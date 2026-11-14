@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/blog`,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 0.9,
+      priority: 0.8,
     },
     {
       url: `${baseUrl}/about`,
@@ -36,13 +36,73 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.4,
+    },
   ];
 
   try {
-    // 2. Blog Posts
+    // 2. Craft Specialties (Categories)
+    const specialties = await prisma.specialty.findMany({
+      where: { isApproved: true },
+      select: { name: true, createdAt: true },
+    });
+
+    const specialtyRoutes: MetadataRoute.Sitemap = specialties.map((spec) => ({
+      url: `${baseUrl}/products?specialty=${encodeURIComponent(spec.name)}`,
+      lastModified: spec.createdAt,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    }));
+
+    // 3. Approved Products
+    const products = await prisma.product.findMany({
+      where: {
+        status: 'APPROVED',
+        deletedAt: null,
+        artist: { isActive: true, isDeleted: false, verificationLevel: { gte: 2 } },
+      },
+      select: { id: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 5000,
+    });
+
+    const productRoutes: MetadataRoute.Sitemap = products.map((product) => ({
+      url: `${baseUrl}/product/${product.id}`,
+      lastModified: product.updatedAt,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    }));
+
+    // 4. Approved Artists (Level 2+)
+    const artists = await prisma.artistProfile.findMany({
+      where: {
+        isApproved: true,
+        isActive: true,
+        isDeleted: false,
+        verificationLevel: { gte: 2 },
+      },
+      select: { id: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 2000,
+    });
+
+    const artistRoutes: MetadataRoute.Sitemap = artists.map((artist) => ({
+      url: `${baseUrl}/artist/${artist.id}`,
+      lastModified: artist.updatedAt,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    }));
+
+    // 5. Published Blog Posts
     const blogPosts = await prisma.blogPost.findMany({
       where: { isPublished: true },
       select: { slug: true, updatedAt: true },
+      orderBy: { publishedAt: 'desc' },
+      take: 2000,
     });
 
     const blogRoutes: MetadataRoute.Sitemap = blogPosts.map((post) => ({
@@ -52,35 +112,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    // 3. Approved Products
-    const products = await prisma.product.findMany({
-      where: { status: 'APPROVED', deletedAt: null },
-      select: { id: true, updatedAt: true },
-    });
-
-    const productRoutes: MetadataRoute.Sitemap = products.map((product) => ({
-      url: `${baseUrl}/product/${product.id}`,
-      lastModified: product.updatedAt,
-      changeFrequency: 'daily',
-      priority: 0.8,
-    }));
-
-    // 4. Approved Artists
-    const artists = await prisma.artistProfile.findMany({
-      where: { isApproved: true, isActive: true, isDeleted: false },
-      select: { id: true, updatedAt: true },
-    });
-
-    const artistRoutes: MetadataRoute.Sitemap = artists.map((artist) => ({
-      url: `${baseUrl}/artist/${artist.id}`,
-      lastModified: artist.updatedAt,
-      changeFrequency: 'weekly',
-      priority: 0.7,
-    }));
-
-    return [...staticRoutes, ...blogRoutes, ...productRoutes, ...artistRoutes];
+    return [
+      ...staticRoutes,
+      ...specialtyRoutes,
+      ...productRoutes,
+      ...artistRoutes,
+      ...blogRoutes,
+    ];
   } catch (error) {
-    console.error('Error generating sitemap:', error);
+    console.error('Error generating dynamic sitemap:', error);
     return staticRoutes;
   }
 }

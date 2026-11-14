@@ -8,8 +8,17 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata = {
-  title: 'وبلاگ هنرهاب | مجله فرهنگ و صنایع دستی ایران',
-  description: 'جدیدترین مقالات درباره صنایع دستی، هنرهای تجسمی و فرهنگ ایران زمین در وبلاگ هنرهاب.',
+  title: 'مجله تخصصی و آکادمی صنایع دستی ایران',
+  description: 'جدیدترین مقالات، تاریخچه هنرها، راهنمای شناخت صنایع دستی اصیل و نقد و بررسی هنرهای سنتی ایران در مجله هنرهاب.',
+  alternates: {
+    canonical: '/blog',
+  },
+  openGraph: {
+    title: 'مجله تخصصی و آکادمی صنایع دستی ایران | هنرهاب',
+    description: 'مقالات، آموزش‌ها و تاریخچه صنایع دستی اصیل ایران زمین در هنرهاب.',
+    url: '/blog',
+    type: 'website',
+  },
 };
 
 export default async function BlogIndex() {

@@ -1,5 +1,6 @@
 import React from 'react';
 import prisma from '@/lib/prisma';
+import type { Metadata } from 'next';
 import CartIcon from '../components/CartIcon';
 import ProductsFilterClient from './ProductsFilterClient';
 import SiteHeader from '@/app/components/SiteHeader';
@@ -8,6 +9,30 @@ import ProductImageWithSkeleton from '@/app/components/ProductImageWithSkeleton'
 import QuickAddToCartButton from '@/app/components/QuickAddToCartButton';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'کاتالوگ و بازارچه صنایع دستی اصیل ایرانی',
+  description: 'مجموعه دست‌سازه‌های هنری فاخر ایرانی شامل میناکاری، خاتم‌کاری، قلم‌زنی، سفالگری، فرش و گلیم با امکان خرید مستقیم از اساتید و هنرمندان با شناسنامه اصالت.',
+  keywords: [
+    'کاتالوگ صنایع دستی',
+    'فروشگاه صنایع دستی',
+    'دست‌سازه‌های اصیل',
+    'خرید مستقیم از هنرمندان',
+    'میناکاری اصفهان',
+    'خاتم کاری شیراز',
+    'قلمزنی تبریز',
+    'هنرهاب',
+  ],
+  alternates: {
+    canonical: '/products',
+  },
+  openGraph: {
+    title: 'کاتالوگ و بازارچه صنایع دستی اصیل ایرانی | هنرهاب',
+    description: 'مجموعه دست‌سازه‌های هنری فاخر ایرانی با امکان خرید مستقیم از اساتید و گواهی اصالت دیجیتال.',
+    url: '/products',
+    type: 'website',
+  },
+};
 
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const params = await searchParams;

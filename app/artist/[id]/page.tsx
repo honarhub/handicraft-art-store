@@ -4,11 +4,104 @@ import { notFound } from 'next/navigation';
 import GeoPattern from 'geopattern';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import type { Metadata } from 'next';
 import SiteHeader from '@/app/components/SiteHeader';
 import SiteFooter from '@/app/components/SiteFooter';
 import ArtistProductsGallery from '@/app/components/ArtistProductsGallery';
 
-export default async function ArtistProfilePage({ params }: { params: Promise<{ id: string }> }) {
+export const dynamic = 'force-dynamic';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://honarhub.com';
+
+interface ArtistPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: ArtistPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const isNumericId = !isNaN(Number(id));
+
+  try {
+    const dbArtist = await prisma.artistProfile.findFirst({
+      where: {
+        OR: [
+          { id: id },
+          ...(isNumericId ? [{ displayId: Number(id) }] : [])
+        ],
+        isDeleted: false,
+      },
+      include: {
+        user: true,
+        specialties: true,
+      },
+    });
+
+    if (!dbArtist) {
+      return {
+        title: 'هنرمند یافت نشد',
+        description: 'پروفایل این هنرمند در دسترس نیست.',
+      };
+    }
+
+    const artistName = dbArtist.brandName || dbArtist.user.name || 'هنرمند مستقل';
+    const cleanBio = (dbArtist.bio || '').replace(/\s+/g, ' ').substring(0, 160);
+    const specialtiesList = dbArtist.specialties.map((s) => s.name).join('، ');
+    const location = [dbArtist.province, dbArtist.city].filter(Boolean).join('، ');
+
+    const avatarUrl = dbArtist.user.image
+      ? (dbArtist.user.image.startsWith('http') ? dbArtist.user.image : `${baseUrl}${dbArtist.user.image.startsWith('/') ? '' : '/'}${dbArtist.user.image}`)
+      : `${baseUrl}/logo.png`;
+
+    const pageTitle = `گالری و آثار استاد ${artistName} (${specialtiesList || 'صنایع دستی'}) | هنرهاب`;
+    const pageDescription = cleanBio || `پروفایل و گالری اختصاصی استاد ${artistName} در زمینه ${specialtiesList || 'صنایع دستی'} در ${location || 'ایران'}. مشاهده سوابق و خرید بی‌واسطه دست‌سازه‌های اصیل در هنرهاب.`;
+
+    return {
+      title: pageTitle,
+      description: pageDescription,
+      keywords: [
+        artistName,
+        ...dbArtist.specialties.map((s) => s.name),
+        location,
+        'استاد صنایع دستی',
+        'هنرمند ایرانی',
+        'خرید مستقیم از کارگاه هنری',
+        'هنرهاب',
+      ].filter(Boolean),
+      alternates: {
+        canonical: `${baseUrl}/artist/${dbArtist.id}`,
+      },
+      openGraph: {
+        type: 'profile',
+        locale: 'fa_IR',
+        url: `${baseUrl}/artist/${dbArtist.id}`,
+        siteName: 'هنرهاب | HonarHub',
+        title: pageTitle,
+        description: pageDescription,
+        images: [
+          {
+            url: avatarUrl,
+            width: 500,
+            height: 500,
+            alt: `استاد ${artistName}`,
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary',
+        title: pageTitle,
+        description: pageDescription,
+        images: [avatarUrl],
+      },
+    };
+  } catch (err) {
+    console.error('Error generating metadata for artist:', err);
+    return {
+      title: 'پروفایل هنرمند | هنرهاب',
+    };
+  }
+}
+
+export default async function ArtistProfilePage({ params }: ArtistPageProps) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
@@ -90,8 +183,68 @@ export default async function ArtistProfilePage({ params }: { params: Promise<{ 
     products: dbArtist.products || []
   };
 
+  const artistName = dbArtist.brandName || dbArtist.user.name || 'هنرمند مستقل';
+  const avatar = dbArtist.user.image
+    ? (dbArtist.user.image.startsWith('http') ? dbArtist.user.image : `${baseUrl}${dbArtist.user.image.startsWith('/') ? '' : '/'}${dbArtist.user.image}`)
+    : `${baseUrl}/logo.png`;
+  const socialList = Object.values((dbArtist.socialLinks as Record<string, string>) || {}).filter(Boolean);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans" dir="rtl">
+      {/* Artist & ProfilePage JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'ProfilePage',
+            mainEntity: {
+              '@type': 'Person',
+              name: artistName,
+              description: dbArtist.bio || `استاد صنایع دستی و دست‌سازه‌های اصیل ایرانی در هنرهاب`,
+              image: avatar,
+              jobTitle: (dbArtist.specialties || []).map((s) => s.name).join(', '),
+              address: {
+                '@type': 'PostalAddress',
+                addressLocality: dbArtist.city || 'ایران',
+                addressRegion: dbArtist.province || '',
+                addressCountry: 'IR',
+              },
+              sameAs: socialList,
+            },
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'هنرهاب',
+                item: baseUrl,
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'هنرمندان و اساتید',
+                item: `${baseUrl}/products?type=artists`,
+              },
+              {
+                '@type': 'ListItem',
+                position: 3,
+                name: artistName,
+                item: `${baseUrl}/artist/${dbArtist.id}`,
+              },
+            ],
+          }),
+        }}
+      />
+
       <SiteHeader />
       {(!dbArtist.isActive || !dbArtist.isApproved) && (
         <div className="bg-red-500 text-white p-3 text-center text-sm font-bold shadow-md z-50">

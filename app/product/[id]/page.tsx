@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import type { Metadata } from 'next';
 import ProductGallery from './ProductGallery';
 import ExpandableDescription from './ExpandableDescription';
 import ProductPurchaseSection from './ProductPurchaseSection';
@@ -14,7 +15,92 @@ import SiteFooter from '@/app/components/SiteFooter';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://honarhub.com';
+
+interface ProductPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { id } = await params;
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        artist: { include: { user: true } },
+        specialties: true,
+        pricingTiers: true,
+      },
+    });
+
+    if (!product || product.deletedAt) {
+      return {
+        title: 'محصول یافت نشد',
+        description: 'این اثر هنری در دسترس نیست یا حذف شده است.',
+      };
+    }
+
+    const artistName = product.artist.brandName || product.artist.user.name || 'هنرمند مستقل';
+    const cleanDesc = (product.description || '').replace(/\s+/g, ' ').substring(0, 160);
+    const specialtyNames = product.specialties.map((s) => s.name).join('، ');
+    const allMedia = product.mediaUrls && product.mediaUrls.length > 0
+      ? product.mediaUrls
+      : (product.imageUrl ? [product.imageUrl] : []);
+
+    const imageUrls = allMedia.map((url) => {
+      if (url.startsWith('http')) return url;
+      return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    });
+
+    const pageTitle = `${product.title} اثر استاد ${artistName} | هنرهاب`;
+    const pageDescription = cleanDesc || `خرید مستقیم دست‌سازه اصیل ${product.title} در رشته ${specialtyNames} با شناسنامه اصالت دیجیتال از استاد ${artistName} در هنرهاب.`;
+
+    return {
+      title: pageTitle,
+      description: pageDescription,
+      keywords: [
+        product.title,
+        artistName,
+        ...product.specialties.map((s) => s.name),
+        'صنایع دستی ایران',
+        'دست‌سازه اصیل',
+        'خرید مستقیم از هنرمند',
+        'هنرهاب',
+      ],
+      alternates: {
+        canonical: `${baseUrl}/product/${product.id}`,
+      },
+      openGraph: {
+        type: 'article',
+        locale: 'fa_IR',
+        url: `${baseUrl}/product/${product.id}`,
+        siteName: 'هنرهاب | HonarHub',
+        title: pageTitle,
+        description: pageDescription,
+        images: imageUrls.map((url) => ({
+          url,
+          width: 800,
+          height: 800,
+          alt: product.title,
+        })),
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: pageTitle,
+        description: pageDescription,
+        images: imageUrls.length > 0 ? [imageUrls[0]] : ['/og-image.png'],
+      },
+    };
+  } catch (err) {
+    console.error('Error generating metadata for product:', err);
+    return {
+      title: 'اثر هنری | هنرهاب',
+    };
+  }
+}
+
+export default async function ProductPage({ params }: ProductPageProps) {
   const { id } = await params;
   
   const product = await prisma.product.findUnique({
@@ -52,6 +138,75 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans" dir="rtl">
+      {/* Product & Breadcrumb JSON-LD Structured Data for Google Rich Snippets & AI Engines */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: product.title,
+            description: (product.description || '').replace(/\s+/g, ' ').substring(0, 300),
+            image: allMedia.map((u) => u.startsWith('http') ? u : `${baseUrl}${u.startsWith('/') ? '' : '/'}${u}`),
+            category: product.specialties.map((s) => s.name).join(', '),
+            brand: {
+              '@type': 'Brand',
+              name: product.artist.brandName || product.artist.user.name || 'هنرهاب',
+            },
+            offers: {
+              '@type': 'Offer',
+              price: basePrice,
+              priceCurrency: 'IRT',
+              priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              availability: product.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+              url: `${baseUrl}/product/${product.id}`,
+              seller: {
+                '@type': 'Person',
+                name: product.artist.user.name || product.artist.brandName || 'استاد صنایع دستی',
+              },
+            },
+            ...(avgRating && reviewCount > 0 ? {
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: avgRating,
+                reviewCount: reviewCount,
+                bestRating: '5',
+                worstRating: '1',
+              },
+            } : {}),
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'هنرهاب',
+                item: baseUrl,
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'محصولات و دست‌سازه‌ها',
+                item: `${baseUrl}/products`,
+              },
+              {
+                '@type': 'ListItem',
+                position: 3,
+                name: product.title,
+                item: `${baseUrl}/product/${product.id}`,
+              },
+            ],
+          }),
+        }}
+      />
+
       <SiteHeader />
       {product.status !== 'APPROVED' && (
         <div className="bg-amber-500 text-white p-3 text-center text-sm font-bold shadow-md z-40">
